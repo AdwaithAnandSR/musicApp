@@ -1,13 +1,12 @@
-import TrackPlayer from "react-native-track-player";
+import { useTrack } from "../context/track.context.js";
 
-const jump = async (item)=> {
-   const q = await TrackPlayer.getQueue()
-   const index = q.findIndex(elem=> elem._id === item._id)
-   
-   if(index > -1) {
-      await TrackPlayer.skip(index)
-      await TrackPlayer.play()
-   }
-}
+const jump = async item => {
+    console.log(item);
+    const { setTrack, play } = useTrack();
+    console.log("item");
+    
+    setTrack(item)
+    play()
+};
 
-export default jump
+export default jump;

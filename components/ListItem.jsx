@@ -7,66 +7,43 @@ import {
     StyleSheet,
     Image
 } from "react-native";
-// import { Image } from "expo-image";
-import FastImage from "react-native-fast-image";
 import LottieView from "lottie-react-native";
-import TrackPlayer, {
-    useActiveTrack,
-    usePlaybackState,
-    State
-} from "react-native-track-player";
+import { useAudioPlayerStatus } from "expo-audio";
 
-import jump from "../controllers/jumpTo.js";
+import { useTrack } from "../context/track.context.js"
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const ListItem = ({ item }) => {
-    const currTrack = useActiveTrack();
-    const playbackState = usePlaybackState();
+    const { setTrack, togglePlay ,player, track} = useTrack();
+    const {playing, isBuffering} = useAudioPlayerStatus(player)
 
     return (
         <TouchableOpacity
             activeOpacity={0.6}
-            onPress={() => jump(item)}
+            onPress={() => setTrack(item)}
             style={styles.container}
         >
             <View style={styles.imageContainer}>
-                {
-                    // <Image
-                    //                 source={
-                    //                     item.cover || require("../assets/images/images.jpeg")
-                    //                 }
-                    //                 style={{ width: "100%", height: "100%" }}
-                    //                 contentFit="cover"
-                    //             />
-                }
-                <FastImage
-                    style={{ width: "100%", height: "100%" }}
+                <Image
                     source={
                         item.cover
-                            ? {
-                                  uri: item.cover,
-                                  priority: FastImage.priority.normal
-                              }
+                            ? { uri: item.cover }
                             : require("../assets/images/images.jpeg")
                     }
-                    resizeMode={FastImage.resizeMode.contain}
+                    style={{ width: "100%", height: "100%" }}
+                    contentFit="cover"
                 />
             </View>
             <Text numberOfLines={2} style={styles.title}>
                 {item?.title}
             </Text>
 
-            {currTrack?._id === item?._id && (
+            {track._id === item._id && (
                 <LottieView
                     autoPlay
                     source={require("../assets/animations/musicPlayingAnim.json")}
-                    loop={
-                        playbackState.state === State.Playing ||
-                        playbackState.state === State.Buffering
-                            ? true
-                            : false
-                    }
+                    loop={(isBuffering || playing) ? true : false}
                     style={{
                         width: 40,
                         height: 40,

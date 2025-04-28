@@ -1,44 +1,75 @@
 import { useState, useEffect, useContext, createContext } from "react";
-import TrackPlayer, {
-    Capability,
-    AppKilledPlaybackBehavior
-} from "react-native-track-player";
+import { useAudioPlayer, AudioModule, useAudioPlayerStatus } from "expo-audio";
 
 const TrackContext = createContext();
 
 export const TrackProvider = ({ children }) => {
-    const [isSetup, setIsSetup] = useState(false);
+    const [list, setList] = useState([]);
+    const [track, setTrack] = useState({});
+    const player = useAudioPlayer(track?.url);
+    const { didJustFinish, duration, currentTime } =
+        useAudioPlayerStatus(player);
+
+    const togglePlay = item => {
+        if (!player) return;
+        if (player.currentStatus?.playing) {
+            player.pause();
+        } else player.play();
+    };
+
+    const skipToNext = () => {
+        const index = list.findIndex(song => song._id === track._id);
+        if (index === -1 || index == list.length - 1) return;
+        setTrack(list[index + 1]);
+    };
+
+    const skipToPrevious = () => {
+        const index = list.findIndex(song => song._id === track._id);
+        if (index === -1 || index === 0) return;
+        setTrack(list[index - 1]);
+    };
+
+    const seek = sec => {
+        player.seekTo(sec);
+    };
 
     useEffect(() => {
-        const init = async () => {
-            if (!isSetup) {
-                await TrackPlayer.setupPlayer();
-                setIsSetup(true);
-                await TrackPlayer.setPlayWhenReady(false);
-                TrackPlayer.updateOptions({
-                    // Media controls capabilities
-                    capabilities: [
-                        Capability.Play,
-                        Capability.Pause,
-                        Capability.SkipToNext,
-                        Capability.SkipToPrevious,
-                        Capability.Stop
-                    ],
-                    compactCapabilities: [
-                        Capability.Play,
-                        Capability.Pause,
-                        Capability.SkipToNext,
-                        Capability.SkipToPrevious
-                    ],
-                    icon: require("../assets/images/icon.png"),
-                    color: 0xff0000 // ARGB format (e.g., red)
-                });
-            }
-        };
-        init();
-    }, [isSetup]);
+        if (track.url) player.play();
+    }, [track]);
 
-    return <TrackContext.Provider >{children}</TrackContext.Provider>;
+    useEffect(() => {
+        if (didJustFinish) skipToNext();
+    }, [didJustFinish]);
+
+    useEffect(() => {
+        const setupPlayer = async () => {
+            await AudioModule.setAudioModeAsync({
+                interruptionMode: "doNotMix",
+                playsInSilentMode: true,
+                shouldPlayInBackground: true,
+                shouldRouteThroughEarpiece: true
+            });
+        };
+        setupPlayer();
+    }, []);
+
+    return (
+        <TrackContext.Provider
+            value={{
+                player,
+                togglePlay,
+                seek,
+                skipToNext,
+                skipToPrevious,
+                track,
+                setTrack,
+                list,
+                setList
+            }}
+        >
+            {children}
+        </TrackContext.Provider>
+    );
 };
 
 export const useTrack = () => useContext(TrackContext);

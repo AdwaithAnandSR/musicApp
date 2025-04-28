@@ -34,21 +34,22 @@ const Home = () => {
                     <Text
                         style={{
                             color: "white",
-                            alignSelf: "center",
-                            marginVertical: 10
+                            textAlign: "center",
+                            marginTop: 10,
                         }}
                     >
                         {loading
                             ? "loading..."
-                                ? !hasMore
-                                : "no more songs"
-                            : "no songs."}
+                            : !hasMore
+                            ? "no more songs."
+                            : ""}
                     </Text>
                 }
                 onEndReached={() => {
                     if (hasMore) setPage(prev => prev + 1);
                 }}
-                estimatedItemSize={vh * 0.95 || 100}
+                estimatedItemSize={80}
+                contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
             />
         </View>
     );
