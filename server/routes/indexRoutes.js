@@ -5,7 +5,7 @@ const musicModel = require("../models/musics.js");
 const { signin, signup } = require("../handlers/auth.handler.js");
 
 router.get("/", async (req, res) => {
-   res.send("heloo");
+   res.send("hey heyyyy");
 });
 
 router.post("/getGlobalSongs", async (req, res) => {
