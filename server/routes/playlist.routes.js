@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const playlistModel = require("../models/playlist.js");
+import playlistModel from "../models/playlist.js";
 
 router.post("/create", async (req, res) => {
     const { name, desc } = req.body;
@@ -81,7 +81,8 @@ router.post("/add", async (req, res) => {
 router.post("/getSongs", async (req, res) => {
     const { playlistId, page = 1, limit = 10 } = req.body;
 
-    if (!playlistId) return res.status(400).json({ error: "Playlist ID is required" });
+    if (!playlistId)
+        return res.status(400).json({ error: "Playlist ID is required" });
 
     try {
         const playlist = await playlistModel.findById(playlistId).populate({
@@ -99,4 +100,4 @@ router.post("/getSongs", async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,6 +1,15 @@
-const { bucket } = require("./upload.handler.js");
+import NodeID3 from "node-id3";
+import admin from "firebase-admin";
+import { v4 as uuidv4 } from "uuid";
+import serviceAccount from "../keys/serviceKey.js";
 
-const musicModel = require("../models/musics.js");
+import musicModel from "../models/musics.js";
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: "gs://vividmusic-d6d28.appspot.com"
+});
+const bucket = admin.storage().bucket();
 
 const upload = async ({
     title,
@@ -55,4 +64,4 @@ const upload = async ({
     }
 };
 
-module.exports = upload;
+export default upload;

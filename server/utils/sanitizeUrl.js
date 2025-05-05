@@ -16,4 +16,4 @@ const sanitizeYouTubeURL = url => {
     }
 };
 
-module.exports = sanitizeYouTubeURL;
+export default sanitizeYouTubeURL;
