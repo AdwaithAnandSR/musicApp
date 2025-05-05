@@ -17,6 +17,8 @@ router.post("/saveToCloud", async (req, res) => {
         const { url } = req.body;
         const newUrl = sanitizeYouTubeURL(url);
         if (!newUrl) return;
+        
+        console.log(`url: ${newUrl}`);
 
         const video = await play.video_basic_info(newUrl);
         const title = video.video_details.title;
@@ -24,6 +26,8 @@ router.post("/saveToCloud", async (req, res) => {
 
         const existsSong = await musicModel.findOne({ title });
 
+        console.log(`existsSong: ${existsSong}`);
+        
         if (existsSong)
             return res
                 .status(409)
@@ -38,12 +42,17 @@ router.post("/saveToCloud", async (req, res) => {
             audioChunks.push(chunk);
         }
         const audioBuffer = Buffer.concat(audioChunks);
+        
+        console.log("got audio chunks");
 
         // 4. Get cover image buffer
         const coverResponse = await axios.get(thumbnail, {
             responseType: "arraybuffer"
         });
+        
         const coverBuffer = Buffer.from(coverResponse.data);
+        
+        console.log("got cover buffer");
 
         const audioType = await fileTypeFromBuffer(audioBuffer);
         const coverType = await fileTypeFromBuffer(coverBuffer);
@@ -57,7 +66,7 @@ router.post("/saveToCloud", async (req, res) => {
             res
         });
     } catch (e) {
-        console.log(e);
+        console.log("error at admin routes", e);
         res.status(501).json({
             message: "internal error",
             e
