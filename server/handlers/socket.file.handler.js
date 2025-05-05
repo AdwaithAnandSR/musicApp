@@ -1,16 +1,17 @@
-const fs = require("fs");
-const path = require("path");
+// import fs from "fs";
+// import path from "path";
 
-const { getIo } = require("../config/socket.config.js");
-const musicModel = require("../models/musics.js");
+// import { getIo } from "../config/socket.config.js";
+// import musicModel from "../models/musics.js";
 
-const io = getIo();
+// const io = getIo();
 
-let fileBuffers = {};
+// let fileBuffers = {};
 
-io.on("connection", socket => {
-   socket.on("uploadAudioChunk", data => {
-      console.log(data);
-   });
+// io.on("connection", socket => {
+//     socket.on("uploadAudioChunk", data => {
+//         console.log(data);
+//     });
+// });
 
-});
+// export default io

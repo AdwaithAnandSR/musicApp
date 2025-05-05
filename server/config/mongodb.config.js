@@ -1,4 +1,5 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose"
+
 let pass = process.env.MONGODB_PASS;
 let dbName = "vividMusic";
 let uri = `mongodb+srv://AdwaithAnandSR:${pass}@cluster0.8os2c.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0`;
@@ -11,4 +12,4 @@ try {
    console.log(`error connecting database: `, error);
 }
 
-module.exports = mongoose;
+export default mongoose
