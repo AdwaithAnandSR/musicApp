@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet, TextInput, Dimensions } from "react-native";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { FlashList } from "@shopify/flash-list";
 import ListItem from "../../components/ListItem.jsx";
 
 import useSearch from "../../hooks/useSearch.js";
-import { useEffect } from "react";
+import { useTrack } from "../../context/track.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -12,22 +12,43 @@ const Search = () => {
     const [text, setText] = useState();
     const { songs, setSongs } = useSearch({ text });
 
-    return (
-        <View style={styles.container}>
+    const { setList, setCurrentPlaylistName } = useTrack();
+
+    const loadNewPlaylist = () => {
+        setCurrentPlaylistName("allSongs");
+        setList(songs);
+    };
+
+    const listHeader = useMemo(
+        () => (
             <View>
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search Song"
                     placeholderTextColor="white"
                     value={text}
-                    onChangeText={txt => setText(txt)}
+                    onChangeText={setText}
                 />
                 <Text>Search</Text>
             </View>
+        ),
+        [text]
+    );
+
+    return (
+        <View style={styles.container}>
             <FlashList
                 data={songs}
                 estimatedItemSize={vh * 0.95 || 100}
-                renderItem={({ item }) => <ListItem item={item} />}
+                ListHeaderComponent={listHeader}
+                renderItem={({ item }) => (
+                    <ListItem
+                        playlist={"searchSongs"}
+                        loadNewPlaylist={loadNewPlaylist}
+                        item={item}
+                    />
+                )}
+                contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
             />
         </View>
     );
@@ -38,7 +59,8 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "black",
         position: "relative",
-        top: 0
+        top: 0,
+        paddingTop: 25
     },
     searchInput: {
         width: vw * 0.9,

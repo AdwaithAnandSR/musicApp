@@ -5,22 +5,22 @@ import {
     StyleSheet,
     Dimensions,
     TouchableOpacity,
-    BackHandler,
     Image
 } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
+import { router } from "expo-router";
 
-import { useTrack } from "../context/track.context.js"
+import { useTrack } from "../../context/track.context.js";
 
-import Controllers from "./ControllersContainer.jsx";
-import SliderContainer from "./SliderContainer.jsx";
+import Controllers from "../../components/ControllersContainer.jsx";
+import SliderContainer from "../../components/SliderContainer.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const TrackControllerFullView = ({ handleToMinView }) => {
+const TrackControllerFullView = ({}) => {
     const [colors, setColors] = useState(null);
-    const { track } = useTrack()
+    const { track } = useTrack();
 
     useEffect(() => {
         if (track && track.cover) {
@@ -32,22 +32,11 @@ const TrackControllerFullView = ({ handleToMinView }) => {
         }
     }, [track]);
 
-    useEffect(() => {
-        const backHandler = BackHandler.addEventListener(
-            "hardwareBackPress",
-            () => {
-                handleToMinView();
-                return true;
-            }
-        );
-        return () => backHandler.remove();
-    }, []);
-
     return (
         <View style={[styles.container]}>
             {/* navbar */}
             <View style={styles.navbar}>
-                <TouchableOpacity onPress={handleToMinView}>
+                <TouchableOpacity onPress={() => router.back()}>
                     <Entypo name="chevron-down" size={24} color="white" />
                 </TouchableOpacity>
                 <TouchableOpacity>
@@ -75,8 +64,9 @@ const TrackControllerFullView = ({ handleToMinView }) => {
                     source={
                         track?.cover
                             ? { uri: track.cover }
-                            : require("../assets/images/images.jpeg")
+                            : require("../../assets/images/images.jpeg")
                     }
+                    defaultSource={require("../../assets/images/images.jpeg")}
                     contentFit="cover"
                     filter="contrast(1.25) brightness(0.8)"
                     style={{ width: "100%", height: "100%" }}

@@ -16,8 +16,8 @@ import { useTrack } from "../context/track.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const TrackControllerMinView = ({ handleToFullView }) => {
-    const { togglePlay, track, skipToNext, skipToPrevious, player } =
+const TrackControllerMinView = () => {
+    const { togglePlay, track, skipToNext, skipToPrevious, player, setTrack } =
         useTrack();
     const { playing, isBuffering } = useAudioPlayerStatus(player);
     const [swipeStartPos, setSwipeStartPos] = useState({});
@@ -69,14 +69,19 @@ const TrackControllerMinView = ({ handleToFullView }) => {
     return (
         <TouchableOpacity
             activeOpacity={0.9}
-            onPressIn={e => setSwipeStartPos(e.nativeEvent.pageX)}
+            onPressIn={e =>
+                setSwipeStartPos({
+                    x: e.nativeEvent.pageX,
+                    y: e.nativeEvent.pageY
+                })
+            }
             onPressOut={e =>
                 handleSwipe(
                     e,
                     swipeStartPos,
-                    handleToFullView,
                     skipToNext,
-                    skipToPrevious
+                    skipToPrevious,
+                    setTrack
                 )
             }
             style={styles.container}
@@ -89,6 +94,7 @@ const TrackControllerMinView = ({ handleToFullView }) => {
                             ? { uri: track.cover }
                             : require("../assets/images/images.jpeg")
                     }
+                    defaultSource={require("../assets/images/DefaultImage.jpeg")}
                     style={{ width: "100%", height: "100%" }}
                     contentFit="cover"
                     transition={1000}
@@ -112,16 +118,17 @@ const TrackControllerMinView = ({ handleToFullView }) => {
 
 const styles = StyleSheet.create({
     container: {
-        width: "97%",
-        marginHorizontal: "auto",
-        maxHeight: 100,
-        minHeight: 75,
+        width: "98%",
+        height: vh * 0.095,
+        marginLeft: "1%",
         alignItems: "center",
         flexDirection: "row",
         gap: vw * 0.03,
         overflow: "hidden",
         borderRadius: vw,
-        marginTop: -55
+        position: 'absolute',
+        bottom: 60,
+        
     },
     gradient: {
         width: "100%",

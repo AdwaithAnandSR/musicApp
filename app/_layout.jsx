@@ -2,14 +2,11 @@ import { Stack } from "expo-router";
 import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import TrackController from "../components/TrackController.jsx";
-// import NavBar from "../components/Navbar.jsx";
+import Navbar from "../components/Navbar.jsx";
 
 import { ListProvider } from "../context/list.context.js";
 import { TrackProvider } from "../context/track.context.js";
-// import { AppStateProvider } from "../context/state.context.js";
-
-// import "../track-player-init.js";
+import { AppStateProvider } from "../context/appState.context.js";
 
 const _layout = () => {
     return (
@@ -19,12 +16,22 @@ const _layout = () => {
                 backgroundColor: "black"
             }}
         >
-            <TrackProvider>
-                <ListProvider>
-                    <Stack screenOptions={{ headerShown: false }} />
-                    <TrackController />
-                </ListProvider>
-            </TrackProvider>
+            <AppStateProvider>
+                <TrackProvider>
+                    <ListProvider>
+                        <Navbar />
+                        <Stack
+                            screenOptions={{
+                                headerShown: false,
+                                animation: "slide_from_bottom"
+                            }}
+                        >
+                            <Stack.Screen name="index" />
+                            <Stack.Screen name="(tabs)" />
+                        </Stack>
+                    </ListProvider>
+                </TrackProvider>
+            </AppStateProvider>
         </SafeAreaView>
     );
 };

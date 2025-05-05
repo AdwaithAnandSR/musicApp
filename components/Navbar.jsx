@@ -1,36 +1,79 @@
-import {
-  View,
-  Text,
-  Dimensions,
-  TouchableOpacity,
-  ImageComponent,
-} from "react-native";
 import React from "react";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import {
+    View,
+    Text,
+    Dimensions,
+    TouchableOpacity,
+    ImageComponent,
+    StyleSheet
+} from "react-native";
 import { router } from "expo-router";
+import { FontAwesome, Entypo, MaterialIcons } from "@expo/vector-icons";
+
+import { useAppState } from "../context/appState.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Navbar = () => {
-  return (
-    <View
-      style={{
+    const { isSelecting, selectedSongs, setIsSelecting } = useAppState();
+
+    if (!isSelecting) return;
+
+    return (
+        <View style={styles.container}>
+            <View style={styles.selectDetsContainer}>
+                <FontAwesome
+                    name="check-square-o"
+                    size={20}
+                    color="rgb(246,7,135)"
+                />
+                <Text style={styles.text}>{selectedSongs?.length}</Text>
+            </View>
+            <View style={styles.toolsContainer}>
+                <TouchableOpacity onPress={() => router.push("Playlists")}>
+                    <MaterialIcons
+                        name="playlist-add"
+                        size={24}
+                        color={"white"}
+                    />
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => setIsSelecting(false)}>
+                    <Entypo name="cross" size={24} color="white" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
         width: "100%",
         display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        justifyContent: "center",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         height: vh * 0.07,
-        paddingHorizontal: vw * 0.08,
-      }}
-    >
-      <TouchableOpacity onPress={() => router.push("others/Search")}>
-        <Ionicons name="search" size={24} color="white" />
-      </TouchableOpacity>
-
-      <Text>Navbar</Text>
-    </View>
-  );
-};
+        paddingHorizontal: vw * 0.04,
+        borderBottomColor: "#ffffff29",
+        borderBottomWidth: 1
+    },
+    selectDetsContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5
+    },
+    text: {
+        color: "white",
+        marginBottom: 3,
+        fontWeight: "bold",
+        fontSize: vw * 0.05
+    },
+    toolsContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 20
+    }
+});
 
 export default Navbar;
