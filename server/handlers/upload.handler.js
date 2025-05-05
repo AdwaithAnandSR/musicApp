@@ -87,4 +87,4 @@ const handleUpload = async (files, res) => {
    }
 };
 
-module.exports = handleUpload;
+module.exports = {handleUpload, bucket};
