@@ -56,7 +56,7 @@ const upload = async ({
             title
         });
     } catch (error) {
-        console.log(error);
+        console.log("error at handleDirectUpload: ", e, e.message);
         res.status(501).json({
             message: "internal error",
             e
