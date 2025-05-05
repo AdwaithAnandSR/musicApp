@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import { useLists } from "../../context/list.context.js";
+import { useTrack } from "../../context/track.context.js";
 
 import useGetAllSongs from "../../hooks/useGetAllSongs.js";
 import ListItem from "../../components/ListItem.jsx";
@@ -23,19 +24,32 @@ const Home = () => {
         page,
         limit: LIMIT
     });
+    
+    const { setList, setCurrentPlaylistName } = useTrack();
+
+    const loadNewPlaylist = () => {
+        setCurrentPlaylistName("allSongs");
+        setList(allSongs);
+    };
 
     return (
         <View style={{ backgroundColor: "black", height: "100%" }}>
             <FlashList
                 data={allSongs}
-                renderItem={({ item }) => <ListItem item={item} />}
+                renderItem={({ item }) => (
+                    <ListItem
+                        playlist={"allSongs"}
+                        loadNewPlaylist={loadNewPlaylist}
+                        item={item}
+                    />
+                )}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={
                     <Text
                         style={{
                             color: "white",
                             textAlign: "center",
-                            marginTop: 10,
+                            marginTop: 10
                         }}
                     >
                         {loading

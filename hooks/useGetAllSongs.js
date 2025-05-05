@@ -4,13 +4,12 @@ import Constants from "expo-constants";
 
 import { useTrack } from "../context/track.context.js";
 
-const api =
-    Constants.expoConfig.extra.clientApi || "https://vivid-music.vercel.app";
+const api = Constants.expoConfig.extra.clientApi;
 
 const useGetAllSongs = ({ page, limit, setAllSongs }) => {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
-    const { setList } = useTrack();
+    const { setList, setCurrentPlaylistName } = useTrack();
 
     useEffect(() => {
         if (!page || !limit || !setAllSongs) return;
@@ -24,6 +23,7 @@ const useGetAllSongs = ({ page, limit, setAllSongs }) => {
             if (res.data.musics.length < limit) setHasMore(false);
             setAllSongs(prev => [...prev, ...res.data.musics]);
             setList(prev => [...prev, ...res.data.musics]);
+            setCurrentPlaylistName("allSongs");
             setLoading(false);
         };
         fetchSongs();

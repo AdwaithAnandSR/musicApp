@@ -5,6 +5,7 @@ const TrackContext = createContext();
 
 export const TrackProvider = ({ children }) => {
     const [list, setList] = useState([]);
+    const [currentPlaylistName, setCurrentPlaylistName] = useState("");
     const [track, setTrack] = useState({});
     const player = useAudioPlayer(track?.url);
     const { didJustFinish, duration, currentTime } =
@@ -64,7 +65,9 @@ export const TrackProvider = ({ children }) => {
                 track,
                 setTrack,
                 list,
-                setList
+                setList,
+                currentPlaylistName,
+                setCurrentPlaylistName
             }}
         >
             {children}
