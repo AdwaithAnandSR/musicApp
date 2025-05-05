@@ -54,3 +54,5 @@ const upload = async ({
         });
     }
 };
+
+module.exports = upload;
