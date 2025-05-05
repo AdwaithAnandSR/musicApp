@@ -1,0 +1,11 @@
+.env
+
+package-lock.json
+yarn.lock
+
+/node_modules
+
+.yarn/*
+
+# vercel
+.vercel
