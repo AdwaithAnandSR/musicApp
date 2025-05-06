@@ -3,16 +3,15 @@ import multer from "multer";
 import * as play from "play-dl";
 import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
+import { exec } from "child_process";
+const cmd = `../bin/yt/yt-dlp -j "${url}"`;
 
 import musicModel from "../models/musics.js";
 import handleDirectUploadUpload from "../handlers/handleDirectUpload.js";
 
-
 const router = express.Router();
 const storage = multer.memoryStorage(); // Use memory storage for quick uploads
 const upload = multer({ storage });
-
-import { exec } from "child_process";
 
 const downloadFileAsBuffer = async url => {
     try {
@@ -35,7 +34,6 @@ const sanitizeYouTubeURL = url => {
         const parsed = new URL(url);
         const videoId = parsed.searchParams.get("v");
         if (!videoId) return null;
-
         return `https://www.youtube.com/watch?v=${videoId}`;
     } catch {
         return null;
@@ -62,7 +60,7 @@ router.post("/saveToCloud", async (req, res) => {
 
         console.log(`url: ${url}`);
 
-        exec(`yt-dlp -j "${url}"`, async (error, stdout, stderr) => {
+        exec(cmd, async (error, stdout, stderr) => {
             if (error) {
                 console.error(`exec error: ${error}`);
                 return;
