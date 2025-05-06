@@ -4,7 +4,6 @@ import * as play from "play-dl";
 import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
 import { exec } from "child_process";
-const cmd = `../bin/yt/yt-dlp -j "${url}"`;
 
 import musicModel from "../models/musics.js";
 import handleDirectUploadUpload from "../handlers/handleDirectUpload.js";
@@ -40,13 +39,12 @@ const sanitizeYouTubeURL = url => {
     }
 };
 
-
-
 router.post("/saveToCloud", async (req, res) => {
     try {
         let { url } = req.body;
         url = sanitizeYouTubeURL(url);
         if (!url) return;
+        const cmd = `../bin/yt/yt-dlp -j "${url}"`;
 
         // Validate URL (optional step)
         if (
