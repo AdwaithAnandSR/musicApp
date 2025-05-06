@@ -3,6 +3,7 @@ import multer from "multer";
 import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
 import { exec } from "child_process";
+import ytdlp from "yt-dlp-exec";
 
 import musicModel from "../models/musics.js";
 import handleDirectUploadUpload from "../handlers/handleDirectUpload.js";
@@ -38,83 +39,60 @@ const sanitizeYouTubeURL = url => {
     }
 };
 
+
+
 router.post("/saveToCloud", async (req, res) => {
     try {
         let { url } = req.body;
         url = sanitizeYouTubeURL(url);
-        if (!url) return;
-        
-        // Validate URL (optional step)
-        if (
-            !url.match(
-                /https:\/\/(?:www\.)?youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/
-            ) &&
-            !url.match(/https:\/\/youtu\.be\/([a-zA-Z0-9_-]+)/)
-        ) {
-            return console.log("Invalid URL");
+        if (!url) return res.status(400).json({ message: "Invalid URL" });
+
+        const info = await ytdlp(url, {
+            dumpSingleJson: true,
+            noCheckCertificates: true,
+            noWarnings: true,
+            preferFreeFormats: true,
+            addHeader: ['referer:youtube.com', 'user-agent:googlebot']
+        });
+
+        const title = info.title;
+        const existsSong = await musicModel.findOne({ title });
+        if (existsSong) {
+            return res.status(409).json({ message: "song already exists!", title });
         }
 
-        console.log(`url: ${url}`);
+        const thumbnailUrl = info.thumbnail;
+        const audioFormat = info.formats.find(f => f.acodec !== "none" && f.vcodec === "none");
+        const audioFileUrl = audioFormat?.url;
 
-        exec(`yt-dlp -J "${url}"`, async (error, stdout, stderr) => {
-            if (error) {
-                console.error(`exec error: ${error}`);
-                return;
-            }
-            if (stderr) {
-                console.error(`stderr: ${stderr}`);
-                return;
-            }
+        let audioBuffer = null;
+        if (audioFileUrl) {
+            console.log("audio downloading");
+            audioBuffer = await downloadFileAsBuffer(audioFileUrl);
+            console.log("audio downloaded");
+        }
 
-            const info = JSON.parse(stdout);
-            const title = info.title;
+        let coverBuffer = null;
+        if (thumbnailUrl) {
+            console.log("cover downloading");
+            coverBuffer = await downloadFileAsBuffer(thumbnailUrl);
+            console.log("cover downloaded");
+        }
 
-            const existsSong = await musicModel.findOne({ title });
+        const audioType = await fileTypeFromBuffer(audioBuffer);
+        const coverType = await fileTypeFromBuffer(coverBuffer);
 
-            console.log(`existsSong: ${existsSong}`);
-
-            if (existsSong)
-                return res
-                    .status(409)
-                    .json({ message: "song already exists!", title });
-
-            const thumbnailUrl = info.thumbnail;
-            const audioUrl = info.formats.find(format => format.audio_only); // Look for audio-only formats
-            const audioFileUrl = audioUrl ? audioUrl.url : null;
-
-            // Download and save audio file as buffer
-            let audioBuffer = null;
-            if (audioFileUrl) {
-                console.log("audio downloading");
-                audioBuffer = await downloadFileAsBuffer(audioFileUrl);
-                console.log("audio downloaded");
-            }
-
-            // Download and save cover image as buffer
-            let coverImageBuffer = null;
-            if (thumbnailUrl) {
-                console.log("cover downloading");
-                coverBuffer = await downloadFileAsBuffer(thumbnailUrl);
-                console.log("cover downloaded");
-            }
-            const audioType = await fileTypeFromBuffer(audioBuffer);
-            const coverType = await fileTypeFromBuffer(coverBuffer);
-
-            handleDirectUploadUpload({
-                title,
-                audioType,
-                coverType,
-                audioBuffer,
-                coverBuffer,
-                res
-            });
+        handleDirectUploadUpload({
+            title,
+            audioType,
+            coverType,
+            audioBuffer,
+            coverBuffer,
+            res
         });
     } catch (e) {
         console.log("error at admin routes", e);
-        res.status(501).json({
-            message: "internal error",
-            e
-        });
+        res.status(501).json({ message: "internal error", e });
     }
 });
 
