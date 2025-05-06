@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import play from "play-dl";
+import * as play from 'play-dl';
 import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
 
@@ -17,7 +17,7 @@ router.post("/saveToCloud", async (req, res) => {
         const { url } = req.body;
         const newUrl = sanitizeYouTubeURL(url);
         if (!newUrl) return;
-        
+
         console.log(`url: ${newUrl}`);
 
         const video = await play.video_basic_info(newUrl);
@@ -27,7 +27,7 @@ router.post("/saveToCloud", async (req, res) => {
         const existsSong = await musicModel.findOne({ title });
 
         console.log(`existsSong: ${existsSong}`);
-        
+
         if (existsSong)
             return res
                 .status(409)
@@ -42,16 +42,16 @@ router.post("/saveToCloud", async (req, res) => {
             audioChunks.push(chunk);
         }
         const audioBuffer = Buffer.concat(audioChunks);
-        
+
         console.log("got audio chunks");
 
         // 4. Get cover image buffer
         const coverResponse = await axios.get(thumbnail, {
             responseType: "arraybuffer"
         });
-        
+
         const coverBuffer = Buffer.from(coverResponse.data);
-        
+
         console.log("got cover buffer");
 
         const audioType = await fileTypeFromBuffer(audioBuffer);
@@ -74,14 +74,28 @@ router.post("/saveToCloud", async (req, res) => {
     }
 });
 
-// router.post("/addSongs", upload.array("audioFiles"), async (req, res) => {
-//     const files = req.files;
-//     if (!files || files.length === 0) {
-//         return res.status(400).json({
-//             message: "at least one audio file are required"
-//         });
-//     }
-//     handleUpload(files, res);
-// });
+const fun = async (url) => {
+    try {
+        console.log(url);
+        if (!play.yt_validate(url)) {
+            console.log("Not a valid YouTube URL");
+            return;
+        }
+
+        const info = await play.video_info(url);
+        const stream = await play.stream(url);
+
+        console.log("Video Info:", info.video_details.title);
+        console.log("Stream URL:", stream.url);
+    } catch (error) {
+        console.error("Error occurred:", error.message);
+    }
+};
+
+fun(
+    sanitizeYouTubeURL(
+        "https://m.youtube.com/watch?v=mYUfLYmwJNg&pp =ygULYmx1ZSBidWNrZXQ%3D"
+    )
+);
 
 export default router;
