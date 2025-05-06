@@ -43,8 +43,7 @@ router.post("/saveToCloud", async (req, res) => {
         let { url } = req.body;
         url = sanitizeYouTubeURL(url);
         if (!url) return;
-        const cmd = `${ytDlpPath} -j "${url}"`;
-
+        
         // Validate URL (optional step)
         if (
             !url.match(
