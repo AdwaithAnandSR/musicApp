@@ -6,7 +6,6 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "npx nodemon index.js",
-        //   "start": "node index.js"
         "start": "node --tls-min-v1.0 --tls-legacy-renegotiation index.js"
     },
     "keywords": [],
