@@ -1,6 +1,5 @@
 import express from "express";
 import multer from "multer";
-import * as play from "play-dl";
 import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
 import { exec } from "child_process";
@@ -44,7 +43,7 @@ router.post("/saveToCloud", async (req, res) => {
         let { url } = req.body;
         url = sanitizeYouTubeURL(url);
         if (!url) return;
-        const cmd = `../bin/yt-dlp -j "${url}"`;
+        const cmd = `${ytDlpPath} -j "${url}"`;
 
         // Validate URL (optional step)
         if (
@@ -58,7 +57,7 @@ router.post("/saveToCloud", async (req, res) => {
 
         console.log(`url: ${url}`);
 
-        exec(cmd, async (error, stdout, stderr) => {
+        exec(`yt-dlp -J "${url}"`, async (error, stdout, stderr) => {
             if (error) {
                 console.error(`exec error: ${error}`);
                 return;
