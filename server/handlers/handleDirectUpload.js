@@ -20,6 +20,11 @@ const upload = async ({
     res
 }) => {
     try {
+        
+        console.log(audioBuffer, coverBuffer, audioType, coverType, title);
+        
+        return
+        
         const songFile = bucket.file(`songs/${title}.mp3`);
         const coverFile = bucket.file(`covers/${title}.jpg`);
 
