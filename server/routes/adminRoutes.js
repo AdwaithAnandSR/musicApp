@@ -6,7 +6,7 @@ import axios from "axios";
 
 import musicModel from "../models/musics.js";
 import handleDirectUploadUpload from "../handlers/handleDirectUpload.js";
-// import sanitizeYouTubeURL from "../utils/sanitizeUrl.js";
+import sanitizeYouTubeURL from "../utils/sanitizeUrl.js";
 
 const router = express.Router();
 const storage = multer.memoryStorage(); // Use memory storage for quick uploads
