@@ -20,6 +20,6 @@ vividMusic is a powerful and intuitive music player app built with **Expo** and 
 
 Feel free to submit **issues** or **feature requests**to improve vividMusic!
 
-![Local Image](./server/preview/Screenshot_20250316_215405.jpg)
-![Local Image](./server/preview/IMG_20250316_220044.jpg)
-![Local Image](./server/preview/IMG_20250316_220014.jpg)
+![Local Image](./images/Screenshot_20250316_215405.jpg)
+![Local Image](./images/IMG_20250316_220044.jpg)
+![Local Image](./images/IMG_20250316_220014.jpg)
