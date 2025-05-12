@@ -3,6 +3,7 @@ import multer from "multer";
 import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
 import play from "play-dl";
+import ytdl from "ytdl-core";
 
 import musicModel from "../models/musics.js";
 // import handleDirectUploadUpload from "../handlers/handleDirectUpload.js";
@@ -10,16 +11,6 @@ import musicModel from "../models/musics.js";
 const router = express.Router();
 const storage = multer.memoryStorage(); // Use memory storage for quick uploads
 const upload = multer({ storage });
-
-const downloadFileAsBuffer = async url => {
-    try {
-        const response = await axios.get(url, { responseType: "arraybuffer" });
-        return Buffer.from(response.data);
-    } catch (err) {
-        console.error("Error downloading file:", err.message);
-        return null;
-    }
-};
 
 const sanitizeYouTubeURL = url => {
     try {
@@ -41,18 +32,21 @@ const sanitizeYouTubeURL = url => {
 router.post("/saveToCloud", async (req, res) => {
     try {
         const { cookie, url } = req.body;
-        
+
         console.log(url);
 
-        play.setToken({
-            cookie: cookie
-        });
-        
+        async function getVideoDetailsAndDownload(url) {
+            if (!ytdl.validateURL(url)) throw new Error("Invalid YouTube URL");
 
-        (async () => {
-            const info = await play.video_info(sanitizeYouTubeURL(url));
-            console.log(info.video_details.title);
-        })();
+            const info = await ytdl.getInfo(url);
+            const title = info.videoDetails.title;
+            const length = info.videoDetails.lengthSeconds;
+            const thumbnail = info.videoDetails.thumbnails.at(-1).url;
+
+            const audioStream = ytdl(url, { quality: "highestaudio" });
+
+            console.log(title, length, thumbnail, audioStream);
+        }
 
         // const audioType = await fileTypeFromBuffer(audioBuffer);
         // const coverType = await fileTypeFromBuffer(coverBuffer);
