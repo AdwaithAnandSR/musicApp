@@ -27,6 +27,6 @@
         "play-dl": "^1.9.7",
         "socket.io": "^4.8.1",
         "socket.io-client": "^4.8.1",
-        "ytdl-core": "^4.11.5"
+        "ytdl-core": "npm:@distube/ytdl-core@^4.16.10"
     }
 }

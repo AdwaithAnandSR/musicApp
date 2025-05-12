@@ -1,4 +1,3 @@
-import NodeID3 from "node-id3";
 import admin from "firebase-admin";
 import { v4 as uuidv4 } from "uuid";
 import serviceAccount from "../keys/serviceKey.js";
