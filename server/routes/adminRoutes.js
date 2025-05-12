@@ -32,13 +32,25 @@ const sanitizeYouTubeURL = url => {
 
 router.post("/saveToCloud", async (req, res) => {
     try {
-        let { cookie, url } = req.body;
-        url = sanitizeYouTubeURL(url);
-        console.log("\nurl: ", url);
-
-        console.log("\nplay : ", play);
-        const info = await play.video_info(url);
-        console.log("\ninfo : ", info);
+        try {
+            let { cookie, url } = req.body;
+            url = sanitizeYouTubeURL(url);
+            console.log("\nurl: ", url);
+            
+            await play.setToken({
+                youtube: {
+                    cookie: cookie
+                }
+            });
+            
+            const isvalid = await play.yt_validate(url);
+            console.log("\visvalid : ", isvalid);
+            
+            const info = await play.video_info(url);
+            console.log("\ninfo : ", info);
+        } catch (error) {
+            console.log(error);
+        }
 
         // const audioType = await fileTypeFromBuffer(audioBuffer);
         // const coverType = await fileTypeFromBuffer(coverBuffer);
