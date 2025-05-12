@@ -1,4 +1,6 @@
-const streamToBuffer = async stream => {
+import https from "https"
+
+export const streamToBuffer = async stream => {
     const chunks = [];
     return new Promise((resolve, reject) => {
         stream.on("data", chunk => chunks.push(chunk));
@@ -7,4 +9,16 @@ const streamToBuffer = async stream => {
     });
 };
 
-export default streamToBuffer;
+export const getCoverImageBuffer = bestThumbnail => {
+    return new Promise((resolve, reject) => {
+        https
+            .get(bestThumbnail.url, res => {
+                const data = [];
+
+                res.on("data", chunk => data.push(chunk));
+                res.on("end", () => resolve(Buffer.concat(data)));
+                res.on("error", reject);
+            })
+            .on("error", reject);
+    });
+};

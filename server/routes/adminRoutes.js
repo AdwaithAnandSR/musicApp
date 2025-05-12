@@ -4,9 +4,13 @@ import { fileTypeFromBuffer } from "file-type";
 import axios from "axios";
 import ytdl from "ytdl-core";
 import play from "play-dl";
+// import { getRandomIPv6 } from "ytdl-core/lib/utils.js";
 
 // import musicModel from "../models/musics.js";
-// import streamToBuffer from "../utils/streamToBuffer.js";
+import {
+    streamToBuffer,
+    getCoverImageBuffer
+} from "../utils/streamToBuffer.js";
 // import handleDirectUploadUpload from "../handlers/handleDirectUpload.js";
 
 const router = express.Router();
@@ -30,6 +34,34 @@ const sanitizeYouTubeURL = url => {
     }
 };
 
+const fun = async url => {
+    try {
+        const isValid = await ytdl.validateURL(url);
+        if (!isValid) return console.log("not a valid url!");
+
+        const info = await ytdl.getInfo(url);
+        const thumbnails = info.videoDetails.thumbnails;
+        const bestThumbnail = thumbnails[thumbnails.length - 1]; // usually the highest resolution
+
+
+        const stream = ytdl(url, {
+            filter: "audioonly",
+            quality: "highestaudio"
+        });
+
+        const audioBuffer = await streamToBuffer(stream);
+        const coverBuffer = await getCoverImageBuffer(bestThumbnail)
+        
+        console.log(info.videoDetails.title);
+        console.log("audioBuffer size:", audioBuffer.length);
+        console.log("coverBuffer size:", coverBuffer.length, coverBuffer);
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+fun("https://www.youtube.com/watch?v=mYUfLYmwJNg");
+
 router.post("/saveToCloud", async (req, res) => {
     try {
         try {
@@ -37,45 +69,27 @@ router.post("/saveToCloud", async (req, res) => {
             url = sanitizeYouTubeURL(url);
             console.log("\nurl: ", url);
 
-            await play.setToken({
-                youtube: {
-                    cookie: cookie,
-                    client: "WEB"
+            const agentForARandomIP = ytdl.createAgent(undefined, {
+                localAddress: getRandomIPv6("2001:2::/48")
+            });
+
+            const info = await ytdl.getBasicInfo(
+                "http://www.youtube.com/watch?v=aqz-KE-bpKQ",
+                {
+                    agent: agentForARandomIP
                 }
-            });
+            );
 
-            const isvalid = await play.yt_validate(url);
-            if (!isvalid)
-                return res.status(403).json({
-                    message: "not a valid url"
-                });
-
-            const info = await play.video_info(url);
-            console.log("\ntitle : ", info.video_details.title);
-
-            const stream = await play.stream(url);
-
-            const audioChunks = [];
-            stream.stream.on("data", chunk => audioChunks.push(chunk));
-            await new Promise(resolve => stream.stream.on("end", resolve));
-
-            const audioBuffer = Buffer.concat(audioChunks);
-
-            // Step 3: Download and buffer the cover image
-            const thumbnailURL = info.video_details.thumbnails.pop().url;
-            const coverRes = await axios.get(thumbnailURL, {
-                responseType: "arraybuffer"
-            });
-            const coverBuffer = Buffer.from(coverRes.data);
+            console.log(info);
 
             // Now you can use audioBuffer and coverBuffer
-            console.log("audioBuffer size:", audioBuffer.length);
-            console.log("coverBuffer size:", coverBuffer.length);
+            // console.log("audioBuffer size:", audioBuffer.length);
+            // console.log("coverBuffer size:", coverBuffer.length);
 
-            const audioType = await fileTypeFromBuffer(audioBuffer);
-            const coverType = await fileTypeFromBuffer(coverBuffer);
+            // const audioType = await fileTypeFromBuffer(audioBuffer);
+            // const coverType = await fileTypeFromBuffer(coverBuffer);
 
-            console.log(audioType, coverType);
+            // console.log(audioType, coverType);
         } catch (error) {
             console.log(error);
         }
