@@ -53,7 +53,7 @@ router.post("/saveToCloud", async (req, res) => {
             const info = await play.video_info(url);
             console.log("\ntitle : ", info.video_details.title);
 
-            const stream = await play.stream(videoURL);
+            const stream = await play.stream(url);
 
             const audioChunks = [];
             stream.stream.on("data", chunk => audioChunks.push(chunk));
