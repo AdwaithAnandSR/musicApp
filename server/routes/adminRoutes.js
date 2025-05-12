@@ -45,7 +45,6 @@ const fun = async url => {
 
 
         const stream = ytdl(url, {
-            filter: "audioonly",
             quality: "highestaudio"
         });
 
@@ -54,7 +53,7 @@ const fun = async url => {
         
         console.log(info.videoDetails.title);
         console.log("audioBuffer size:", audioBuffer.length);
-        console.log("coverBuffer size:", coverBuffer.length, coverBuffer);
+        console.log("coverBuffer size:", coverBuffer.length);
     } catch (error) {
         console.log(error);
     }
