@@ -39,7 +39,8 @@ router.post("/saveToCloud", async (req, res) => {
             
             await play.setToken({
                 youtube: {
-                    cookie: cookie
+                    cookie: cookie,
+                    client: "WEB" 
                 }
             });
             
