@@ -1,23 +1,22 @@
-import express from "express"
+import express from "express";
 const router = express.Router();
 
 import musicModel from "../models/musics.js";
 
-router.get("/allSongsData", async (req, res) => {
-   
-      const data = await musicModel.aggregate([
-         {
-            $group: {
-               _id: { $year: "$createdAt" },
-               count: { $sum: 1 }
-            }
-         },
-         {
-            $sort: { _id: 1 }
-         }
-      ]);
-      res.json({ data });
-   
+router.post("/getSongs", async (req, res) => {
+    const { page } = req.body;
+    const limit = 30;
+    const data = await musicModel
+        .find()
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
+    res.json({ data });
 });
 
-export default router
+router.get("/getAllSongs", async (req, res) => {
+    const data = await musicModel.find().sort({ createdAt: -1 });
+    res.json({ data });
+});
+
+export default router;

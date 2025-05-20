@@ -9,7 +9,6 @@ const PORT = process.env.PORT || 5000;
 
 import mongoConfig from "./config/mongodb.config.js";
 import indexRoutes from "./routes/indexRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import playlistRoutes from "./routes/playlist.routes.js";
 
@@ -18,15 +17,14 @@ app.use(
     cors({
         origin: [
             "exp://127.0.0.1:8081",
-            "http://100.68.138.107:5000",
+            "http://10.32.129.27:4321",
             "exp://100.66.214.102:8081",
-            "*"
+            "*",
         ]
     })
 );
 
 app.use("/", indexRoutes);
-app.use("/admin", adminRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
 

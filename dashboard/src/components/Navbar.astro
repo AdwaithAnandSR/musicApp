@@ -1,0 +1,44 @@
+---
+import axios from 'axios';
+
+const api = "http://10.32.129.27:5000";
+let len = 0
+
+try {
+    const res = await axios.get(`${api}/dashboard/getAllSongs`);
+    len = res?.data?.data.length
+} catch (e) {
+    console.log(e.message);
+}
+
+---
+
+<div id="container">
+    <h1>
+        Vivid Music
+    </h1>
+    
+    <h3>
+        {len}
+    </h3>
+    
+</div>
+
+<style>
+    #container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 9vh;
+    position: absolute;
+    width: 100%;
+    padding-left: 5vw;
+    padding-right: 5vw;
+    background: #000000c0;
+    }
+    h1 {
+    font-size: 3.5vh;
+    
+    }
+
+</style>

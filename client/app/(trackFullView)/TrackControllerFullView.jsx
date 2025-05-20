@@ -4,9 +4,9 @@ import {
     Text,
     StyleSheet,
     Dimensions,
-    TouchableOpacity,
-    Image
+    TouchableOpacity
 } from "react-native";
+import { Image } from "expo-image";
 import { Entypo } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
@@ -17,8 +17,10 @@ import Controllers from "../../components/ControllersContainer.jsx";
 import SliderContainer from "../../components/SliderContainer.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
+const blurhash =
+    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
-const TrackControllerFullView = ({}) => {
+const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
     const { track } = useTrack();
 
@@ -62,12 +64,12 @@ const TrackControllerFullView = ({}) => {
             >
                 <Image
                     source={
-                        track?.cover
-                            ? { uri: track.cover }
-                            : require("../../assets/images/images.jpeg")
+                        track?.cover ||
+                        require("../../assets/images/images.jpeg")
                     }
-                    defaultSource={require("../../assets/images/images.jpeg")}
+                    placeholder={{ blurhash }}
                     contentFit="cover"
+                    transition={1000}
                     filter="contrast(1.25) brightness(0.8)"
                     style={{ width: "100%", height: "100%" }}
                 />
@@ -117,4 +119,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default React.memo(TrackControllerFullView);
+export default TrackControllerFullView;

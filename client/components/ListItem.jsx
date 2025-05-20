@@ -4,20 +4,21 @@ import {
     Text,
     Dimensions,
     TouchableOpacity,
-    StyleSheet,
-    Image
+    StyleSheet
 } from "react-native";
+import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 import { useAudioPlayerStatus } from "expo-audio";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 import { useTrack } from "../context/track.context.js";
 import { useAppState } from "../context/appState.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
+const blurhash =
+    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
 const ListItem = ({ item, playlist, loadNewPlaylist }) => {
-    const { setTrack, togglePlay, player, track, currentPlaylistName } =
+    const { setTrack, player, track, currentPlaylistName } =
         useTrack();
     const { selectedSongs, isSelecting, setIsSelecting, setSelectedSongs } =
         useAppState();
@@ -30,7 +31,7 @@ const ListItem = ({ item, playlist, loadNewPlaylist }) => {
 
     const handleShortPress = () => {
         if (!isSelecting) {
-            if (currentPlaylistName != playlist) loadNewPlaylist();
+            if (currentPlaylistName !== playlist) loadNewPlaylist();
             setTrack(item);
         } else
             setSelectedSongs(prev =>
@@ -64,13 +65,12 @@ const ListItem = ({ item, playlist, loadNewPlaylist }) => {
             <View style={styles.imageContainer}>
                 <Image
                     source={
-                        item.cover
-                            ? { uri: item.cover }
-                            : require("../assets/images/images.jpeg")
+                        item.cover || require("../assets/images/images.jpeg")
                     }
-                    defaultSource={require("../assets/images/DefaultImage.jpeg")}
-                    style={{ width: "100%", height: "100%" }}
+                    placeholder={{ blurhash }}
                     contentFit="cover"
+                    transition={1000}
+                    style={{ width: "100%", height: "100%" }}
                 />
             </View>
             <Text
@@ -103,8 +103,7 @@ const ListItem = ({ item, playlist, loadNewPlaylist }) => {
 const styles = StyleSheet.create({
     container: {
         backgroundColor: "#080808",
-        height: vh * 0.1,
-        marginVertical: vh * 0.001,
+        height: 80,
         alignItems: "center",
         flexDirection: "row",
         gap: vw * 0.03,

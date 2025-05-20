@@ -4,20 +4,24 @@ import {
     Text,
     Dimensions,
     TouchableOpacity,
-    ImageComponent,
     StyleSheet
 } from "react-native";
-import { router } from "expo-router";
-import { FontAwesome, Entypo, MaterialIcons } from "@expo/vector-icons";
+import { FontAwesome, Entypo } from "@expo/vector-icons";
 
 import { useAppState } from "../context/appState.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Navbar = () => {
-    const { isSelecting, selectedSongs, setIsSelecting } = useAppState();
+    const { isSelecting, selectedSongs, setIsSelecting, setSelectedSongs } =
+        useAppState();
 
     if (!isSelecting) return;
+
+    const disSelectAll = () => {
+        setIsSelecting(false);
+        setSelectedSongs([]);
+    };
 
     return (
         <View style={styles.container}>
@@ -30,15 +34,7 @@ const Navbar = () => {
                 <Text style={styles.text}>{selectedSongs?.length}</Text>
             </View>
             <View style={styles.toolsContainer}>
-                <TouchableOpacity onPress={() => router.push("Playlists")}>
-                    <MaterialIcons
-                        name="playlist-add"
-                        size={24}
-                        color={"white"}
-                    />
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setIsSelecting(false)}>
+                <TouchableOpacity onPress={disSelectAll}>
                     <Entypo name="cross" size={24} color="white" />
                 </TouchableOpacity>
             </View>

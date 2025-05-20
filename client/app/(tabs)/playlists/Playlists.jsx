@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
@@ -6,11 +6,12 @@ import FloatingAdd from "../../../components/playlists/FloatingAdd.jsx";
 import AddPlaylist from "../../../components/playlists/AddPlaylist.jsx";
 import ListItem from "../../../components/playlists/ListItem.jsx";
 
-
+import * as storage from "../../../services/storage.js";
 import useGetPlaylists from "../../../hooks/useGetPlaylists.js";
+const savedPlaylists = storage.playlists;
 
 const Playlists = () => {
-    const [playlists, setPlaylists] = useState([]);
+    const [playlists, setPlaylists] = useState(savedPlaylists || []);
     const [isAddNewPlaylist, setIsAddNewPlaylist] = useState(false);
 
     const { loading } = useGetPlaylists({ setPlaylists });

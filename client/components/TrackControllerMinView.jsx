@@ -1,13 +1,12 @@
-import React, { useRef, useEffect, useState, useMemo } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
-    View,
     Text,
     StyleSheet,
     TouchableOpacity,
     Dimensions,
-    Image,
     Animated
 } from "react-native";
+import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 import { useAudioPlayerStatus } from "expo-audio";
 
@@ -15,6 +14,8 @@ import handleSwipe from "../controllers/handleMinViewSwipes.js";
 import { useTrack } from "../context/track.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
+const blurhash =
+    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
 const TrackControllerMinView = () => {
     const { togglePlay, track, skipToNext, skipToPrevious, player, setTrack } =
@@ -90,12 +91,10 @@ const TrackControllerMinView = () => {
             <TouchableOpacity onPress={togglePlay} style={styles.imgContainer}>
                 <Image
                     source={
-                        track?.cover
-                            ? { uri: track.cover }
-                            : require("../assets/images/images.jpeg")
+                        track?.cover || require("../assets/images/images.jpeg")
                     }
-                    defaultSource={require("../assets/images/DefaultImage.jpeg")}
                     style={{ width: "100%", height: "100%" }}
+                    placeholder={{ blurhash }}
                     contentFit="cover"
                     transition={1000}
                 />
@@ -119,16 +118,16 @@ const TrackControllerMinView = () => {
 const styles = StyleSheet.create({
     container: {
         width: "98%",
-        height: vh * 0.095,
+        height: vh * 0.098,
         marginLeft: "1%",
         alignItems: "center",
         flexDirection: "row",
         gap: vw * 0.03,
         overflow: "hidden",
         borderRadius: vw,
-        position: 'absolute',
-        bottom: 60,
-        
+        position: "absolute",
+        zIndex: 99999999,
+        bottom: 58
     },
     gradient: {
         width: "100%",

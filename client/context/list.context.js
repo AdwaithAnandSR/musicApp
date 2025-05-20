@@ -1,10 +1,11 @@
-import { useState, useEffect, createContext, useContext } from "react";
-import { Appearance } from "react-native";
+import { useState, createContext, useContext } from "react";
+import { songs } from "../services/storage.js";
 
 const ListContext = createContext();
 
+
 export const ListProvider = ({ children }) => {
-    const [allSongs, setAllSongs] = useState([]);
+    const [allSongs, setAllSongs] = useState(songs || []);
     const [allSongsPage, setAllSongsPage] = useState(1);
 
     return (

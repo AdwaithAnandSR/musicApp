@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
-import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import "./(trackFullView)/TrackControllerFullView.jsx"
 import Navbar from "../components/Navbar.jsx";
 
 import { ListProvider } from "../context/list.context.js";
@@ -23,11 +23,15 @@ const _layout = () => {
                         <Stack
                             screenOptions={{
                                 headerShown: false,
-                                animation: "slide_from_bottom"
+                                animation: "none"
                             }}
                         >
                             <Stack.Screen name="index" />
                             <Stack.Screen name="(tabs)" />
+                            <Stack.Screen
+                                name="(trackFullView)/TrackControllerFullView"
+                                options={{ animation: "slide_from_bottom", }}
+                            />
                         </Stack>
                     </ListProvider>
                 </TrackProvider>

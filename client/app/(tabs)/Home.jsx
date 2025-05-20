@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text} from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import { useLists } from "../../context/list.context.js";
@@ -6,8 +6,6 @@ import { useTrack } from "../../context/track.context.js";
 
 import useGetAllSongs from "../../hooks/useGetAllSongs.js";
 import ListItem from "../../components/ListItem.jsx";
-
-const { height: vh, width: vw } = Dimensions.get("window");
 
 const Home = () => {
     const LIMIT = 25;

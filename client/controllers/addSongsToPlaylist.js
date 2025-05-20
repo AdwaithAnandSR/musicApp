@@ -16,7 +16,7 @@ const addSongsToPlaylist = async ({
             selectedSongs
         });
 
-        if (res.status == 200) {
+        if (res.status === 200) {
             setIsAddNewPlaylist(false);
             setSelectedSongs([]);
         }
