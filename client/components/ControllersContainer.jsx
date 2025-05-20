@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { FontAwesome5, AntDesign } from "@expo/vector-icons";
 import { useAudioPlayerStatus } from "expo-audio";
 

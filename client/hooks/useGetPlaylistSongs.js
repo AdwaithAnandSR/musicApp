@@ -1,8 +1,6 @@
-import React, { useEffect, useState } from "react";
+import  { useEffect, useState } from "react";
 import axios from "axios";
 import Constants from "expo-constants";
-
-import { useTrack } from "../context/track.context.js";
 
 const api = Constants.expoConfig.extra.clientApi;
 // const api = "http://100.97.171.161:5000";
@@ -29,7 +27,7 @@ const useGetPlaylistSongs = ({ page, limit, setSongs, playlistId }) => {
             setLoading(false);
         };
         fetchSongs();
-    }, [page]);
+    }, [page, limit, playlistId, setSongs]);
     return { loading, hasMore, playlistName };
 };
 

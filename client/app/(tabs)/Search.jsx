@@ -10,7 +10,7 @@ const { height: vh, width: vw } = Dimensions.get("window");
 
 const Search = () => {
     const [text, setText] = useState();
-    const { songs, setSongs } = useSearch({ text });
+    const { songs } = useSearch({ text });
 
     const { setList, setCurrentPlaylistName } = useTrack();
 

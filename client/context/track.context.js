@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, createContext } from "react";
+import { useState, useEffect, useContext, createContext, useCallback } from "react";
 import { useAudioPlayer, AudioModule, useAudioPlayerStatus } from "expo-audio";
 
 const TrackContext = createContext();
@@ -8,8 +8,7 @@ export const TrackProvider = ({ children }) => {
     const [currentPlaylistName, setCurrentPlaylistName] = useState("");
     const [track, setTrack] = useState({});
     const player = useAudioPlayer(track?.url);
-    const { didJustFinish, duration, currentTime } =
-        useAudioPlayerStatus(player);
+    const { didJustFinish } = useAudioPlayerStatus(player);
 
     const togglePlay = item => {
         if (!player) return;
@@ -18,11 +17,11 @@ export const TrackProvider = ({ children }) => {
         } else player.play();
     };
 
-    const skipToNext = () => {
+    const skipToNext = useCallback(() => {
         const index = list.findIndex(song => song._id === track._id);
-        if (index === -1 || index == list.length - 1) return;
+        if (index === -1 || index === list.length - 1) return;
         setTrack(list[index + 1]);
-    };
+    }, [list, track]);
 
     const skipToPrevious = () => {
         const index = list.findIndex(song => song._id === track._id);
@@ -36,11 +35,11 @@ export const TrackProvider = ({ children }) => {
 
     useEffect(() => {
         if (track.url) player.play();
-    }, [track]);
+    }, [track, player]);
 
     useEffect(() => {
         if (didJustFinish) skipToNext();
-    }, [didJustFinish]);
+    }, [didJustFinish, skipToNext]);
 
     useEffect(() => {
         const setupPlayer = async () => {

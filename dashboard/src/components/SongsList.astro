@@ -1,0 +1,53 @@
+---
+import axios from 'axios';
+import {
+    Image
+} from 'astro:assets';
+
+import defaultImg from "../assets/images.jpeg"
+
+const api = "http://10.32.129.27:5000";
+let songs = [];
+
+try {
+    const res = await axios.get(`${api}/dashboard/getAllSongs`);
+    songs = res?.data?.data;
+} catch (e) {
+    console.log(e.message);
+}
+
+---
+<div id="container">
+    {songs?.map(item => (
+        <div id="listItem">
+        <div id="imgContainer">
+        <Image fit="cover" src={item?.cover ? item.cover: defaultImg} alt="" width="50" height="50" />
+        </div>
+    <h6>{item.title}</h6>
+        </div>
+    ))}
+</div>
+
+
+<style>
+    #container {
+        padding: 10vh 0;
+    }
+    #listItem {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 3vw;
+    }
+    #imgContainer {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        background: grey;
+        overflow: hidden;
+    }
+    h6 {
+        width: 80%;
+        overflow: hidden;
+    }
+</style>

@@ -70,7 +70,12 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
+        backgroundColor: '#000000d5',
     },
     inner: {
         height: vh * 0.4,
