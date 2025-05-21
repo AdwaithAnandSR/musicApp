@@ -10,8 +10,6 @@ const schema = mongoose.Schema({
     songs: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            unique: true,
             ref: "music"
         }
     ],
