@@ -3,7 +3,8 @@ import axios from "axios";
 import Constants from "expo-constants";
 
 const api = Constants.expoConfig.extra.clientApi;
-// const api = "http://100.97.171.161:5000";
+// const api = "http://10.32.129.27:5000";
+
 
 const useGetPlaylistSongs = ({ page, limit, setSongs, playlistId }) => {
     const [loading, setLoading] = useState(true);

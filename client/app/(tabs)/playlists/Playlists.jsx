@@ -20,7 +20,7 @@ const Playlists = () => {
         <View style={styles.container}>
             <FlashList
                 data={playlists}
-                renderItem={({ item }) => <ListItem item={item} setIsAddNewPlaylist={setIsAddNewPlaylist} />}
+                renderItem={({ item }) => <ListItem item={item} setPlaylists={setPlaylists} setIsAddNewPlaylist={setIsAddNewPlaylist} />}
                 ListEmptyComponent={
                     <Text
                         style={{
@@ -37,7 +37,7 @@ const Playlists = () => {
             />
 
             {isAddNewPlaylist && (
-                <AddPlaylist setIsAddNewPlaylist={setIsAddNewPlaylist} />
+                <AddPlaylist setIsAddNewPlaylist={setIsAddNewPlaylist} setPlaylists={setPlaylists} />
             )}
 
             {!isAddNewPlaylist && (
