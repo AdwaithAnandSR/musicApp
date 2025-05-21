@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     View,
     Text,
@@ -11,15 +12,23 @@ import { router } from "expo-router";
 
 import { useAppState } from "../../context/appState.context.js";
 import addSongsToPlaylist from "../../controllers/addSongsToPlaylist.js";
+import LongPressOptions from "./LongPressOptions.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item, setIsAddNewPlaylist }) => {
-    const { isSelecting, selectedSongs, setSelectedSongs } = useAppState();
+const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
+    const { isSelecting, selectedSongs, setSelectedSongs, setIsSelecting } =
+        useAppState();
+    const [showOptions, setShowOptions] = useState(false);
+
+    const handleLongPress = e => {
+        setShowOptions(true);
+    };
 
     return (
         <TouchableOpacity
             onPress={() => router.push(`playlists/${item._id}/PlaylistSongs`)}
+            onLongPress={handleLongPress}
             style={styles.container}
         >
             <View style={styles.ImgNameCont}>
@@ -44,7 +53,8 @@ const ListItem = ({ item, setIsAddNewPlaylist }) => {
                             id: item._id,
                             selectedSongs,
                             setSelectedSongs,
-                            setIsAddNewPlaylist
+                            setIsAddNewPlaylist,
+                            setIsSelecting
                         })
                     }
                     style={styles.btn}
@@ -52,6 +62,9 @@ const ListItem = ({ item, setIsAddNewPlaylist }) => {
                     <Entypo name="plus" size={15} color="white" />
                     <Text style={styles.text}>Add</Text>
                 </TouchableOpacity>
+            )}
+            {showOptions && (
+                <LongPressOptions id={item?._id} setShowOptions={setShowOptions} setPlaylists={setPlaylists} />
             )}
         </TouchableOpacity>
     );
@@ -66,9 +79,9 @@ const styles = StyleSheet.create({
         flexDirection: "row"
     },
     ImgNameCont: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: vw * 0.03,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: vw * 0.03
     },
     imageContainer: {
         width: vh * 0.06,
