@@ -16,8 +16,10 @@ router.post("/getGlobalSongs", async (req, res) => {
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit);
+            
+        const total = await musicModel.countDocuments();
 
-        if (musics) return res.status(200).json({ musics });
+        if (musics) return res.status(200).json({ musics, total });
     } catch (error) {
         console.error("error while fetching songs: ", error);
     }
