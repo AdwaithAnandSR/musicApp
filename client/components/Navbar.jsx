@@ -51,8 +51,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         height: vh * 0.07,
         paddingHorizontal: vw * 0.04,
-        borderBottomColor: "#ffffff29",
-        borderBottomWidth: 1
     },
     selectDetsContainer: {
         flexDirection: "row",

@@ -1,4 +1,4 @@
-import React from "react";
+import { memo } from "react";
 import {
     View,
     Text,
@@ -8,7 +8,6 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
-import { useAudioPlayerStatus } from "expo-audio";
 
 import { useTrack } from "../context/track.context.js";
 import { useAppState } from "../context/appState.context.js";
@@ -17,12 +16,12 @@ const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
-const ListItem = ({ item, playlist, loadNewPlaylist }) => {
-    const { setTrack, player, track, currentPlaylistName } =
-        useTrack();
+const ListItem = ({ item, queue, ID }) => {
+    if (!item?.url) return;
+    
+    const { setTrack, track, queueManager, setQueueManager } = useTrack();
     const { selectedSongs, isSelecting, setIsSelecting, setSelectedSongs } =
         useAppState();
-    const { playing, isBuffering } = useAudioPlayerStatus(player);
 
     const handleLongPress = () => {
         if (!isSelecting) setIsSelecting(true);
@@ -31,8 +30,20 @@ const ListItem = ({ item, playlist, loadNewPlaylist }) => {
 
     const handleShortPress = () => {
         if (!isSelecting) {
-            if (currentPlaylistName !== playlist) loadNewPlaylist();
-            setTrack(item);
+            if (queueManager.id === ID) setTrack(item);
+            else {
+                if (queue.length > 0) {
+                    const index = queue.findIndex(
+                        song => song._id === item._id
+                    );
+                    setQueueManager({
+                        id: ID,
+                        tracks: queue || [],
+                        currentIndex: index > -1 ? index : 0
+                    });
+                    setTrack(item);
+                }
+            }
         } else
             setSelectedSongs(prev =>
                 prev.includes(item)
@@ -40,8 +51,6 @@ const ListItem = ({ item, playlist, loadNewPlaylist }) => {
                     : [...prev, item]
             );
     };
-
-    if (!item || !item?.url) return;
 
     return (
         <TouchableOpacity
@@ -80,14 +89,14 @@ const ListItem = ({ item, playlist, loadNewPlaylist }) => {
                     track._id === item._id ? { color: "rgb(246,7,135)" } : null
                 ]}
             >
-                {item?.title}
+                {item.title}
             </Text>
 
             {track._id === item._id && (
                 <LottieView
                     autoPlay
                     source={require("../assets/animations/musicPlayingAnim.json")}
-                    loop={isBuffering || playing ? true : false}
+                    loop={true}
                     style={{
                         width: 40,
                         height: 40,
@@ -125,4 +134,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ListItem;
+export default memo(ListItem, (prev, next) => prev.item._id === next.item._id);
