@@ -23,6 +23,8 @@ const blurhash =
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
     const { track } = useTrack();
+    
+    console.log("render * TrackControllerFullView");
 
     useEffect(() => {
         if (track && track.cover) {

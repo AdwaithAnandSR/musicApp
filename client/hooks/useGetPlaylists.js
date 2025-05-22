@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 import { storage } from "../services/storage.js";
 
 const api = Constants.expoConfig.extra.clientApi;
-// const api = "http://100.97.171.161:5000";
+// const api = "http://10.32.129.27:5000";
 
 const useGetAllSongs = ({ setPlaylists }) => {
     const [loading, setLoading] = useState(true);
@@ -14,7 +14,7 @@ const useGetAllSongs = ({ setPlaylists }) => {
         const fetch = async () => {
             setLoading(true);
             const res = await axios.get(`${api}/playlist/get`);
-            const data = res.data.playlists;
+            const data = res.data.playlists
             setPlaylists(prev => {
                 const map = new Map();
                 prev.forEach(item => map.set(item._id, item));

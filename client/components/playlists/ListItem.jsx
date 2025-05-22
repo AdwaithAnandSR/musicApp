@@ -25,9 +25,16 @@ const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
         setShowOptions(true);
     };
 
+    const handleRoute = () => {
+        router.push({
+            pathname: `/playlists/${item._id}/PlaylistSongs`,
+            params: { playlistName: item?.name }
+        });
+    };
+
     return (
         <TouchableOpacity
-            onPress={() => router.push(`playlists/${item._id}/PlaylistSongs`)}
+            onPress={handleRoute}
             onLongPress={handleLongPress}
             style={styles.container}
         >
@@ -64,7 +71,11 @@ const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
                 </TouchableOpacity>
             )}
             {showOptions && (
-                <LongPressOptions id={item?._id} setShowOptions={setShowOptions} setPlaylists={setPlaylists} />
+                <LongPressOptions
+                    id={item?._id}
+                    setShowOptions={setShowOptions}
+                    setPlaylists={setPlaylists}
+                />
             )}
         </TouchableOpacity>
     );

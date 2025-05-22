@@ -1,13 +1,28 @@
-import { useState, useEffect, useContext, createContext, useCallback } from "react";
+import {
+    useState,
+    useRef,
+    useEffect,
+    useContext,
+    createContext,
+    useCallback,
+    useMemo
+} from "react";
 import { useAudioPlayer, AudioModule, useAudioPlayerStatus } from "expo-audio";
+
+import { useLists } from "./list.context.js";
 
 const TrackContext = createContext();
 
 export const TrackProvider = ({ children }) => {
-    const [list, setList] = useState([]);
-    const [currentPlaylistName, setCurrentPlaylistName] = useState("");
+    const [queueManager, setQueueManager] = useState({
+        id: "/Home",
+        tracks: [],
+        currentIndex: 0
+    });
     const [track, setTrack] = useState({});
+
     const player = useAudioPlayer(track?.url);
+    const { allSongs } = useLists();
     const { didJustFinish } = useAudioPlayerStatus(player);
 
     const togglePlay = item => {
@@ -18,28 +33,55 @@ export const TrackProvider = ({ children }) => {
     };
 
     const skipToNext = useCallback(() => {
-        const index = list.findIndex(song => song._id === track._id);
-        if (index === -1 || index === list.length - 1) return;
-        setTrack(list[index + 1]);
-    }, [list, track]);
+        const { currentIndex, tracks } = queueManager;
+        if (currentIndex >= tracks.length - 1) return;
 
-    const skipToPrevious = () => {
-        const index = list.findIndex(song => song._id === track._id);
-        if (index === -1 || index === 0) return;
-        setTrack(list[index - 1]);
-    };
+        const nextTrack = tracks[currentIndex + 1];
 
-    const seek = sec => {
-        player.seekTo(sec);
-    };
+        if (nextTrack) {
+            setTrack(nextTrack);
+            setQueueManager(prev => ({
+                ...prev,
+                currentIndex: currentIndex + 1
+            }));
+        }
+    }, [track]);
 
-    useEffect(() => {
-        if (track.url) player.play();
-    }, [track, player]);
+    const skipToPrevious = useCallback(() => {
+        const { currentIndex, tracks } = queueManager;
+        if (currentIndex <= 0) return;
+
+        const nextTrack = tracks[currentIndex - 1];
+        if (nextTrack) {
+            setTrack(nextTrack);
+            setQueueManager(prev => ({
+                ...prev,
+                currentIndex: currentIndex - 1
+            }));
+        }
+    }, [track]);
+
+    const seek = sec => player.seekTo(sec);
 
     useEffect(() => {
         if (didJustFinish) skipToNext();
-    }, [didJustFinish, skipToNext]);
+    }, [didJustFinish]);
+
+    useEffect(() => {
+        if (track?.url && queueManager?.tracks?.length) {
+            player.play();
+
+            const index = queueManager.tracks.findIndex(
+                song => song._id === track._id
+            );
+            if (index !== -1 && queueManager.currentIndex !== index) {
+                setQueueManager(prev => ({
+                    ...prev,
+                    currentIndex: index
+                }));
+            }
+        }
+    }, [track]);
 
     useEffect(() => {
         const setupPlayer = async () => {
@@ -53,22 +95,23 @@ export const TrackProvider = ({ children }) => {
         setupPlayer();
     }, []);
 
+    const contextValue = useMemo(
+        () => ({
+            player,
+            togglePlay,
+            seek,
+            skipToNext,
+            skipToPrevious,
+            track,
+            setTrack,
+            queueManager,
+            setQueueManager
+        }),
+        [player, track, queueManager]
+    );
+
     return (
-        <TrackContext.Provider
-            value={{
-                player,
-                togglePlay,
-                seek,
-                skipToNext,
-                skipToPrevious,
-                track,
-                setTrack,
-                list,
-                setList,
-                currentPlaylistName,
-                setCurrentPlaylistName
-            }}
-        >
+        <TrackContext.Provider value={contextValue}>
             {children}
         </TrackContext.Provider>
     );

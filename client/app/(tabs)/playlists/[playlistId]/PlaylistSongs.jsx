@@ -1,57 +1,64 @@
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useState, useRef } from "react";
+import { StyleSheet, Text, View, Animated } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 
 import useGetPlaylistSongs from "../../../../hooks/useGetPlaylistSongs.js";
-import { useTrack } from "../../../../context/track.context.js";
 
 import ListItem from "../../../../components/ListItem.jsx";
+import Header from "../../../../components/ListHeader.jsx";
 
-const limit = 25;
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+const limit = 25,
+    HEADER_HEIGHT = 250;
+
 const PlaylistSongs = () => {
     const [page, setPage] = useState(1);
-    const [songs, setSongs] = useState([1]);
-    const { playlistId } = useGlobalSearchParams();
-    const { loading, hasMore, playlistName } = useGetPlaylistSongs({
+    const [songs, setSongs] = useState([]);
+    const scrollY = useRef(new Animated.Value(0)).current;
+
+    const { playlistId, playlistName } = useGlobalSearchParams();
+    const { loading, hasMore, total } = useGetPlaylistSongs({
         playlistId,
         page,
         limit,
         setSongs
     });
-    const { setList, setCurrentPlaylistName } = useTrack();
-
-    const loadNewPlaylist = () => {
-        setCurrentPlaylistName(`${playlistId}`);
-        setList(songs);
-    };
 
     return (
         <View style={styles.container}>
-            <FlashList
+            <Header
+                title={playlistName}
+                total={total}
+                scrollY={scrollY}
+                containerStyles={{ height: HEADER_HEIGHT }}
+            />
+
+            <AnimatedFlashList
                 data={songs}
                 renderItem={({ item }) => (
-                    <ListItem
-                        playlist={playlistId}
-                        loadNewPlaylist={loadNewPlaylist}
-                        item={item}
-                    />
+                    <ListItem queue={songs} ID={playlistId} item={item} />
                 )}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={
                     <Text style={styles.loader}>
-                        {loading
-                            ? "loading..."
-                            : !hasMore
-                            ? `•  ${playlistName}  •`
-                            : "Somthing went wrong."}
+                        {loading && hasMore
+                            ? "Loading..."
+                            : `•  ${playlistName}  •`}
                     </Text>
                 }
                 onEndReached={() => {
-                    if (hasMore) setPage(prev => prev + 1);
+                    if (!loading && hasMore) setPage(prev => prev + 1);
                 }}
-                estimatedItemSize={80}
-                contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
+                estimatedItemSize={79}
+                contentContainerStyle={{
+                    paddingTop: HEADER_HEIGHT + 10,
+                    paddingBottom: 150
+                }}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true }
+                )}
             />
         </View>
     );

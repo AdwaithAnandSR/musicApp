@@ -4,20 +4,12 @@ import { FlashList } from "@shopify/flash-list";
 import ListItem from "../../components/ListItem.jsx";
 
 import useSearch from "../../hooks/useSearch.js";
-import { useTrack } from "../../context/track.context.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Search = () => {
     const [text, setText] = useState();
     const { songs } = useSearch({ text });
-
-    const { setList, setCurrentPlaylistName } = useTrack();
-
-    const loadNewPlaylist = () => {
-        setCurrentPlaylistName("allSongs");
-        setList(songs);
-    };
 
     const listHeader = useMemo(
         () => (
@@ -42,11 +34,7 @@ const Search = () => {
                 estimatedItemSize={vh * 0.95 || 100}
                 ListHeaderComponent={listHeader}
                 renderItem={({ item }) => (
-                    <ListItem
-                        playlist={"searchSongs"}
-                        loadNewPlaylist={loadNewPlaylist}
-                        item={item}
-                    />
+                    <ListItem queue={songs} ID={"/SEARCH"} item={item} />
                 )}
                 contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
             />

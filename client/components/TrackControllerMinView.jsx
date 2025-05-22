@@ -4,7 +4,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     Dimensions,
-    Animated
+    Animated,
 } from "react-native";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";

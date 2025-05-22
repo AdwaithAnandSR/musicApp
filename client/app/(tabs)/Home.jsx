@@ -1,4 +1,5 @@
-import { View, Text} from "react-native";
+import { useState, useRef, useCallback } from "react";
+import { View, Text, StyleSheet, FlatList, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import { useLists } from "../../context/list.context.js";
@@ -6,9 +7,15 @@ import { useTrack } from "../../context/track.context.js";
 
 import useGetAllSongs from "../../hooks/useGetAllSongs.js";
 import ListItem from "../../components/ListItem.jsx";
+import Header from "../../components/ListHeader.jsx";
+
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 const Home = () => {
-    const LIMIT = 25;
+    const [loading, setLoading] = useState(true);
+    const LIMIT = 25,
+        HEADER_HEIGHT = 250;
+    const scrollY = useRef(new Animated.Value(0)).current;
 
     const {
         allSongs,
@@ -17,54 +24,65 @@ const Home = () => {
         setAllSongsPage: setPage
     } = useLists();
 
-    const { loading, hasMore } = useGetAllSongs({
+    const { hasMore, total } = useGetAllSongs({
         setAllSongs,
         page,
-        limit: LIMIT
+        limit: LIMIT,
+        setLoading
     });
-    
-    const { setList, setCurrentPlaylistName } = useTrack();
-
-    const loadNewPlaylist = () => {
-        setCurrentPlaylistName("allSongs");
-        setList(allSongs);
-    };
 
     return (
-        <View style={{ backgroundColor: "black", height: "100%" }}>
-            <FlashList
+        <View style={{ flex: 1, backgroundColor: "black" }}>
+            <Header
+                title="Musics"
+                total={total}
+                scrollY={scrollY}
+                containerStyles={{ height: HEADER_HEIGHT , backgroundColor: 'black',}}
+            />
+
+            <AnimatedFlashList
                 data={allSongs}
                 renderItem={({ item }) => (
-                    <ListItem
-                        playlist={"allSongs"}
-                        loadNewPlaylist={loadNewPlaylist}
-                        item={item}
-                    />
+                    <ListItem queue={allSongs} ID={"HOME"} item={item} />
                 )}
+                keyExtractor={item => item._id}
                 onEndReachedThreshold={0.5}
-                ListFooterComponent={
-                    <Text
-                        style={{
-                            color: "white",
-                            textAlign: "center",
-                            marginTop: 10
-                        }}
-                    >
-                        {loading
-                            ? "loading..."
-                            : !hasMore
-                            ? "no more songs."
-                            : ""}
-                    </Text>
-                }
-                onEndReached={() => {
-                    if (hasMore) setPage(prev => prev + 1);
-                }}
+                initialNumToRender={7}
                 estimatedItemSize={80}
-                contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
+                window={10}
+                onEndReached={() => {
+                    if (!loading && hasMore) {
+                        setPage(prev => prev + 1);
+                    }
+                }}
+                contentContainerStyle={{
+                    paddingBottom: 100,
+                    paddingTop: HEADER_HEIGHT + 10
+                }}
+                ListFooterComponent={() => (
+                    <Text style={styles.text}>
+                        {loading
+                            ? "Loading..."
+                            : hasMore
+                            ? null
+                            : "No more songs"}
+                    </Text>
+                )}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true }
+                )}
             />
         </View>
     );
 };
 
 export default Home;
+
+const styles = StyleSheet.create({
+    text: {
+        color: "white",
+        fontWeight: "bold",
+        textAlign: "center"
+    }
+});
