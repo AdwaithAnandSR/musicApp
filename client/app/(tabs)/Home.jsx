@@ -42,7 +42,7 @@ const Home = () => {
                 scrollY={scrollY}
                 containerStyles={{
                     height: HEADER_HEIGHT,
-                    backgroundColor: "black"
+                    
                 }}
             />
 

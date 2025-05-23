@@ -5,7 +5,6 @@ const HEADER_HEIGHT = 250,
     MIN_HEADER_HEIGHT = HEADER_HEIGHT - 80;
 
 const Header = ({ title, containerStyles, total, scrollY }) => {
-
     const translateY = scrollY?.interpolate({
         inputRange: [0, MIN_HEADER_HEIGHT],
         outputRange: [0, -MIN_HEADER_HEIGHT],
@@ -58,7 +57,10 @@ const styles = StyleSheet.create({
         color: "white",
         fontWeight: "bold",
         fontSize: 50,
-        letterSpacing: -2
+        letterSpacing: -2,
+        textShadowColor: "rgba(0,0,0,1)",
+        textShadowOffset: { width: 3, height: 3 },
+        textShadowRadius: 5
     },
     headerText2: {
         color: "white",
@@ -70,4 +72,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default memo(Header, ((prev, next)=> prev.title !== next.title));
+export default memo(Header, (prev, next) => prev.title !== next.title);
