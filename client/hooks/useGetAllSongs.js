@@ -23,6 +23,7 @@ const useGetAllSongs = ({ limit }) => {
     const allSongs = useGlobalSongs(state => state.allSongs);
 
     const fetchSongs = async () => {
+        console.log("fetching...");
         setLoading(true);
         try {
             const res = await axios.post(`${api}/getGlobalSongs`, {

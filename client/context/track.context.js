@@ -78,10 +78,7 @@ export const TrackProvider = ({ children }) => {
     useEffect(() => {
         if (track?.url) {
             player.play();
-            const index = queue.findIndex(song => song._id === track._id);
-            if (index !== -1 && currentQueueIndex !== index) {
-                updateCurrentIndex(index);
-            }
+            
         }
     }, [track]);
 
