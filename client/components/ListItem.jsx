@@ -30,8 +30,6 @@ const ListItem = ({ item, LoadQueue, ID }) => {
     );
 
     if (!item?.url) return;
-    
-    console.log("ListItem.jsx");
 
     const handleShortPress = () => {
         if (!isSelecting) {

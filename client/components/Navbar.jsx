@@ -40,8 +40,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        height: vh * 0.06,
+        height: vh * 0.045,
         paddingHorizontal: vw * 0.04,
+        position: 'absolute',
+        zIndex: 999,
     },
     selectDetsContainer: {
         flexDirection: "row",
