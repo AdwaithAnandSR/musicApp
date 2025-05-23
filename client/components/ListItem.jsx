@@ -9,47 +9,51 @@ import {
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 
-import { useTrack } from "../context/track.context.js";
-import { useAppState } from "../context/appState.context.js";
+import { useTrack, useQueueManager } from "../store/track.store.js";
+import { useMultiSelect } from "../store/appState.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
-const ListItem = ({ item, queue, ID }) => {
+const ListItem = ({ item, LoadQueue, ID }) => {
     if (!item?.url) return;
-    
-    const { setTrack, track, queueManager, setQueueManager } = useTrack();
-    const { selectedSongs, isSelecting, setIsSelecting, setSelectedSongs } =
-        useAppState();
+
+    const updateTrack = useTrack(state => state.update);
+    const isCurrent = useTrack(state => state.track?._id === item._id);
+    const queueId = useQueueManager(state => state.id);
+    const updateQueueId = useQueueManager(state => state.updateId);
+    const updateQueueIndex = useQueueManager(state => state.updateCurrentIndex);
+    const loadQueue = useQueueManager(state => state.loadQueue);
+    const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
+    const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
+    const isSelected = useMultiSelect(state =>
+        state.selectedSongs.some(song => song._id === item._id)
+    );
+
+    console.log("rendered * ListItem", isCurrent);
 
     const handleLongPress = () => {
-        if (!isSelecting) setIsSelecting(true);
-        setSelectedSongs(prev => [...prev, item]);
+        updateSelected(item);
     };
 
     const handleShortPress = () => {
         if (!isSelecting) {
-            if (queueManager.id === ID) setTrack(item);
+            if (queueId === ID) updateTrack(item);
             else {
-                if (queue.length > 0) {
-                    const index = queue.findIndex(
+                if (LoadQueue?.length > 0) {
+                    const index = LoadQueue.findIndex(
                         song => song._id === item._id
                     );
-                    setQueueManager({
-                        id: ID,
-                        tracks: queue || [],
-                        currentIndex: index > -1 ? index : 0
-                    });
-                    setTrack(item);
+                    updateQueueId(ID);
+                    loadQueue(LoadQueue || []);
+                    updateQueueIndex(index > -1 ? index : 0);
+                    updateTrack(item);
                 }
             }
-        } else
-            setSelectedSongs(prev =>
-                prev.includes(item)
-                    ? prev.filter(song => item._id !== song._id)
-                    : [...prev, item]
-            );
+        } else {
+            updateSelected(item);
+        }
     };
 
     return (
@@ -59,7 +63,7 @@ const ListItem = ({ item, queue, ID }) => {
             onLongPress={handleLongPress}
             style={styles.container}
         >
-            {isSelecting && selectedSongs.includes(item) && (
+            {isSelected && (
                 <View style={styles.checkBoxContainer}>
                     <Text
                         style={{
@@ -86,13 +90,13 @@ const ListItem = ({ item, queue, ID }) => {
                 numberOfLines={2}
                 style={[
                     styles.title,
-                    track._id === item._id ? { color: "rgb(246,7,135)" } : null
+                    isCurrent ? { color: "rgb(246,7,135)" } : null
                 ]}
             >
                 {item.title}
             </Text>
 
-            {track._id === item._id && (
+            {isCurrent && (
                 <LottieView
                     autoPlay
                     source={require("../assets/animations/musicPlayingAnim.json")}
@@ -111,7 +115,7 @@ const ListItem = ({ item, queue, ID }) => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "#080808",
+        backgroundColor: "#070707",
         height: 80,
         alignItems: "center",
         flexDirection: "row",
