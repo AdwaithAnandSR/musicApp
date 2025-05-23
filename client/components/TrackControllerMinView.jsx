@@ -4,7 +4,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     Dimensions,
-    Animated,
+    Animated
 } from "react-native";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
@@ -12,16 +12,18 @@ import { useAudioPlayerStatus } from "expo-audio";
 
 import handleSwipe from "../controllers/handleMinViewSwipes.js";
 import { useTrack } from "../context/track.context.js";
+import { useTrack as useTrackDets } from "../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
 const TrackControllerMinView = () => {
-    const { togglePlay, track, skipToNext, skipToPrevious, player, setTrack } =
-        useTrack();
-    const { playing, isBuffering } = useAudioPlayerStatus(player);
     const [swipeStartPos, setSwipeStartPos] = useState({});
+    const { togglePlay, skipToNext, skipToPrevious, player } = useTrack();
+    const { playing, isBuffering } = useAudioPlayerStatus(player);
+    const track = useTrackDets(state => state.track);
+    const updateTrack = useTrackDets(state => state.update);
 
     const arr = [0, 0.2, 0.4, 0.6, 0.8, 1];
     const randomElem = arr[Math.floor(Math.random() * arr.length)];
@@ -82,7 +84,7 @@ const TrackControllerMinView = () => {
                     swipeStartPos,
                     skipToNext,
                     skipToPrevious,
-                    setTrack
+                    updateTrack
                 )
             }
             style={styles.container}

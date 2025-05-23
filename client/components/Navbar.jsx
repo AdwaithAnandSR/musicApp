@@ -8,33 +8,24 @@ import {
 } from "react-native";
 import { FontAwesome, Entypo } from "@expo/vector-icons";
 
-import { useAppState } from "../context/appState.context.js";
+import { useMultiSelect } from "../store/appState.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Navbar = () => {
-    const { isSelecting, selectedSongs, setIsSelecting, setSelectedSongs } =
-        useAppState();
+    const isSelecting = useMultiSelect(state=> state.selectedSongs?.length > 0);
+    const reset = useMultiSelect(state=> state.reset);
+    const selectedSongsLen = useMultiSelect(state=> state.selectedSongs?.length);
 
     if (!isSelecting) return;
-
-    const disSelectAll = () => {
-        setIsSelecting(false);
-        setSelectedSongs([]);
-    };
 
     return (
         <View style={styles.container}>
             <View style={styles.selectDetsContainer}>
-                <FontAwesome
-                    name="check-square-o"
-                    size={20}
-                    color="rgb(246,7,135)"
-                />
-                <Text style={styles.text}>{selectedSongs?.length}</Text>
+                <Text style={styles.text}>Selected: {selectedSongsLen}</Text>
             </View>
             <View style={styles.toolsContainer}>
-                <TouchableOpacity onPress={disSelectAll}>
+                <TouchableOpacity onPress={reset}>
                     <Entypo name="cross" size={24} color="white" />
                 </TouchableOpacity>
             </View>
@@ -49,7 +40,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        height: vh * 0.07,
+        height: vh * 0.06,
         paddingHorizontal: vw * 0.04,
     },
     selectDetsContainer: {

@@ -37,7 +37,7 @@ const PlaylistSongs = () => {
             <AnimatedFlashList
                 data={songs}
                 renderItem={({ item }) => (
-                    <ListItem queue={songs} ID={playlistId} item={item} />
+                    <ListItem LoadQueue={songs} ID={playlistId} item={item} />
                 )}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={

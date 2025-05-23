@@ -10,18 +10,21 @@ import {
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import { useAppState } from "../../context/appState.context.js";
-import addSongsToPlaylist from "../../controllers/addSongsToPlaylist.js";
+import { useMultiSelect } from "../../store/appState.store.js";
+import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.js";
 import LongPressOptions from "./LongPressOptions.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
-    const { isSelecting, selectedSongs, setSelectedSongs, setIsSelecting } =
-        useAppState();
     const [showOptions, setShowOptions] = useState(false);
+    const isSelecting = useMultiSelect(
+        state => state.selectedSongs?.length > 0
+    );
+    const selectedSongs = useMultiSelect(state => state.selectedSongs);
+    const reset = useMultiSelect(state => state.reset);
 
-    const handleLongPress = e => {
+    const handleLongPress = () => {
         setShowOptions(true);
     };
 
@@ -59,9 +62,8 @@ const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
                         addSongsToPlaylist({
                             id: item._id,
                             selectedSongs,
-                            setSelectedSongs,
-                            setIsAddNewPlaylist,
-                            setIsSelecting
+                            reset,
+                            setIsAddNewPlaylist
                         })
                     }
                     style={styles.btn}

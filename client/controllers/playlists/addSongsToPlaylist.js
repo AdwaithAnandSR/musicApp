@@ -1,7 +1,7 @@
 import axios from "axios";
 import Constants from "expo-constants";
 
-import Toast from "../services/Toast.js";
+import Toast from "../../services/Toast.js";
 
 const api = Constants.expoConfig.extra.clientApi;
 // const api = "http://100.97.171.161:5000";
@@ -9,12 +9,11 @@ const api = Constants.expoConfig.extra.clientApi;
 const addSongsToPlaylist = async ({
     id,
     selectedSongs,
-    setSelectedSongs,
-    setIsAddNewPlaylist,
-    setIsSelecting
+    reset,
+    setIsAddNewPlaylist
 }) => {
     try {
-        Toast.show("Songs Adding...", "pending");
+        Toast.show("please wait...", "pending");
 
         const res = await axios.post(`${api}/playlist/add`, {
             id,
@@ -23,8 +22,7 @@ const addSongsToPlaylist = async ({
 
         if (res.status === 200) {
             setIsAddNewPlaylist(false);
-            setSelectedSongs([]);
-            setIsSelecting(false);
+            reset();
             Toast.show("Songs Added Successfully", "success");
         }
     } catch (error) {

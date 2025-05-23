@@ -9,21 +9,26 @@ import {
 } from "react";
 import { useAudioPlayer, AudioModule, useAudioPlayerStatus } from "expo-audio";
 
-import { useLists } from "./list.context.js";
+import { useGlobalSongs } from "../store/list.store.js";
+import {
+    useTrack as useTrackDets,
+    useQueueManager
+} from "../store/track.store.js";
 
 const TrackContext = createContext();
 
 export const TrackProvider = ({ children }) => {
-    const [queueManager, setQueueManager] = useState({
-        id: "/Home",
-        tracks: [],
-        currentIndex: 0
-    });
-    const [track, setTrack] = useState({});
+    const track = useTrackDets(state => state.track);
+    const updateTrack = useTrackDets(state => state.update);
+    const queue = useQueueManager(state => state.queue);
+    const currentQueueIndex = useQueueManager(state => state.currentIndex);
+    const updateCurrentIndex = useQueueManager(
+        state => state.updateCurrentIndex
+    );
 
     const player = useAudioPlayer(track?.url);
-    const { allSongs } = useLists();
     const { didJustFinish } = useAudioPlayerStatus(player);
+    const allSongs = useGlobalSongs(state => state.allSongs);
 
     const togglePlay = item => {
         if (!player) return;
@@ -33,33 +38,22 @@ export const TrackProvider = ({ children }) => {
     };
 
     const skipToNext = useCallback(() => {
-        const { currentIndex, tracks } = queueManager;
-        if (currentIndex >= tracks.length - 1) return;
-
-        const nextTrack = tracks[currentIndex + 1];
-
+        if (currentQueueIndex >= queue.length - 1) return;
+        const nextTrack = queue[currentQueueIndex + 1];
         if (nextTrack) {
-            setTrack(nextTrack);
-            setQueueManager(prev => ({
-                ...prev,
-                currentIndex: currentIndex + 1
-            }));
+            updateTrack(nextTrack);
+            updateCurrentIndex(currentQueueIndex + 1);
         }
     }, [track]);
 
-    const skipToPrevious = useCallback(() => {
-        const { currentIndex, tracks } = queueManager;
-        if (currentIndex <= 0) return;
-
-        const nextTrack = tracks[currentIndex - 1];
+    const skipToPrevious = () => {
+        if (currentQueueIndex <= 0) return;
+        const nextTrack = queue[currentQueueIndex - 1];
         if (nextTrack) {
-            setTrack(nextTrack);
-            setQueueManager(prev => ({
-                ...prev,
-                currentIndex: currentIndex - 1
-            }));
+            updateTrack(nextTrack);
+            updateCurrentIndex(currentQueueIndex - 1);
         }
-    }, [track]);
+    };
 
     const seek = sec => player.seekTo(sec);
 
@@ -68,17 +62,11 @@ export const TrackProvider = ({ children }) => {
     }, [didJustFinish]);
 
     useEffect(() => {
-        if (track?.url && queueManager?.tracks?.length) {
+        if (track?.url) {
             player.play();
-
-            const index = queueManager.tracks.findIndex(
-                song => song._id === track._id
-            );
-            if (index !== -1 && queueManager.currentIndex !== index) {
-                setQueueManager(prev => ({
-                    ...prev,
-                    currentIndex: index
-                }));
+            const index = queue.findIndex(song => song._id === track._id);
+            if (index !== -1 && currentQueueIndex !== index) {
+                updateCurrentIndex(index);
             }
         }
     }, [track]);
@@ -95,20 +83,13 @@ export const TrackProvider = ({ children }) => {
         setupPlayer();
     }, []);
 
-    const contextValue = useMemo(
-        () => ({
-            player,
-            togglePlay,
-            seek,
-            skipToNext,
-            skipToPrevious,
-            track,
-            setTrack,
-            queueManager,
-            setQueueManager
-        }),
-        [player, track, queueManager]
-    );
+    const contextValue = {
+        player,
+        togglePlay,
+        seek,
+        skipToNext,
+        skipToPrevious
+    };
 
     return (
         <TrackContext.Provider value={contextValue}>

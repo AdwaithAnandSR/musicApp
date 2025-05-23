@@ -2,15 +2,23 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Constants from "expo-constants";
 
-import { useTrack } from "../context/track.context.js";
+import { useQueueManager } from "../store/track.store.js";
+import { useGlobalSongs } from "../store/list.store.js";
 import { storage } from "../services/storage.js";
 
 const api = Constants.expoConfig.extra.clientApi;
 
-const useGetAllSongs = ({ page, limit, setAllSongs, setLoading }) => {
-    const [hasMore, setHasMore] = useState(true);
-    const [total, setTotal] = useState(-1);
-    const { setQueueManager, track } = useTrack();
+const useGetAllSongs = ({ limit }) => {
+    const [loading, setLoading] = useState(true);
+
+    const updateQueue = useQueueManager(state => state.updateQueue);
+    const loadQueue = useQueueManager(state => state.loadQueue);
+    const queueId = useQueueManager(state => state.id);
+
+    const page = useGlobalSongs(state => state.page);
+    const updateHasMore = useGlobalSongs(state => state.updateHasMore);
+    const updateAllSongs = useGlobalSongs(state => state.updateAllSongs);
+    const allSongs = useGlobalSongs(state => state.allSongs);
 
     const fetchSongs = async () => {
         setLoading(true);
@@ -21,24 +29,12 @@ const useGetAllSongs = ({ page, limit, setAllSongs, setLoading }) => {
             });
 
             const data = res.data?.musics || [];
-            if (data.length < limit) setHasMore(false);
-            setTotal(res.data.total)
-            setAllSongs(prev => {
-                const existingIds = new Set(prev.map(song => song._id));
-                const newSongs = data.filter(
-                    song => !existingIds.has(song._id)
-                );
-                const allSongs = [...prev, ...newSongs];
-                const newCurrentIndex =
-                    allSongs.findIndex(song => song._id === track?._id) || 0;
-                setQueueManager({
-                    type: "/Home",
-                    id: 0,
-                    tracks: allSongs,
-                    currentIndex: newCurrentIndex || 0
-                });
-                return allSongs;
-            });
+            if (data.length < limit) updateHasMore(false);
+
+            updateAllSongs(data);
+
+            if (queueId === "HOME") updateQueue(data);
+            else loadQueue(allSongs);
 
             if (page === 1) storage.set("songs", JSON.stringify(data));
         } catch (err) {
@@ -49,12 +45,12 @@ const useGetAllSongs = ({ page, limit, setAllSongs, setLoading }) => {
     };
 
     useEffect(() => {
-        if (!page || !limit || !setAllSongs) return;
+        if (!page || !limit) return;
 
         fetchSongs();
-    }, [page, limit, setAllSongs,]);
+    }, [page, limit]);
 
-    return { hasMore, total };
+    return { loading };
 };
 
 export default useGetAllSongs;
