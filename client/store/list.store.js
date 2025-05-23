@@ -1,13 +1,9 @@
 import { create } from "zustand";
-import axios from "axios";
-import Constants from "expo-constants";
 
-import { storage } from "../services/storage.js";
-
-const api = Constants.expoConfig.extra.clientApi;
+import { songs } from "../services/storage.js";
 
 export const useGlobalSongs = create((set, get) => ({
-    allSongs: [],
+    allSongs: songs || [],
     page: 1,
     hasMore: true,
     updatePage: () => set(state => ({ page: state.page + 1 })),

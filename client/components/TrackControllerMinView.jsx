@@ -8,11 +8,10 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
-import { useAudioPlayerStatus } from "expo-audio";
 
 import handleSwipe from "../controllers/handleMinViewSwipes.js";
-import { useTrack } from "../context/track.context.js";
-import { useTrack as useTrackDets } from "../store/track.store.js";
+import { useTrack as trackController } from "../context/track.context.js";
+import { useTrack, useAudioMonitor } from "../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
@@ -20,10 +19,13 @@ const blurhash =
 
 const TrackControllerMinView = () => {
     const [swipeStartPos, setSwipeStartPos] = useState({});
-    const { togglePlay, skipToNext, skipToPrevious, player } = useTrack();
-    const { playing, isBuffering } = useAudioPlayerStatus(player);
-    const track = useTrackDets(state => state.track);
-    const updateTrack = useTrackDets(state => state.update);
+    const { togglePlay, skipToNext, skipToPrevious } = trackController();
+
+    const isBuffering = useAudioMonitor(state => state.isBuffering);
+    const isPlaying = useAudioMonitor(state => state.isPlaying);
+
+    const track = useTrack(state => state.track);
+    const updateTrack = useTrack(state => state.update);
 
     const arr = [0, 0.2, 0.4, 0.6, 0.8, 1];
     const randomElem = arr[Math.floor(Math.random() * arr.length)];
@@ -101,7 +103,7 @@ const TrackControllerMinView = () => {
                     transition={1000}
                 />
 
-                {(playing || isBuffering) && (
+                {(isPlaying || isBuffering) && (
                     <LottieView
                         source={require("../assets/animations/musicPlayingAnim2.json")}
                         autoPlay

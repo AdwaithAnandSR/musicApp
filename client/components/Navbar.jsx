@@ -6,7 +6,7 @@ import {
     TouchableOpacity,
     StyleSheet
 } from "react-native";
-import { FontAwesome, Entypo } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 
 import { useMultiSelect } from "../store/appState.store.js";
 

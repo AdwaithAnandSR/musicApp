@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import { View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import "./(trackFullView)/TrackControllerFullView.jsx";
@@ -10,7 +9,7 @@ import { TrackProvider } from "../context/track.context.js";
 
 const _layout = () => {
     return (
-        <View
+        <SafeAreaView
             style={{
                 flex: 1,
                 backgroundColor: "black"
@@ -36,7 +35,7 @@ const _layout = () => {
                 </Stack>
                 <Toast />
             </TrackProvider>
-        </View>
+        </SafeAreaView>
     );
 };
 

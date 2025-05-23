@@ -1,12 +1,10 @@
-import { useState, useRef, useCallback, useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, Animated } from "react-native";
+import { useRef, useCallback, useMemo } from "react";
+import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import throttle from "lodash.throttle";
 
 import { useGlobalSongs } from "../../store/list.store.js";
-import { useTrack } from "../../store/track.store.js";
-
 import useGetAllSongs from "../../hooks/useGetAllSongs.js";
+
 import ListItem from "../../components/ListItem.jsx";
 import Header from "../../components/ListHeader.jsx";
 
@@ -16,8 +14,6 @@ const Home = () => {
     const LIMIT = 25,
         HEADER_HEIGHT = 250;
     const scrollY = useRef(new Animated.Value(0)).current;
-
-    console.log("render * Home");
 
     const updatePage = useGlobalSongs(state => state.updatePage);
     const hasMore = useGlobalSongs(state => state.hasMore);
@@ -37,13 +33,6 @@ const Home = () => {
     const renderItem = useCallback(
         ({ item }) => <ListItem LoadQueue={allSongs} ID={"HOME"} item={item} />,
         [allSongs]
-    );
-
-    const handleEndReached = useCallback(
-        throttle(() => {
-            if (!loading && hasMore) updatePage();
-        }, 1000),
-        [loading, hasMore]
     );
 
     return (
@@ -71,7 +60,9 @@ const Home = () => {
                     offset: 80 * index,
                     index
                 })}
-                onEndReached={handleEndReached}
+                onEndReached={() => {
+                    if (!loading && hasMore) updatePage();
+                }}
                 contentContainerStyle={{
                     paddingBottom: 100,
                     paddingTop: HEADER_HEIGHT + 10

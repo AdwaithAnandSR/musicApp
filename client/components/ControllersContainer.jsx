@@ -1,13 +1,14 @@
 import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { FontAwesome5, AntDesign } from "@expo/vector-icons";
-import { useAudioPlayerStatus } from "expo-audio";
 
 import { useTrack } from "../context/track.context.js";
+import { useAudioMonitor } from "../store/track.store.js";
 
 const ControllersContainer = () => {
-    const { togglePlay, skipToNext, skipToPrevious, player } = useTrack();
-    const { playing, isBuffering} = useAudioPlayerStatus(player);
+    const { togglePlay, skipToNext, skipToPrevious } = useTrack();
+    const isPlaying = useAudioMonitor(state => state.isPlaying);
+    const isBuffering = useAudioMonitor(state => state.isBuffering);
 
     return (
         <View style={styles.controllsContainer}>
@@ -17,7 +18,7 @@ const ControllersContainer = () => {
             >
                 <AntDesign name="stepbackward" size={28} color="white" />
             </TouchableOpacity>
-            {playing || isBuffering ? (
+            {isPlaying || isBuffering ? (
                 <TouchableOpacity
                     onPress={togglePlay}
                     style={styles.btnContainer}

@@ -11,7 +11,7 @@ import { Entypo } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 
-import { useTrack } from "../../context/track.context.js";
+import { useTrack } from "../../store/track.store.js";
 
 import Controllers from "../../components/ControllersContainer.jsx";
 import SliderContainer from "../../components/SliderContainer.jsx";
@@ -22,7 +22,7 @@ const blurhash =
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
-    const { track } = useTrack();
+    const track = useTrack(state=> state.track);
     
     console.log("render * TrackControllerFullView");
 
