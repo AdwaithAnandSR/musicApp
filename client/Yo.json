@@ -1,0 +1,51 @@
+{
+    "currentTime": 0, 
+    "didJustFinish": false, 
+    "duration": 0,
+    "id": "c2735b5b-8b24-497c-a95e-1728670274ae", 
+    "isBuffering": false,
+    "isLoaded": false,
+    "loop": false,
+    "mute": false,
+    "playbackRate": 1,
+    "playbackState": "idle",
+    "playing": false,
+    "reasonForWaitingToPlay": null,
+    "shouldCorrectPitch": false, 
+    "timeControlStatus": "paused"
+}
+
+
+
+
+
+{
+    "currentStatus":{
+        "currentTime": 0, 
+        "didJustFinish": false, 
+        "duration": 0,
+        "id": "802dd6d0-18e2-4832-849d-730a29b2d0ce",
+        "isBuffering": true, 
+        "isLoaded": false,
+        "loop": false,
+        "mute": false,
+        "playbackRate": 1, 
+        "playbackState": "buffering", 
+        "playing": false,
+        "reasonForWaitingToPlay": null,
+        "shouldCorrectPitch": false,
+        "timeControlStatus": "paused"
+    }, 
+        "currentTime": 0, 
+        "duration": 0,
+        "id": "802dd6d0-18e2-4832-849d-730a29b2d0ce", 
+        "isAudioSamplingSupported": true, 
+        "isBuffering": true,
+        "isLoaded": false,
+        "loop": false,
+        "mute": false,
+        "playbackRate": 1, 
+        "playing": false, 
+        "shouldCorrectPitch": false, 
+        "volume": 1
+}

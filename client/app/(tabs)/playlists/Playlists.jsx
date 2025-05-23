@@ -12,8 +12,7 @@ import useGetPlaylists from "../../../hooks/useGetPlaylists.js";
 const savedPlaylists = storage.playlists;
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
-const limit = 25,
-    HEADER_HEIGHT = 100;
+const HEADER_HEIGHT = 100;
 
 const Playlists = () => {
     const [playlists, setPlaylists] = useState(savedPlaylists || []);
@@ -29,7 +28,7 @@ const Playlists = () => {
                 scrollY={scrollY}
                 containerStyles={{ height: 100 }}
             />
-            <FlashList
+            <AnimatedFlashList
                 data={playlists}
                 renderItem={({ item }) => (
                     <ListItem
@@ -54,6 +53,10 @@ const Playlists = () => {
                     paddingTop: HEADER_HEIGHT,
                     paddingBottom: 150
                 }}
+                onScroll={Animated.event(
+                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                    { useNativeDriver: true }
+                )}
             />
 
             {isAddNewPlaylist && (

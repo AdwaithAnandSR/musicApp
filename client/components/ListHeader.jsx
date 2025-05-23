@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { memo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 
 const HEADER_HEIGHT = 250,
@@ -11,7 +11,7 @@ const Header = ({ title, containerStyles, total, scrollY }) => {
         outputRange: [0, -MIN_HEADER_HEIGHT],
         extrapolate: "clamp"
     });
-    
+
     return (
         <Animated.View
             style={[
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default Header;
+export default memo(Header, ((prev, next)=> prev.title !== next.title));

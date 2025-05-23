@@ -1,5 +1,4 @@
 import { router } from "expo-router";
-import { useTrack } from "../store/track.store.js"
 
 const handleSwipeEnd = async (
     e,

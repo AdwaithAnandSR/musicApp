@@ -1,5 +1,4 @@
 import {
-    useState,
     useRef,
     useEffect,
     useContext,
@@ -9,10 +8,10 @@ import {
 } from "react";
 import { useAudioPlayer, AudioModule, useAudioPlayerStatus } from "expo-audio";
 
-import { useGlobalSongs } from "../store/list.store.js";
 import {
     useTrack as useTrackDets,
-    useQueueManager
+    useQueueManager,
+    useAudioMonitor
 } from "../store/track.store.js";
 
 const TrackContext = createContext();
@@ -25,10 +24,11 @@ export const TrackProvider = ({ children }) => {
     const updateCurrentIndex = useQueueManager(
         state => state.updateCurrentIndex
     );
+    const updateStatus = useAudioMonitor(state => state.updateStatus);
 
     const player = useAudioPlayer(track?.url);
-    const { didJustFinish } = useAudioPlayerStatus(player);
-    const allSongs = useGlobalSongs(state => state.allSongs);
+    const status = useAudioPlayerStatus(player);
+    const hasHandledFinishRef = useRef(false);
 
     const togglePlay = item => {
         if (!player) return;
@@ -38,13 +38,14 @@ export const TrackProvider = ({ children }) => {
     };
 
     const skipToNext = useCallback(() => {
-        if (currentQueueIndex >= queue.length - 1) return;
-        const nextTrack = queue[currentQueueIndex + 1];
+        const nextIndex = currentQueueIndex + 1;
+        if (nextIndex >= queue.length) return;
+        const nextTrack = queue[nextIndex];
         if (nextTrack) {
             updateTrack(nextTrack);
-            updateCurrentIndex(currentQueueIndex + 1);
+            updateCurrentIndex(nextIndex);
         }
-    }, [track]);
+    }, [currentQueueIndex, queue, updateTrack, updateCurrentIndex]);
 
     const skipToPrevious = () => {
         if (currentQueueIndex <= 0) return;
@@ -58,8 +59,21 @@ export const TrackProvider = ({ children }) => {
     const seek = sec => player.seekTo(sec);
 
     useEffect(() => {
-        if (didJustFinish) skipToNext();
-    }, [didJustFinish]);
+        if (status.didJustFinish && !hasHandledFinishRef.current) {
+            hasHandledFinishRef.current = true;
+            skipToNext();
+        } else if (!status.didJustFinish && hasHandledFinishRef.current) {
+            // reset when current track status resets
+            hasHandledFinishRef.current = false;
+        }
+
+        updateStatus({
+            playing: status.playing,
+            buffering: status.isBuffering,
+            currentTime: status.currentTime,
+            duration: status.duration
+        });
+    }, [status, skipToNext, updateStatus]);
 
     useEffect(() => {
         if (track?.url) {
@@ -83,13 +97,16 @@ export const TrackProvider = ({ children }) => {
         setupPlayer();
     }, []);
 
-    const contextValue = {
-        player,
-        togglePlay,
-        seek,
-        skipToNext,
-        skipToPrevious
-    };
+    const contextValue = useMemo(
+        () => ({
+            player,
+            togglePlay,
+            seek,
+            skipToNext,
+            skipToPrevious
+        }),
+        [track?.url]
+    );
 
     return (
         <TrackContext.Provider value={contextValue}>

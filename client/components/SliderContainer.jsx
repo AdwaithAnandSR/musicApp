@@ -1,15 +1,16 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Slider from "@react-native-community/slider";
-import { useAudioPlayerStatus } from "expo-audio";
 
 import { useTrack } from "../context/track.context.js";
+import { useAudioMonitor } from "../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const SliderContainer = ({ lightVibrant }) => {
-    const { player, seek } = useTrack();
-    const { currentTime, duration } = useAudioPlayerStatus(player);
+    const { seek } = useTrack();
+    const duration = useAudioMonitor(state => state.duration);
+    const currentTime = useAudioMonitor(state => state.currentTime);
 
     const formatTime = ms => {
         if (!ms || ms < 0) return "00:00";

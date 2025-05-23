@@ -5,6 +5,22 @@ export const useTrack = create(set => ({
     update: newTrack => set(() => ({ track: newTrack }))
 }));
 
+export const useAudioMonitor = create(set => ({
+    isPlaying: false,
+    isBuffering: false,
+    currentTime: 0,
+    duration: 0,
+
+    updateStatus: ({ playing, buffering, currentTime, duration }) => {
+        set({
+            isPlaying: playing,
+            isBuffering: buffering,
+            currentTime,
+            duration
+        });
+    }
+}));
+
 export const useQueueManager = create(set => ({
     queue: [],
     loadQueue: newQueue =>

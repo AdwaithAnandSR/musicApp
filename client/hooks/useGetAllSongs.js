@@ -4,7 +4,9 @@ import Constants from "expo-constants";
 
 import { useQueueManager } from "../store/track.store.js";
 import { useGlobalSongs } from "../store/list.store.js";
+
 import { storage } from "../services/storage.js";
+import Toast from "../services/Toast.js";
 
 const api = Constants.expoConfig.extra.clientApi;
 
@@ -38,14 +40,33 @@ const useGetAllSongs = ({ limit }) => {
 
             if (page === 1) storage.set("songs", JSON.stringify(data));
         } catch (err) {
-            console.error("Error fetching songs:", err);
+            if (!err.response) {
+                if (err.code === "ECONNABORTED") {
+                    Toast.show("Request timed out", "error");
+                    console.error("Request timed out - possibly slow network.");
+                } else {
+                    Toast.show("Network error - possibly offline", "error");
+                    console.error(
+                        "Network error - possibly offline:",
+                        err.message
+                    );
+                }
+            } else {
+                Toast.show("Something Went Wrong", "error");
+                // Server responded with a status code
+                console.error(
+                    "API error:",
+                    err.response.status,
+                    err.response.data
+                );
+            }
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (!page || !limit) return;
+        if (!page || !limit || !fetchSongs) return;
 
         fetchSongs();
     }, [page, limit]);

@@ -17,8 +17,6 @@ const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
 const ListItem = ({ item, LoadQueue, ID }) => {
-    if (!item?.url) return;
-
     const updateTrack = useTrack(state => state.update);
     const isCurrent = useTrack(state => state.track?._id === item._id);
     const queueId = useQueueManager(state => state.id);
@@ -31,11 +29,9 @@ const ListItem = ({ item, LoadQueue, ID }) => {
         state.selectedSongs.some(song => song._id === item._id)
     );
 
-    console.log("rendered * ListItem", isCurrent);
-
-    const handleLongPress = () => {
-        updateSelected(item);
-    };
+    if (!item?.url) return;
+    
+    console.log("ListItem.jsx");
 
     const handleShortPress = () => {
         if (!isSelecting) {
@@ -60,7 +56,7 @@ const ListItem = ({ item, LoadQueue, ID }) => {
         <TouchableOpacity
             activeOpacity={0.6}
             onPress={handleShortPress}
-            onLongPress={handleLongPress}
+            onLongPress={() => updateSelected(item)}
             style={styles.container}
         >
             {isSelected && (
