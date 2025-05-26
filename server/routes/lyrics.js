@@ -20,10 +20,10 @@ router.get("/get", async (req, res) => {
 });
 
 router.get("/add", async (req, res) => {
-    const { lyrics } = req.body;
+    const { lyrics, id } = req.body;
 
     const music = await musicModel.findOneAndUpdate(
-        { url: audio_url },
+        { _id: id },
         { $set: { lyrics: lyrics } }
     );
 
