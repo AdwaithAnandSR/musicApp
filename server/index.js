@@ -11,6 +11,7 @@ import mongoConfig from "./config/mongodb.config.js";
 import indexRoutes from "./routes/indexRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import playlistRoutes from "./routes/playlist.routes.js";
+import lyrics from "./routes/lyrics.js";
 
 app.use(express.json());
 app.use(
@@ -27,6 +28,7 @@ app.use(
 app.use("/", indexRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
+app.use("/lyrics", lyrics);
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

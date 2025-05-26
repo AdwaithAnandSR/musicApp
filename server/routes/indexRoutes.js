@@ -1,12 +1,20 @@
 import express from "express";
-import musicModel from "../models/musics.js";
 import { signin, signup } from "../handlers/auth.handler.js";
+
+import musicModel from "../models/musics.js";
+import findSong from "../handlers/findSong.js";
+import addSong from "../handlers/addSong.js";
+
 
 const router = express.Router();
 
 router.get("/", async (req, res) => {
     res.send("hey heyyyy");
 });
+
+router.post("/findSong", findSong)
+
+router.post("/addSong", addSong)
 
 router.post("/getGlobalSongs", async (req, res) => {
     try {
@@ -24,6 +32,7 @@ router.post("/getGlobalSongs", async (req, res) => {
         console.error("error while fetching songs: ", error);
     }
 });
+
 
 router.post("/searchSong", async (req, res) => {
     const { text } = req.body;
