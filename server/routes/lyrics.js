@@ -28,6 +28,7 @@ router.get("/add", async (req, res) => {
     );
 
     console.log(music);
+    res.status(200).json({ title: music.title, success: true });
 });
 
 export default router;
