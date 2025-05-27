@@ -19,7 +19,7 @@ router.get("/get", async (req, res) => {
     return res.json({ musics });
 });
 
-router.get("/add", async (req, res) => {
+router.post("/add", async (req, res) => {
     const { lyrics, id } = req.body;
 
     const music = await musicModel.findOneAndUpdate(
