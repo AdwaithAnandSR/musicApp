@@ -26,9 +26,9 @@ app.use(
 );
 
 app.use("/", indexRoutes);
+app.use("/", lyrics);
 app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
-app.use("/lyrics", lyrics);
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
