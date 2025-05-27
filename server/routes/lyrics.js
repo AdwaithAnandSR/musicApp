@@ -3,6 +3,10 @@ import musicModel from "../models/musics.js";
 
 const router = express.Router();
 
+router.get("/", async (req, res) => {
+    res.send("lyrics");
+});
+
 router.get("/get", async (req, res) => {
     const musics = await musicModel
         .find({
