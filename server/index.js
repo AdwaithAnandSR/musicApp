@@ -26,7 +26,7 @@ app.use(
 );
 
 app.use("/", indexRoutes);
-app.use("/", lyrics);
+app.use("/lyrics", lyrics);
 app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
 
