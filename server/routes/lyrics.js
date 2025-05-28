@@ -7,20 +7,26 @@ router.get("/", async (req, res) => {
     res.send("lyrics");
 });
 
-router.get("/get", async (req, res) => {
-    const musics = await musicModel
-        .find({
-            $or: [
-                { lyrics: { $exists: false } },
-                { lyrics: null },
-                { lyrics: { $size: 0 } }
-            ]
-        })
-        .sort({ createdAt: -1 })
-        .limit(5);
+router.post("/get", async (req, res) => {
+    const { page, limit } = req.body();
+    try {
+        const musics = await musicModel
+            .find({
+                $or: [
+                    { lyrics: { $exists: false } },
+                    { lyrics: null },
+                    { lyrics: { $size: 0 } }
+                ]
+            })
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
 
-    console.log(musics);
-    return res.json({ musics });
+        return res.json({ musics });
+    } catch (e) {
+        console.log(e);
+        return res.status(400).json({ success: false });
+    }
 });
 
 router.post("/add", async (req, res) => {
