@@ -87,6 +87,21 @@ router.get("/getAllLyrics", async (req, res) => {
     }
 });
 
+router.post("/getAllLyrics", async (req, res) => {
+    try {
+        const { page, limit } = req.body;
+        const lyrics = await lyricsModel
+            .find({})
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        return res.json({ lyrics });
+    } catch (e) {
+        console.log(e);
+        return res.status(400).json({ success: false });
+    }
+});
+
 router.post("/get", async (req, res) => {
     const { page, limit } = req.body;
     try {
