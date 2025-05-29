@@ -36,6 +36,12 @@ const musicSchema = mongoose.Schema({
             required: true,
             ref: "user"
         }
+    ],
+    possibleLyrics: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "lyric"
+        }
     ]
 });
 
