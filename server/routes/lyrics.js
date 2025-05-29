@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/get", async (req, res) => {
-    const { page, limit } = req.body();
+    const { page, limit } = req.body
     try {
         const musics = await musicModel
             .find({
