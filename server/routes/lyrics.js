@@ -10,26 +10,27 @@ function escapeRegex(text) {
 
 async function get() {
     try {
-        const possibles = new Set();
-        const page = 1,
-            limit = 5;
+        // const songs = await musicModel
+        //     .find({
+        //         $or: [
+        //             { lyrics: { $exists: false } },
+        //             { lyrics: null },
+        //             { lyrics: { $size: 0 } }
+        //         ]
+        //     })
+        //     .skip((page - 1) * limit)
+        //     .limit(limit);
+        console.log("starting....");
 
-        const songs = await musicModel
-            .find({
-                $or: [
-                    { lyrics: { $exists: false } },
-                    { lyrics: null },
-                    { lyrics: { $size: 0 } }
-                ]
-            })
-            .skip((page - 1) * limit)
-            .limit(limit);
+        const songs = await musicModel.find({});
 
         for (const song of songs) {
             const title = song.title;
+            console.log(title);
             const texts = title.split(" ");
-
+            console.log(texts.length);
             for (const text of texts) {
+                console.log(text);
                 for (const text2 of texts) {
                     const newTitle = text + " " + text2;
 
@@ -60,7 +61,10 @@ async function get() {
     }
 }
 
-get();
+
+router.get("/start", async (req, res) => {
+    get();
+});
 
 router.get("/", async (req, res) => {
     res.send("lyrics");
