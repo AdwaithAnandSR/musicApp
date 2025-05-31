@@ -26,4 +26,14 @@ router.post("/insert", async (req, res) => {
     }
 });
 
+router.get("/get", async (req, res) => {
+    try {
+        const songs = await musicModel.find({ cover: { $eq: null } });
+        res.json({ songs });
+    } catch (e) {
+        console.log(e);
+        res.status(400).json({ message: "failed" });
+    }
+});
+
 export default router;
