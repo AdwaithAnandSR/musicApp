@@ -105,7 +105,7 @@ router.post("/getRemainingSongs", async (req, res) => {
             .find({
                 lyricsAsText1: { $eq: null }
             })
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: 1 })
             .skip((page - 1) * limit)
             .limit(limit);
 
