@@ -86,9 +86,10 @@ router.post("/addLyricsToSong", async (req, res) => {
 router.post("/getRemainingSongs", async (req, res) => {
     try {
         const { limit, page } = req.body;
+        
         const songs = await musicModel
             .find({
-                lyricsAsText1: { $type: "array", $size: 0 }
+                lyricsAsText1: { $eq: null }
             })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
