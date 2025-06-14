@@ -19,7 +19,6 @@ router.post("/getGlobalSongs", async (req, res) => {
     try {
         const { limit, page } = req.body;
 
-        if (page < 25) page = page + Math.floor(Math.random() * 25);
 
         const musics = await musicModel
             .find({})
