@@ -19,30 +19,12 @@ const musicSchema = mongoose.Schema({
             line: String
         }
     ],
+    lyricsAsText1: [{ type: String }],
+    lyricsAsText2: [{ type: String }],
     createdAt: {
         type: Date,
         default: Date.now
-    },
-    likes: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            ref: "user"
-        }
-    ],
-    plays: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            required: true,
-            ref: "user"
-        }
-    ],
-    possibleLyrics: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "lyric"
-        }
-    ]
+    }
 });
 
 musicSchema.index({ title: "text" });
