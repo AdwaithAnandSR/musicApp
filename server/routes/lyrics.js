@@ -11,7 +11,7 @@ const router = express.Router();
 router.get("/", async (req, res) => {
     try {
         
-        const lyrics = await lyricsModel
+        const lyrics = await musicModel
             .find({
                 title: { $regex: "Chandanamani", $options: "i" }
             })

@@ -18,8 +18,7 @@ router.post("/addSong", addSong);
 router.post("/getGlobalSongs", async (req, res) => {
     try {
         const { limit, page } = req.body;
-
-
+        
         const musics = await musicModel
             .find({})
             .sort({ createdAt: -1 })
