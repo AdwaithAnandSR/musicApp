@@ -8,6 +8,21 @@ import cleanTxt from "../utils/clearTitle.js";
 
 const router = express.Router();
 
+router.get("/", async (req, res) => {
+    try {
+        
+        const lyrics = await lyricsModel
+            .find({
+                title: { $regex: "Chandanamani", $options: "i" }
+            })
+            .limit(5);
+        
+        res.send(lyrics)
+    } catch (e) {
+        console.log(e);
+    }
+});
+
 router.post("/insert", async (req, res) => {
     try {
         const { title, details, lyrics } = req.body;
@@ -34,7 +49,6 @@ router.post("/find", async (req, res) => {
             .find({
                 title: { $regex: text, $options: "i" }
             })
-            .limit(5);
 
         return res.json({ lyrics });
     } catch (e) {
