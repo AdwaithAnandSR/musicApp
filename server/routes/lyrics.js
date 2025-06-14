@@ -87,11 +87,11 @@ router.post("/getRemainingSongs", async (req, res) => {
     try {
         const { limit, page } = req.body;
         const songs = await musicModel
-            .find({ cover: { $eq: null } })
+            .find({ lyricsAsText1: { $eq: null } })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit);
-            
+        
         res.json({ songs });
     } catch (e) {
         console.log(e);
