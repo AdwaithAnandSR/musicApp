@@ -26,9 +26,72 @@ router.post("/insert", async (req, res) => {
     }
 });
 
-router.get("/get", async (req, res) => {
+router.post("/find", async (req, res) => {
     try {
-        const songs = await musicModel.find({ cover: { $eq: null } });
+        const { text } = req.body;
+
+        const lyrics = await lyricsModel
+            .find({
+                title: { $regex: text, $options: "i" }
+            })
+            .limit(5);
+
+        return res.json({ lyrics });
+    } catch (e) {
+        console.log(e);
+        res.status(400).json({ message: "failed" });
+    }
+});
+
+router.post("/addLyricsToSong", async (req, res) => {
+    try {
+        const { lyricsId, songId, lyricsIndex } = req.body;
+        const lyric = await lyricsModel.findById(lyricsId);
+        const song = await musicModel.findById(songId);
+
+        if (!song) {
+            throw new Error("Song not found");
+        }
+
+        if (song.lyricsAsText1.length === 0) {
+            if (lyricsIndex == 1)
+                await musicModel.findByIdAndUpdate(songId, {
+                    $set: { lyricsAsText1: lyric.lyrics }
+                });
+            else
+                await musicModel.findByIdAndUpdate(songId, {
+                    $set: { lyricsAsText1: lyric.lyrics2 }
+                });
+        } else {
+            if (lyricsIndex == 1)
+                await musicModel.findByIdAndUpdate(songId, {
+                    $push: { lyricsAsText2: lyric.lyrics }
+                });
+            else
+                await musicModel.findByIdAndUpdate(songId, {
+                    $push: { lyricsAsText2: lyric.lyrics2 }
+                });
+        }
+
+        const result = await musicModel.findById(songId);
+        console.log(result);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false });
+    }
+});
+
+router.post("/getRemainingSongs", async (req, res) => {
+    try {
+        const { limit, page } = req.body;
+        const songs = await musicModel
+            .find({ cover: { $eq: null } })
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+            
         res.json({ songs });
     } catch (e) {
         console.log(e);
