@@ -10,14 +10,13 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        
         const lyrics = await musicModel
             .find({
                 title: { $regex: "Chandanamani", $options: "i" }
             })
             .limit(5);
-        
-        res.send(lyrics)
+
+        res.send(lyrics);
     } catch (e) {
         console.log(e);
     }
@@ -45,10 +44,9 @@ router.post("/find", async (req, res) => {
     try {
         const { text } = req.body;
 
-        const lyrics = await lyricsModel
-            .find({
-                title: { $regex: text, $options: "i" }
-            })
+        const lyrics = await lyricsModel.find({
+            title: { $regex: text, $options: "i" }
+        });
 
         return res.json({ lyrics });
     } catch (e) {
@@ -100,12 +98,15 @@ router.post("/addLyricsToSong", async (req, res) => {
 router.post("/getRemainingSongs", async (req, res) => {
     try {
         const { limit, page } = req.body;
-        
-        const songs = await musicModel
-            .find({
-                lyricsAsText1: { $eq: null }
-            })
-            .sort({ createdAt: 1 })
+
+        const songs = await musicModel.find({
+            $or: [
+                { lyricsAsText1: { $exists: false } },
+                { lyricsAsText1: null },
+                { lyricsAsText1: { $eq: [] } }
+            ]
+        })
+            .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit);
 
