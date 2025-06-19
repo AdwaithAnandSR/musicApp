@@ -122,7 +122,7 @@ const TrackControllerMinView = () => {
 const styles = StyleSheet.create({
     container: {
         width: "98%",
-        height: vh * 0.098,
+        height: vh * 0.085,
         marginLeft: "1%",
         alignItems: "center",
         flexDirection: "row",
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
         borderRadius: vw,
         position: "absolute",
         zIndex: 99999999,
-        bottom: 58
+        bottom: 50
     },
     gradient: {
         width: "100%",

@@ -8,6 +8,9 @@ import {
 
 import TrackControllerMinView from "../../components/TrackControllerMinView.jsx";
 
+const activeIconSize = 28,
+    inactiveIconSize = 25;
+
 const Layout = () => {
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
@@ -18,36 +21,53 @@ const Layout = () => {
                     headerShown: false,
                     tabBarStyle: {
                         position: "absolute",
-                        paddingTop: 10,
-                        backgroundColor: "black",
+                        zIndex: 99999,
+                        paddingTop: 5,
+                        backgroundColor: "#000000c5",
                         borderTopWidth: 0,
-                        height: 55
+                        height: 45,
+                        borderTopLeftRadius: 30,
+                        borderTopRightRadius: 30
                     }
                 }}
             >
                 <Tabs.Screen
                     name="Home"
                     options={{
-                        tabBarIcon: ({ color }) => (
-                            <FontAwesome name="music" size={24} color={color} />
+                        tabBarIcon: ({ color, focused }) => (
+                            <FontAwesome
+                                name="music"
+                                size={
+                                    focused ? activeIconSize : inactiveIconSize
+                                }
+                                color={color}
+                            />
                         )
                     }}
                 />
                 <Tabs.Screen
                     name="Search"
                     options={{
-                        tabBarIcon: ({ color }) => (
-                            <Ionicons name="search" size={24} color={color} />
+                        tabBarIcon: ({ color, focused }) => (
+                            <Ionicons
+                                name="search"
+                                size={
+                                    focused ? activeIconSize : inactiveIconSize
+                                }
+                                color={color}
+                            />
                         )
                     }}
                 />
                 <Tabs.Screen
                     name="playlists"
                     options={{
-                        tabBarIcon: ({ color }) => (
+                        tabBarIcon: ({ color, focused }) => (
                             <MaterialCommunityIcons
                                 name="playlist-music"
-                                size={24}
+                                size={
+                                    focused ? activeIconSize : inactiveIconSize
+                                }
                                 color={color}
                             />
                         )
