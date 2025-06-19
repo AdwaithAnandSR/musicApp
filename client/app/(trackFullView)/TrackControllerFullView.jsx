@@ -7,22 +7,30 @@ import {
     TouchableOpacity
 } from "react-native";
 import { Image } from "expo-image";
-import { Entypo } from "@expo/vector-icons";
+import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 
 import { useTrack } from "../../store/track.store.js";
+import { useStatus } from "../../store/appState.store.js";
 
 import Controllers from "../../components/ControllersContainer.jsx";
 import SliderContainer from "../../components/SliderContainer.jsx";
+import Lyrics from "../../components/fullView/LyricsView.jsx";
+import NavBar from "../../components/fullView/NavBar.jsx";
+import OptionsContainer from "../../components/fullView/OptionsContainer.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
+const activeLyricColor = "rgb(246,7,135)";
+
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
-    const track = useTrack(state=> state.track);
+    const track = useTrack(state => state.track);
+    const showLyrics1 = useStatus(state => state.showLyrics1);
+    const showLyrics2 = useStatus(state => state.showLyrics2);
 
     useEffect(() => {
         if (track && track.cover) {
@@ -37,25 +45,25 @@ const TrackControllerFullView = () => {
     return (
         <View style={[styles.container]}>
             {/* navbar */}
-            <View style={styles.navbar}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Entypo name="chevron-down" size={24} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity>
-                    <Entypo
-                        name="dots-three-vertical"
-                        size={24}
-                        color="white"
-                    />
-                </TouchableOpacity>
-            </View>
+            <NavBar />
+
             {/* title */}
-            <View style={{ height: vh * 0.125, justifyContent: "center" }}>
+            <View
+                style={{
+                    minHeight: vh * 0.08,
+                    justifyContent: "center"
+                }}
+            >
                 <Text numberOfLines={2} style={styles.title}>
                     {track?.title}
                 </Text>
             </View>
-            {/* image */}
+
+            <OptionsContainer
+                lyric1={track.lyricsAsText1}
+                lyric2={track.lyricsAsText2}
+            />
+
             <View
                 style={[
                     styles.imageContainer,
@@ -73,7 +81,9 @@ const TrackControllerFullView = () => {
                     filter="contrast(1.25) brightness(0.8)"
                     style={{ width: "100%", height: "100%" }}
                 />
+            {(showLyrics1 || showLyrics2) && <Lyrics track={track} />}
             </View>
+
             {/* slider */}
 
             <SliderContainer lightVibrant={colors?.lightVibrant} />
@@ -88,15 +98,6 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#000000"
-    },
-    navbar: {
-        width: "100%",
-        height: "10%",
-        justifyContent: "flex-end",
-        flexDirection: "row",
-        alignItems: "flex-end",
-        paddingHorizontal: vw * 0.04,
-        gap: vw * 0.05
     },
     title: {
         color: "white",
