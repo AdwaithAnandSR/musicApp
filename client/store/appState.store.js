@@ -31,5 +31,11 @@ export const useStatus = create(set => ({
         set(state => ({
             showLyrics2: !state.showLyrics2,
             showLyrics1: state.showLyrics2 ? state.showLyrics1 : false // Hide 1 if 2 is being shown
+        })),
+        
+    resetShowLyrics: () =>
+        set(state => ({
+            showLyrics2: false,
+            showLyrics1: false
         }))
 }));

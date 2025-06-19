@@ -13,9 +13,13 @@ import { useMultiSelect } from "../store/appState.store.js";
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Navbar = () => {
-    const isSelecting = useMultiSelect(state=> state.selectedSongs?.length > 0);
-    const reset = useMultiSelect(state=> state.reset);
-    const selectedSongsLen = useMultiSelect(state=> state.selectedSongs?.length);
+    const isSelecting = useMultiSelect(
+        state => state.selectedSongs?.length > 0
+    );
+    const reset = useMultiSelect(state => state.reset);
+    const selectedSongsLen = useMultiSelect(
+        state => state.selectedSongs?.length
+    );
 
     if (!isSelecting) return;
 
@@ -41,9 +45,9 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         height: vh * 0.045,
-        paddingHorizontal: vw * 0.04,
-        position: 'absolute',
-        zIndex: 999,
+        paddingHorizontal: vw * 0.055,
+        position: "absolute",
+        zIndex: 999
     },
     selectDetsContainer: {
         flexDirection: "row",

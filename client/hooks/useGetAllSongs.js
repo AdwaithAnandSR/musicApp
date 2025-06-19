@@ -23,7 +23,6 @@ const useGetAllSongs = ({ limit }) => {
     const allSongs = useGlobalSongs(state => state.allSongs);
 
     const fetchSongs = async () => {
-        console.log("fetching...");
         setLoading(true);
         try {
             const res = await axios.post(`${api}/getGlobalSongs`, {
@@ -32,14 +31,28 @@ const useGetAllSongs = ({ limit }) => {
             });
 
             const data = res.data?.musics || [];
+
+            // If no songs are returned
+            if (data.length === 0) {
+                if (page === 1) {
+                    updateHasMore(false);
+                    return; // Don't proceed further
+                }
+            }
+
+            // If returned songs are less than the requested limit, mark as no more
             if (data.length < limit) updateHasMore(false);
 
             updateAllSongs(data);
 
             if (queueId === "HOME") updateQueue(data);
-            else loadQueue(allSongs);
+            else loadQueue([...allSongs, ...data]);
 
-            if (page === 1) storage.set("songs", JSON.stringify(data));
+            // Only store the first 10 songs when page is 1 and there are some songs
+            if (page === 1 && data.length > 0) {
+                const sliced = data.slice(0, 10);
+                storage.set("songs", JSON.stringify(sliced));
+            }
         } catch (err) {
             if (!err.response) {
                 if (err.code === "ECONNABORTED") {
@@ -54,7 +67,6 @@ const useGetAllSongs = ({ limit }) => {
                 }
             } else {
                 Toast.show("Something Went Wrong", "error");
-                // Server responded with a status code
                 console.error(
                     "API error:",
                     err.response.status,
@@ -67,7 +79,7 @@ const useGetAllSongs = ({ limit }) => {
     };
 
     useEffect(() => {
-        if (!page || !limit || !fetchSongs) return;
+        if (!page || !limit) return;
 
         fetchSongs();
     }, [page, limit]);

@@ -14,8 +14,8 @@ import { router } from "expo-router";
 import { useTrack } from "../../store/track.store.js";
 import { useStatus } from "../../store/appState.store.js";
 
-import Controllers from "../../components/ControllersContainer.jsx";
-import SliderContainer from "../../components/SliderContainer.jsx";
+import Controllers from "../../components/fullView/ControllersContainer.jsx";
+import SliderContainer from "../../components/fullView/SliderContainer.jsx";
 import Lyrics from "../../components/fullView/LyricsView.jsx";
 import NavBar from "../../components/fullView/NavBar.jsx";
 import OptionsContainer from "../../components/fullView/OptionsContainer.jsx";

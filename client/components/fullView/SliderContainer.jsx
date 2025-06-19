@@ -1,13 +1,14 @@
-import React from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Slider from "@react-native-community/slider";
 
-import { useTrack } from "../context/track.context.js";
-import { useAudioMonitor } from "../store/track.store.js";
+import { useTrack } from "../../context/track.context.js";
+import { useAudioMonitor } from "../../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const SliderContainer = ({ lightVibrant }) => {
+    const [isSeeking, setIsSeeking] = useState();
     const { seek } = useTrack();
     const duration = useAudioMonitor(state => state.duration);
     const currentTime = useAudioMonitor(state => state.currentTime);
@@ -25,13 +26,19 @@ const SliderContainer = ({ lightVibrant }) => {
 
     return (
         <View style={styles.sliderContainer}>
-            <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+            <Text style={styles.timeText}>
+                {formatTime( currentTime)}
+            </Text>
             <Slider
                 style={styles.slider}
                 minimumValue={0}
                 maximumValue={1}
-                value={currentTime / duration}
-                onSlidingComplete={value => seek(value * duration)}
+                value={!isSeeking && currentTime / duration}
+                onSlidingStart={() => setIsSeeking(true)}
+                onSlidingComplete={value => {
+                    seek(value * duration);
+                    setIsSeeking(false);
+                }}
                 minimumTrackTintColor="#FFFFFF"
                 maximumTrackTintColor="#a6a5a5"
                 thumbTintColor={lightVibrant}

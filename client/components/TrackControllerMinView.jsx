@@ -34,7 +34,7 @@ const TrackControllerMinView = () => {
     const backgroundColor = colorAnimation.interpolate({
         inputRange: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
         outputRange: [
-            "#23adc9",
+            "#84213eef",
             "#59fcd1",
             "#c75ef4",
             "#f52041",

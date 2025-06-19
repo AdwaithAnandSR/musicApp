@@ -17,6 +17,8 @@ const LyricsView = ({ track }) => {
     const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
     const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
 
+    if (!showLyrics1 && !showLyrics2 ) return;
+
     return (
         <View style={styles.container}>
             <FlashList

@@ -13,11 +13,13 @@ import {
     useQueueManager,
     useAudioMonitor
 } from "../store/track.store.js";
+import { useGlobalSongs } from "../store/list.store.js";
 
 const TrackContext = createContext();
 
 export const TrackProvider = ({ children }) => {
     const track = useTrackDets(state => state.track);
+    const updatePage = useGlobalSongs(state => state.updatePage);
     const updateTrack = useTrackDets(state => state.update);
     const queue = useQueueManager(state => state.queue);
     const currentQueueIndex = useQueueManager(state => state.currentIndex);
@@ -29,7 +31,7 @@ export const TrackProvider = ({ children }) => {
     const player = useAudioPlayer(track?.url);
     const status = useAudioPlayerStatus(player);
     const hasHandledFinishRef = useRef(false);
-
+    
     const togglePlay = item => {
         if (!player) return;
         if (player.currentStatus?.playing) {
@@ -45,6 +47,7 @@ export const TrackProvider = ({ children }) => {
             updateTrack(nextTrack);
             updateCurrentIndex(nextIndex);
         }
+        if (nextIndex == queue.length - 3) updatePage();
     }, [currentQueueIndex, queue, updateTrack, updateCurrentIndex]);
 
     const skipToPrevious = () => {
@@ -78,7 +81,6 @@ export const TrackProvider = ({ children }) => {
     useEffect(() => {
         if (track?.url) {
             player.play();
-            
         }
     }, [track]);
 
