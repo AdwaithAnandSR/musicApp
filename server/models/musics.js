@@ -10,12 +10,17 @@ const musicSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    cover: {
-        type: String
+    cover: String,
+    duration: Number,
+    ytId: String,
+    synced: {
+        type: Boolean,
+        default: false
     },
-    lyrics: [
+    lyric1: [
         {
-            timestamp: Number,
+            start: Number,
+            end: Number,
             line: String
         }
     ],
