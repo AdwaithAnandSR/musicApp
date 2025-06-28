@@ -11,6 +11,15 @@ router.get("/", async (req, res) => {
     res.send("hey heyyyy");
 });
 
+router.post("/checkSongExistsByYtId", async (req, res) => {
+    const { id } = req.body
+    
+    const exists = await musicModel.findOne({ ytId: id })
+    
+    if(exists) res.json({ exists: true})
+    else res.json({ exists: false })
+});
+
 router.post("/findSong", findSong);
 
 router.post("/addSong", addSong);
