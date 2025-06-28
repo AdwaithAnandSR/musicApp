@@ -128,6 +128,7 @@ router.post("/find", async (req, res) => {
     }
 });
 
+// add lyrics from lyrics db
 router.post("/addLyricsToSong", async (req, res) => {
     try {
         const { lyricsId, songId, lyricsIndex } = req.body;
@@ -156,6 +157,42 @@ router.post("/addLyricsToSong", async (req, res) => {
                 await musicModel.findByIdAndUpdate(songId, {
                     $push: { lyricsAsText2: lyric.lyrics2 }
                 });
+        }
+
+        const result = await musicModel.findById(songId);
+        console.log(result);
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false });
+    }
+});
+
+// add lyrics that passed as array
+router.post("/addLyricsDirectToSong", async (req, res) => {
+    try {
+        const {  lyric,
+            songId,
+            artist="Unknown"} = req.body;
+        
+        const song = await musicModel.findById(songId);
+
+        if (!song) {
+            throw new Error("Song not found");
+        }
+
+        if (song.lyricsAsText1.length === 0) {
+            
+                await musicModel.findByIdAndUpdate(songId, {
+                    $set: { lyricsAsText1: lyric, artist }
+                });
+        } else {
+            
+                await musicModel.findByIdAndUpdate(songId, {
+                    $push: { lyricsAsText2: lyric, artist }
+                });
+            
         }
 
         const result = await musicModel.findById(songId);
