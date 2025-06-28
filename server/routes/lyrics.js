@@ -183,16 +183,13 @@ router.post("/addLyricsDirectToSong", async (req, res) => {
         }
 
         if (song.lyricsAsText1.length === 0) {
-            
                 await musicModel.findByIdAndUpdate(songId, {
                     $set: { lyricsAsText1: lyric, artist }
                 });
         } else {
-            
                 await musicModel.findByIdAndUpdate(songId, {
-                    $push: { lyricsAsText2: lyric, artist }
-                });
-            
+                    $set: { lyricsAsText2: lyric, artist }
+                })
         }
 
         const result = await musicModel.findById(songId);
