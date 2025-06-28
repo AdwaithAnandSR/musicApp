@@ -2,13 +2,15 @@ import musicModel from "../models/musics.js";
 
 const addSong = async (req, res) => {
     try {
-        const { coverURL, songURL, title, id } = req.body;
+        const { coverURL, songURL, title, id, artist, duration } = req.body;
 
         const result = await musicModel.create({
             cover: coverURL || null,
             url: songURL,
             title,
-            ytId: id
+            ytId: id,
+            artist,
+            duration
         });
         res.json({success: true})
     } catch (error) {

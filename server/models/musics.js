@@ -12,6 +12,10 @@ const musicSchema = mongoose.Schema({
     },
     cover: String,
     duration: Number,
+    artist: {
+        type: String,
+        default: "Unknown"
+    },
     ytId: String,
     synced: {
         type: Boolean,
