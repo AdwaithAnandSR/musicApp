@@ -6,8 +6,6 @@ const LyricRenderItem = ({ item, index }) => {
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
     const  currentLyricIndex = useStatus(state => state.currentLyricIndex);
 
-    console.log(item)
-
     return (
         <View style={styles.container}>
             <Animated.Text

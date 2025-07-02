@@ -56,11 +56,12 @@ const styles = StyleSheet.create({
     },
     text: {
         color: "white",
-        marginBottom: 3,
         fontWeight: "bold",
+        marginBottom: 10,
         fontSize: vw * 0.05
     },
     toolsContainer: {
+        marginBottom: 10,
         flexDirection: "row",
         alignItems: "center",
         gap: 20

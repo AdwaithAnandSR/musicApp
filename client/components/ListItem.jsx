@@ -10,7 +10,7 @@ import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 
 import { useTrack, useQueueManager } from "../store/track.store.js";
-import { useMultiSelect , useStatus} from "../store/appState.store.js";
+import { useMultiSelect, useStatus } from "../store/appState.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
@@ -29,21 +29,20 @@ const ListItem = ({ item, LoadQueue, ID }) => {
         state.selectedSongs.some(song => song._id === item._id)
     );
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
-    
 
     if (!item?.url) return;
 
     const handleShortPress = () => {
         if (!isSelecting) {
-            resetShowLyrics()
+            resetShowLyrics();
             if (queueId === ID) updateTrack(item);
             else {
                 if (LoadQueue?.length > 0) {
-                    const index = LoadQueue.findIndex(
+                    loadQueue(LoadQueue || []);
+                    updateQueueId(ID);
+                    const index = (LoadQueue || []).findIndex(
                         song => song._id === item._id
                     );
-                    updateQueueId(ID);
-                    loadQueue(LoadQueue || []);
                     updateQueueIndex(index > -1 ? index : 0);
                     updateTrack(item);
                 }
