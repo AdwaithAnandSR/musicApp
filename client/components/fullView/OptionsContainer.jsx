@@ -14,15 +14,49 @@ const { height: vh, width: vw } = Dimensions.get("window");
 const activeLyricColor = "rgb(246,7,135)",
     iconSize = 15;
 
-const OptionsContainer = ({ lyric1, lyric2 }) => {
+const OptionsContainer = ({ lyric1, lyric2, isSynced, syncedLyric }) => {
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
+    const showSyncedLyric = useStatus(state => state.showSyncedLyric);
     const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
     const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
+    const setShowSyncedLyric = useStatus(state => state.setShowSyncedLyric);
 
     return (
         <View style={styles.optionsContainer}>
-            {lyric1.length > 0 && (
+            {isSynced && showLyrics1 && (
+                <TouchableOpacity
+                    onPress={setShowSyncedLyric}
+                    style={[
+                        styles.options,
+                        {
+                            borderColor: showSyncedLyric
+                                ? activeLyricColor
+                                : "white"
+                        }
+                    ]}
+                >
+                    <MaterialCommunityIcons
+                        name="music-circle"
+                        size={iconSize}
+                        color={showSyncedLyric ? activeLyricColor : "white"}
+                    />
+                    <Text
+                        style={[
+                            styles.optionsText,
+                            {
+                                color: showSyncedLyric
+                                    ? activeLyricColor
+                                    : "white"
+                            }
+                        ]}
+                    >
+                        sync
+                    </Text>
+                </TouchableOpacity>
+            )}
+
+            {lyric1?.length > 0 && (
                 <TouchableOpacity
                     onPress={setShowLyrics1}
                     style={[
@@ -52,7 +86,7 @@ const OptionsContainer = ({ lyric1, lyric2 }) => {
                 </TouchableOpacity>
             )}
 
-            {lyric2.length > 0 && (
+            {lyric2?.length > 0 && (
                 <TouchableOpacity
                     onPress={setShowLyrics2}
                     style={[

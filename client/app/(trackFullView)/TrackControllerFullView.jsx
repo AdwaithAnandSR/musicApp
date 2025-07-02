@@ -32,6 +32,10 @@ const TrackControllerFullView = () => {
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
 
+    if (!track) return;
+    
+    console.log(track)
+
     useEffect(() => {
         if (track && track.cover) {
             getColors(track?.cover, {
@@ -60,8 +64,10 @@ const TrackControllerFullView = () => {
             </View>
 
             <OptionsContainer
-                lyric1={track.lyricsAsText1}
-                lyric2={track.lyricsAsText2}
+                isSynced={track.synced}
+                syncedLyric={track.syncedLyric}
+                lyric1={track.lyrics}
+                lyric2={track.lyricsAsText}
             />
 
             <View
@@ -81,7 +87,7 @@ const TrackControllerFullView = () => {
                     filter="contrast(1.25) brightness(0.8)"
                     style={{ width: "100%", height: "100%" }}
                 />
-            {(showLyrics1 || showLyrics2) && <Lyrics track={track} />}
+                {(showLyrics1 || showLyrics2) && <Lyrics track={track} />}
             </View>
 
             {/* slider */}
