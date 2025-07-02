@@ -21,15 +21,15 @@ const musicSchema = mongoose.Schema({
         type: Boolean,
         default: false
     },
-    lyric1: [
+    lyrics: [
         {
             start: Number,
             end: Number,
             line: String
         }
     ],
+    lyricsAsText: [{ type: String }],
     lyricsAsText1: [{ type: String }],
-    lyricsAsText2: [{ type: String }],
     createdAt: {
         type: Date,
         default: Date.now
