@@ -1,26 +1,26 @@
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
 
 import { useStatus } from "../../store/appState.store.js";
 
 const LyricRenderItem = ({ item, index }) => {
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
-    const  currentLyricIndex = useStatus(state => state.currentLyricIndex);
+    const currentLyricIndex = useStatus(state => state.currentLyricIndex);
 
     return (
         <View style={styles.container}>
-            <Animated.Text
+            <Text
                 style={[
                     styles.lyricText,
                     {
                         color:
-                            currentLyricIndex == index -1 && showSyncedLyric
+                            currentLyricIndex == index - 1 && showSyncedLyric
                                 ? "rgb(246,7,135)"
                                 : "white"
                     }
                 ]}
             >
                 {item.line}
-            </Animated.Text>
+            </Text>
         </View>
     );
 };

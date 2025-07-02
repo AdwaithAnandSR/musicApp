@@ -27,23 +27,21 @@ const LyricsView = ({ track }) => {
     const currentLyricIndex = useStatus(state => state.currentLyricIndex);
     const setCurrentLyricIndex = useStatus(state => state.setCurrentLyricIndex);
     const currentTime = useAudioMonitor(state => state.currentTime);
-    
+
     const lyricsRef = useRef();
-    
 
-useEffect(() => {
-    if (!track?.lyrics || !showSyncedLyric) return;
+    useEffect(() => {
+        if (!track?.lyrics || !showSyncedLyric) return;
 
-    const index = track.lyrics.findIndex(item => {
-        return currentTime >= item.start - 0.8 && currentTime <= item.end - 0.8;
-    });
+        const index = track.lyrics.findIndex(item => {
+            return (
+                currentTime >= item.start - 0.8 && currentTime <= item.end - 0.8
+            );
+        });
 
-    if (index !== -1) {
-        setCurrentLyricIndex(index);
-    }
-}, [currentTime]);
-
-    
+        if (index !== -1) setCurrentLyricIndex(index);
+        else setCurrentLyricIndex(-1);
+    }, [currentTime]);
 
     useEffect(() => {
         if (!showSyncedLyric) return;
@@ -73,13 +71,12 @@ useEffect(() => {
                 }
                 estimatedItemSize={100}
                 showsVerticalScrollIndicator={false}
-                keyExtractor={(item, index) => `${item.id}+${index}`}
+                keyExtractor={(item, index) =>
+                    `${item?._id ?? "blank"}-${index}`
+                }
                 renderItem={({ item, index }) =>
                     showLyrics1 || showSyncedLyric ? (
-                        <SyncedRenderItem
-                            item={item}
-                            index={index}
-                        />
+                        <SyncedRenderItem item={item} index={index} />
                     ) : showLyrics2 ? (
                         <LyricItemAsText item={item} />
                     ) : null
