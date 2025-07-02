@@ -9,7 +9,7 @@ import ListItem from "../../../../components/ListItem.jsx";
 import Header from "../../../../components/ListHeader.jsx";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
-const limit = 25,
+const limit = 50,
     HEADER_HEIGHT = 250;
 
 const PlaylistSongs = () => {

@@ -34,17 +34,17 @@ const TrackControllerMinView = () => {
     const backgroundColor = colorAnimation.interpolate({
         inputRange: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
         outputRange: [
-            "#84213eef",
-            "#59fcd1",
-            "#c75ef4",
-            "#f52041",
-            "#cafd63",
-            "#f72c93",
-            "#cafd63",
-            "#f52041",
-            "#c75ef4",
-            "#59fcd1",
-            "#23adc9"
+            "#04c24f", // light greeen
+            "#59fcd1", // light blue
+            "#c75ef4", // light violet
+            "#f52041", // light red
+            "#cafd63", // yellowish green
+            "#f72c93", // light pink
+            "#f6b60b", // yellowish orange
+            "#f52041", // light red
+            "#9c05dc", // dark violet
+            "#0ff6a1", // green - blue (light)
+            "#f05688" // very light pink
         ]
     });
 

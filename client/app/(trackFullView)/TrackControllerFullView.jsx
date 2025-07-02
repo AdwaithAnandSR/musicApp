@@ -33,8 +33,6 @@ const TrackControllerFullView = () => {
     const showLyrics2 = useStatus(state => state.showLyrics2);
 
     if (!track) return;
-    
-    console.log(track)
 
     useEffect(() => {
         if (track && track.cover) {

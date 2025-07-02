@@ -45,8 +45,8 @@ export const useStatus = create(set => ({
 
     resetShowLyrics: () =>
         set(state => ({
-            showLyrics2: false,
             showLyrics1: false,
+            showLyrics2: false,
             showSyncedLyric: false
         }))
 }));
