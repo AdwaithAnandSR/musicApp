@@ -20,22 +20,33 @@ export const useMultiSelect = create(set => ({
 export const useStatus = create(set => ({
     showLyrics1: false,
     showLyrics2: false,
+    showSyncedLyric: false,
+
+  currentLyricIndex: -1,
+  setCurrentLyricIndex: (index) => set({ currentLyricIndex: index }),
 
     setShowLyrics1: () =>
         set(state => ({
             showLyrics1: !state.showLyrics1,
-            showLyrics2: state.showLyrics1 ? state.showLyrics2 : false // Hide 2 if 1 is being shown
+            showLyrics2: state.showLyrics1 ? state.showLyrics2 : false,
         })),
 
     setShowLyrics2: () =>
         set(state => ({
             showLyrics2: !state.showLyrics2,
-            showLyrics1: state.showLyrics2 ? state.showLyrics1 : false // Hide 1 if 2 is being shown
+            showLyrics1: state.showLyrics2 ? state.showLyrics1 : false,
+            showSyncedLyric: false
         })),
-        
+
+    setShowSyncedLyric: () =>
+        set(state => ({
+            showSyncedLyric: !state.showSyncedLyric
+        })),
+
     resetShowLyrics: () =>
         set(state => ({
             showLyrics2: false,
-            showLyrics1: false
+            showLyrics1: false,
+            showSyncedLyric: false
         }))
 }));
