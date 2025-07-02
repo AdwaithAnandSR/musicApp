@@ -172,10 +172,8 @@ router.post("/addLyricsToSong", async (req, res) => {
 // add lyrics that passed as array
 router.post("/addLyricsDirectToSong", async (req, res) => {
     try {
-        const {  lyric,
-            songId,
-            artist="Unknown"} = req.body;
-        
+        const { lyric, songId, artist = "Unknown" } = req.body;
+
         const song = await musicModel.findById(songId);
 
         if (!song) {
@@ -183,13 +181,13 @@ router.post("/addLyricsDirectToSong", async (req, res) => {
         }
 
         if (song.lyricsAsText1.length === 0) {
-                await musicModel.findByIdAndUpdate(songId, {
-                    $set: { lyricsAsText1: lyric, artist }
-                });
+            await musicModel.findByIdAndUpdate(songId, {
+                $set: { lyricsAsText1: lyric, artist }
+            });
         } else {
-                await musicModel.findByIdAndUpdate(songId, {
-                    $set: { lyricsAsText2: lyric, artist }
-                })
+            await musicModel.findByIdAndUpdate(songId, {
+                $set: { lyricsAsText2: lyric, artist }
+            });
         }
 
         const result = await musicModel.findById(songId);
