@@ -32,30 +32,7 @@ router.post("/getUnSyncedLyrics", async (req, res) => {
 
         const songs = await musicModel
             .find({
-                $and: [
-                    {
-                        $or: [
-                            {
-                                lyricsAsText1: {
-                                    $exists: true,
-                                    $not: { $size: 0 }
-                                }
-                            },
-                            {
-                                lyricsAsText2: {
-                                    $exists: true,
-                                    $not: { $size: 0 }
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        $or: [
-                            { lyric1: { $exists: false } },
-                            { lyric1: { $size: 0 } }
-                        ]
-                    }
-                ]
+                synced: false
             })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
@@ -73,8 +50,10 @@ router.post("/setSyncedSong", async (req, res) => {
         const { id, syncedLyric, duration } = req.body;
 
         const song = await musicModel.findByIdAndUpdate(id, {
-            $set: { lyric1: syncedLyric, duration, synced: true }
+            $set: { lyrics: syncedLyric, duration, synced: true }
         });
+
+        console.log(song);
         res.json({ success: true });
     } catch (e) {
         console.log(e);
@@ -87,6 +66,13 @@ router.post("/getSongById", async (req, res) => {
         const { id } = req.body;
 
         const song = await musicModel.findById(id);
+
+        // let song = {
+        //     url: result.url,
+        //     lyricsAsText1: result.lyrics
+        // };
+        
+        console.log(song)
 
         res.json({ song });
     } catch (e) {
@@ -194,13 +180,12 @@ router.post("/addLyricsDirectToSong", async (req, res) => {
         }
 
         if (song.lyrics.length === 0) {
-            
             let lyrics = [];
 
-                lyric.map(line => {
-                    lyrics.push({ start: -1, line, end: -1 });
-                });
-            
+            lyric.map(line => {
+                lyrics.push({ start: -1, line, end: -1 });
+            });
+
             await musicModel.findByIdAndUpdate(songId, {
                 $set: { lyrics, artist }
             });
