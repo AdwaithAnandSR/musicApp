@@ -207,14 +207,14 @@ router.post("/getRemainingSongs", async (req, res) => {
         const songs = await musicModel
             .find({
                 $or: [
-                    { lyricsAsText1: { $exists: false } },
-                    { lyricsAsText1: null },
-                    { lyricsAsText1: { $eq: [] } }
+                    { lyrics: { $exists: false } },
+                    { lyrics: null },
+                    { lyrics: { $eq: [] } }
                 ]
             })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
-            .limit(limit);
+            .limit(20);
 
         res.json({ songs });
     } catch (e) {
