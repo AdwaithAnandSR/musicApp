@@ -57,13 +57,16 @@ router.post("/setSyncedSong", async (req, res) => {
 router.post("/getSongById", async (req, res) => {
     try {
         const { id } = req.body;
-
-        let song = await musicModel.findById(id);
         
-if (song && song.lyrics !== undefined) {
-  song.lyricAsText1 = song.lyrics;
-  delete song.lyrics;
-}
+let result = await musicModel.findById(id);
+
+        let song = {
+            url: result.url,
+            lyricsAsText1: result.lyrics
+        };
+        
+        
+        
 
         console.log(song);
 
