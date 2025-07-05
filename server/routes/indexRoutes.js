@@ -71,9 +71,11 @@ router.post("/searchSong", async (req, res) => {
             if (match) {
                 const number = parseInt(match[1], 10);
                 console.log("Found number:", number);
-const songs = await musicModel.find({
-  lyrics: { $exists: true, $not: { $size: 0 } }
-})
+                const limit = 10;
+                const songs = await musicModel
+                    .find({
+                        lyrics: { $exists: true, $not: { $size: 0 } }
+                    })
                     .sort({ createdAt: -1 })
                     .skip((number - 1) * limit)
                     .limit(limit);
