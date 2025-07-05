@@ -8,6 +8,9 @@ import cleanTxt from "../utils/clearTitle.js";
 
 const router = express.Router();
 
+let s = await musicModel.findById("68689809d81aead9c40ab5b8");
+console.log(s);
+
 router.get("/", async (req, res) => {
     try {
         const result = await musicModel.find().limit(20);
@@ -41,12 +44,12 @@ router.post("/getUnSyncedLyrics", async (req, res) => {
 router.post("/setSyncedSong", async (req, res) => {
     try {
         const { id, syncedLyric, duration } = req.body;
-        
-        console.log(syncedLyric, id, duration)
 
-        const song = await musicModel.findByIdAndUpdate(id, {
-            $set: { lyrics: syncedLyric, duration, synced: true }
-        });
+        const song = await musicModel.findByIdAndUpdate(
+            id,
+            { $set: { lyrics: syncedLyric, duration, synced: true } },
+            { new: true, strict: false }
+        );
 
         console.log(song);
         res.json({ success: true });
