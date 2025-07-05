@@ -62,7 +62,7 @@ router.post("/getSongById", async (req, res) => {
 
         let song = {
             url: result.url,
-            lyricsAsText1: result.lyrics
+            lyricsAsText1: [result.lyrics.map(item=> item.line)]
         };
 
         console.log(song);
