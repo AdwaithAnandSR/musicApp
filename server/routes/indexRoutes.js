@@ -7,7 +7,7 @@ import addSong from "../handlers/addSong.js";
 
 const router = express.Router();
 
-await musicModel.updateMany({}, { $set: {synced: false }})
+await musicModel.updateMany({}, { $set: { synced: false } });
 
 router.post("/checkSongExistsByYtId", async (req, res) => {
     const { id } = req.body;
@@ -56,7 +56,7 @@ router.post("/getGlobalSongs", async (req, res) => {
 
         return res
             .status(200)
-            .json({ musics, availablePages: availablePages.length --, page });
+            .json({ musics, availablePages: availablePages.length--, page });
     } catch (error) {
         console.error("error while fetching songs: ", error);
         return res.status(500).json({ error: "Internal server error" });
@@ -66,6 +66,22 @@ router.post("/getGlobalSongs", async (req, res) => {
 router.post("/searchSong", async (req, res) => {
     const { text } = req.body;
     try {
+        if (text.includes("sync:")) {
+            const match = text.match(/sync:(\d+)/);
+            if (match) {
+                const number = parseInt(match[1], 10);
+                console.log("Found number:", number);
+const songs = await musicModel.find({
+  lyrics: { $exists: true, $not: { $size: 0 } }
+})
+                    .sort({ createdAt: -1 })
+                    .skip((number - 1) * limit)
+                    .limit(limit);
+
+                return res.json({ songs });
+            }
+        }
+
         const songs = await musicModel.find({
             title: { $regex: text, $options: "i" } // i : case-insensitive
         });
