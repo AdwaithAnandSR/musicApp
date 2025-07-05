@@ -1,4 +1,4 @@
-import { memo } from "react";
+
 import {
     View,
     Text,
@@ -134,4 +134,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default memo(ListItem, (prev, next) => prev.item._id === next.item._id);
+export default ListItem

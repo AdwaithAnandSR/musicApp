@@ -34,7 +34,7 @@ const Search = () => {
                 estimatedItemSize={vh * 0.95 || 100}
                 ListHeaderComponent={listHeader}
                 renderItem={({ item }) => (
-                    <ListItem LoadQueue={songs} ID={"/SEARCH"} item={item} />
+                    <ListItem LoadQueue={songs} ID={"SEARCH"} item={item} />
                 )}
                 contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
             />

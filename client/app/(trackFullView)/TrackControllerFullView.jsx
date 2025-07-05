@@ -66,6 +66,7 @@ const TrackControllerFullView = () => {
                 syncedLyric={track.syncedLyric}
                 lyric1={track.lyrics}
                 lyric2={track.lyricsAsText}
+                artist={track.artist}
             />
 
             <View
@@ -90,7 +91,7 @@ const TrackControllerFullView = () => {
 
             {/* slider */}
 
-            <SliderContainer lightVibrant={colors?.lightVibrant} />
+            <SliderContainer defaultDuration={track?.duration} lightVibrant={colors?.lightVibrant} />
 
             {/* controllers */}
             <Controllers />

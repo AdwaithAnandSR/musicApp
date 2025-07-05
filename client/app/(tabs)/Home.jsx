@@ -41,8 +41,7 @@ const Home = () => {
                 title="Musics"
                 scrollY={scrollY}
                 containerStyles={{
-                    height: HEADER_HEIGHT,
-                    
+                    height: HEADER_HEIGHT
                 }}
             />
 
