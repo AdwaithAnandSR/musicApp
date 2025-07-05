@@ -74,7 +74,8 @@ router.post("/searchSong", async (req, res) => {
                 const limit = 10;
                 const songs = await musicModel
                     .find({
-                        lyrics: { $exists: true, $not: { $size: 0 } }
+                        lyrics: { $exists: true, $not: { $size: 0 } },
+                        synced: false
                     })
                     .sort({ createdAt: -1 })
                     .skip((number - 1) * limit)
