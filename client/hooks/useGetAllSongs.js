@@ -8,7 +8,7 @@ import { storage } from "../services/storage.js";
 
 let api = Constants.expoConfig.extra.clientApi;
 
-api = "http://localhost:5000";
+// api = "http://localhost:5000";
 
 const useGetAllSongs = ({ limit }) => {
     const [loading, setLoading] = useState(true);
