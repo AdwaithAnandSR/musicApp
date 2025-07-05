@@ -58,14 +58,10 @@ router.post("/getSongById", async (req, res) => {
     try {
         const { id } = req.body;
 
-        let result = await musicModel.findById(id);
+        let result= await musicModel.findById(id);
 
         let song = {
-            _id: result._id,
-            title: result.title,
-            url: result.url,
-            lyricsAsText1: result.lyrics,
-            lyricsAsText2: result.lyricsAsText
+            ...result, lyricsAsText1: result.lyrics
         };
 
         console.log(song);
