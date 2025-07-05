@@ -41,6 +41,8 @@ router.post("/getUnSyncedLyrics", async (req, res) => {
 router.post("/setSyncedSong", async (req, res) => {
     try {
         const { id, syncedLyric, duration } = req.body;
+        
+        console.log(syncedLyric, id, duration)
 
         const song = await musicModel.findByIdAndUpdate(id, {
             $set: { lyrics: syncedLyric, duration, synced: true }
