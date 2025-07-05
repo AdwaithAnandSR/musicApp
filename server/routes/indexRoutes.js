@@ -7,6 +7,8 @@ import addSong from "../handlers/addSong.js";
 
 const router = express.Router();
 
+await musicModel.updateMany({}, { $set: {synced: false }})
+
 router.post("/checkSongExistsByYtId", async (req, res) => {
     const { id } = req.body;
 
@@ -22,7 +24,29 @@ router.post("/addSong", addSong);
 
 router.post("/getGlobalSongs", async (req, res) => {
     try {
-        const { limit, page } = req.body;
+        const { limit, allPages } = req.body;
+
+        const count = await musicModel.countDocuments({});
+        const totalPages = Math.ceil(count / limit);
+        console.log("Total documents:", count, " pages: ", totalPages);
+
+        const possiblePages = Array.from(
+            { length: totalPages },
+            (_, i) => i + 1
+        );
+        const availablePages = possiblePages.filter(p => !allPages.includes(p));
+
+        if (availablePages.length === 0)
+            return res.status(400).json({ error: "No available pages left." });
+
+        const page =
+            availablePages[Math.floor(Math.random() * availablePages.length)];
+        console.log(
+            "availablePages: ",
+            availablePages,
+            " Random unused page:",
+            page
+        );
 
         const musics = await musicModel
             .find({})
@@ -30,11 +54,12 @@ router.post("/getGlobalSongs", async (req, res) => {
             .skip((page - 1) * limit)
             .limit(limit);
 
-        const total = await musicModel.countDocuments();
-
-        if (musics) return res.status(200).json({ musics, total });
+        return res
+            .status(200)
+            .json({ musics, availablePages: availablePages.length --, page });
     } catch (error) {
         console.error("error while fetching songs: ", error);
+        return res.status(500).json({ error: "Internal server error" });
     }
 });
 
