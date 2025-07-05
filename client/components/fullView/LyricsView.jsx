@@ -39,8 +39,7 @@ const LyricsView = ({ track }) => {
             );
         });
 
-        if (index !== -1) setCurrentLyricIndex(index);
-        else setCurrentLyricIndex(-1);
+        setCurrentLyricIndex(index);
     }, [currentTime]);
 
     useEffect(() => {

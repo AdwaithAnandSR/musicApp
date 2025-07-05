@@ -7,7 +7,7 @@ import { useAudioMonitor } from "../../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const SliderContainer = ({ lightVibrant }) => {
+const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     const [isSeeking, setIsSeeking] = useState();
     const { seek } = useTrack();
     const duration = useAudioMonitor(state => state.duration);
@@ -43,7 +43,7 @@ const SliderContainer = ({ lightVibrant }) => {
                 maximumTrackTintColor="#a6a5a5"
                 thumbTintColor={lightVibrant}
             />
-            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration ? duration: defaultDuration ? defaultDuration: -1 )}</Text>
         </View>
     );
 };
