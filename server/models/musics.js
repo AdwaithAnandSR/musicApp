@@ -29,7 +29,6 @@ const musicSchema = mongoose.Schema({
         }
     ],
     lyricsAsText: [{ type: String }],
-    lyricsAsText1: [{ type: String }],
     createdAt: {
         type: Date,
         default: Date.now

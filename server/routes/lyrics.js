@@ -10,16 +10,9 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
     try {
-        const songs = await musicModel
-            .find({
-                lyric1: {
-                    $exists: true,
-                    $not: { $size: 0 }
-                }
-            })
-            .sort({ createdAt: -1 });
+        const result = await musicModel.find().limit(20);
 
-        res.send({ songs });
+        res.send(result);
     } catch (e) {
         console.log(e);
         res.status(400).json({ message: "failed" });
@@ -65,14 +58,14 @@ router.post("/getSongById", async (req, res) => {
     try {
         const { id } = req.body;
 
-        const song = await musicModel.findById(id);
-
-        // let song = {
-        //     url: result.url,
-        //     lyricsAsText1: result.lyrics
-        // };
+        let song = await musicModel.findById(id);
         
-        console.log(song)
+if (song && song.lyrics !== undefined) {
+  song.lyricAsText1 = song.lyrics;
+  delete song.lyrics;
+}
+
+        console.log(song);
 
         res.json({ song });
     } catch (e) {
