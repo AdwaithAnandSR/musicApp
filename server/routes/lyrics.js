@@ -212,7 +212,7 @@ router.post("/getRemainingSongs", async (req, res) => {
             })
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
-            .limit(20);
+            .limit(limit);
 
         res.json({ songs });
     } catch (e) {
