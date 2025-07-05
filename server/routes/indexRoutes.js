@@ -7,7 +7,6 @@ import addSong from "../handlers/addSong.js";
 
 const router = express.Router();
 
-await musicModel.updateMany({}, { $set: { synced: false } });
 
 router.post("/checkSongExistsByYtId", async (req, res) => {
     const { id } = req.body;
