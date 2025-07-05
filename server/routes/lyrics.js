@@ -138,11 +138,21 @@ router.post("/addLyricsToSong", async (req, res) => {
         if (!song) {
             throw new Error("Song not found");
         }
+        
+        let lyrics= []
+        
+        lyric.lyrics.map(line=> {
+            lyrics.append({ start: -1, line, end: -1})
+        })
+        
+        console.log(lyrics)
+        
+        return
 
         if (song.lyricsAsText1.length === 0) {
             if (lyricsIndex == 1)
                 await musicModel.findByIdAndUpdate(songId, {
-                    $set: { lyricsAsText1: lyric.lyrics }
+                    $set: { lyrics: lyric.lyrics }
                 });
             else
                 await musicModel.findByIdAndUpdate(songId, {
