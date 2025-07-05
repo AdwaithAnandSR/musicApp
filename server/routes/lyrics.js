@@ -139,33 +139,36 @@ router.post("/addLyricsToSong", async (req, res) => {
             throw new Error("Song not found");
         }
 
-        let lyrics = [];
+        if (song.lyrics.length === 0) {
+            if (lyricsIndex == 1) {
+                let lyrics = [];
 
-        lyric.lyrics.map(line => {
-            lyrics.push({ start: -1, line, end: -1 });
-        });
-
-        console.log(lyrics);
-
-        return;
-
-        if (song.lyricsAsText1.length === 0) {
-            if (lyricsIndex == 1)
-                await musicModel.findByIdAndUpdate(songId, {
-                    $set: { lyrics: lyric.lyrics }
+                lyric.lyrics.map(line => {
+                    lyrics.push({ start: -1, line, end: -1 });
                 });
-            else
+
                 await musicModel.findByIdAndUpdate(songId, {
-                    $set: { lyricsAsText1: lyric.lyrics2 }
+                    $set: { lyrics }
                 });
+            } else {
+                let lyrics = [];
+
+                lyric.lyrics2.map(line => {
+                    lyrics.push({ start: -1, line, end: -1 });
+                });
+
+                await musicModel.findByIdAndUpdate(songId, {
+                    $set: { lyrics: lyrics }
+                });
+            }
         } else {
             if (lyricsIndex == 1)
                 await musicModel.findByIdAndUpdate(songId, {
-                    $push: { lyricsAsText2: lyric.lyrics }
+                    $push: { lyricsAsText: lyric.lyrics }
                 });
             else
                 await musicModel.findByIdAndUpdate(songId, {
-                    $push: { lyricsAsText2: lyric.lyrics2 }
+                    $push: { lyricsAsText: lyric.lyrics2 }
                 });
         }
 
