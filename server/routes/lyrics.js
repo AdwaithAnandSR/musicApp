@@ -193,13 +193,20 @@ router.post("/addLyricsDirectToSong", async (req, res) => {
             throw new Error("Song not found");
         }
 
-        if (song.lyricsAsText1.length === 0) {
+        if (song.lyrics.length === 0) {
+            
+            let lyrics = [];
+
+                lyric.map(line => {
+                    lyrics.push({ start: -1, line, end: -1 });
+                });
+            
             await musicModel.findByIdAndUpdate(songId, {
-                $set: { lyricsAsText1: lyric, artist }
+                $set: { lyrics, artist }
             });
         } else {
             await musicModel.findByIdAndUpdate(songId, {
-                $set: { lyricsAsText2: lyric, artist }
+                $set: { lyricsAsText: lyric, artist }
             });
         }
 
