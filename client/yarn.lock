@@ -1257,10 +1257,12 @@
   resolved "https://registry.yarnpkg.com/@expo/sudo-prompt/-/sudo-prompt-9.3.2.tgz#0fd2813402a42988e49145cab220e25bea74b308"
   integrity sha512-HHQigo3rQWKMDzYDLkubN5WQOYXJJE2eNqIQC2axC2iO3mHdwnIR7FgZVvHWtBwAdzBgAP0ECp8KqS8TiMKvgw==
 
-"@expo/vector-icons@^14.0.0", "@expo/vector-icons@^14.0.2":
-  version "14.1.0"
-  resolved "https://registry.yarnpkg.com/@expo/vector-icons/-/vector-icons-14.1.0.tgz#d3dddad8b6ea60502e0fe5485b86751827606ce4"
-  integrity sha512-7T09UE9h8QDTsUeMGymB4i+iqvtEeaO5VvUjryFB4tugDTG/bkzViWA74hm5pfjjDEhYMXWaX112mcvhccmIwQ==
+"@expo/vector-icons@~14.0.4":
+  version "14.0.4"
+  resolved "https://registry.yarnpkg.com/@expo/vector-icons/-/vector-icons-14.0.4.tgz#fa9d4351877312badf91a806598b2f0bab16039a"
+  integrity sha512-+yKshcbpDfbV4zoXOgHxCwh7lkE9VVTT5T03OUlBsqfze1PLy6Hi4jp1vSb1GVbY6eskvMIivGVc9SKzIv0oEQ==
+  dependencies:
+    prop-types "^15.8.1"
 
 "@expo/ws-tunnel@^1.0.1":
   version "1.0.6"
@@ -1763,6 +1765,11 @@
   integrity sha512-Qd2kQ3yi6Y3+AcUlrHxSLlnBvpdCEMVGFlVBneVOjaFaPU61g1huc38g339ysXspwY1QZA2aNhrk/KlHGO+ewA==
   dependencies:
     merge-options "^3.0.4"
+
+"@react-native-community/netinfo@11.4.1":
+  version "11.4.1"
+  resolved "https://registry.yarnpkg.com/@react-native-community/netinfo/-/netinfo-11.4.1.tgz#a3c247aceab35f75dd0aa4bfa85d2be5a4508688"
+  integrity sha512-B0BYAkghz3Q2V09BF88RA601XursIEA111tnc2JOaN7axJWmNefmfjZqw/KdSxKZp7CZUuPpjBmz/WCR9uaHYg==
 
 "@react-native-community/slider@4.5.5":
   version "4.5.5"
@@ -4411,6 +4418,11 @@ expo-manifests@~0.15.7, expo-manifests@~0.15.8:
     "@expo/config" "~10.0.11"
     expo-json-utils "~0.14.0"
 
+expo-mesh-gradient@^0.3.4:
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/expo-mesh-gradient/-/expo-mesh-gradient-0.3.4.tgz#b7b3b1ee4a8e217c9211ea7b6a084adf14665a1d"
+  integrity sha512-YSSxjRXo1Idn+WaqWA6Yflbbvdrye+6ZA7/JZKRhY5d8hTLDRWvS5yOW2yeXErIZQME0iemRaUemGI348uQSJA==
+
 expo-modules-autolinking@2.0.8:
   version "2.0.8"
   resolved "https://registry.yarnpkg.com/expo-modules-autolinking/-/expo-modules-autolinking-2.0.8.tgz#b00c10ebb589ce2220548bbaee4865db1cf1f1f7"
@@ -4464,12 +4476,22 @@ expo-router@~4.0.21:
     semver "~7.6.3"
     server-only "^0.0.1"
 
+expo-secure-store@~14.0.1:
+  version "14.0.1"
+  resolved "https://registry.yarnpkg.com/expo-secure-store/-/expo-secure-store-14.0.1.tgz#8953d5966430f5ff262f4d99e7551205870078d7"
+  integrity sha512-QUS+j4+UG4jRQalgnpmTvvrFnMVLqPiUZRzYPnG3+JrZ5kwVW2w6YS3WWerPoR7C6g3y/a2htRxRSylsDs+TaQ==
+
 expo-splash-screen@~0.29.24:
   version "0.29.24"
   resolved "https://registry.yarnpkg.com/expo-splash-screen/-/expo-splash-screen-0.29.24.tgz#4e5f6d576d3fbb37c5e3e4ee6d3f3b3ece350f75"
   integrity sha512-k2rdjbb3Qeg4g104Sdz6+qXXYba8QgiuZRSxHX8IpsSYiiTU48BmCCGy12sN+O1B+sD1/+WPL4duCa1Fy6+Y4g==
   dependencies:
     "@expo/prebuild-config" "~8.2.0"
+
+expo-sqlite@~15.1.4:
+  version "15.1.4"
+  resolved "https://registry.yarnpkg.com/expo-sqlite/-/expo-sqlite-15.1.4.tgz#7827db7e6d376747d9d2a3a4eea9760e5bd41c42"
+  integrity sha512-1SG5Qi6/L2SK/o5EKtvEmlMVGdra/wYYh/intI94/ovsUfZGFrDG31YGtTt4rLpE95M6FwHUVpALO8g9/G9B2Q==
 
 expo-status-bar@~2.0.1:
   version "2.0.1"
@@ -4526,10 +4548,10 @@ expo-web-browser@~14.0.2:
   resolved "https://registry.yarnpkg.com/expo-web-browser/-/expo-web-browser-14.0.2.tgz#52d53947c42fdfb225e8c230418ffe508bcf98a7"
   integrity sha512-Hncv2yojhTpHbP6SGWARBFdl7P6wBHc1O8IKaNsH0a/IEakq887o1eRhLxZ5IwztPQyRDhpqHdgJ+BjWolOnwA==
 
-expo@~52.0.46:
-  version "52.0.46"
-  resolved "https://registry.yarnpkg.com/expo/-/expo-52.0.46.tgz#3869b87b585da67406a8216539d12a16d736f16e"
-  integrity sha512-JG89IVZLp7DWzgeiQb+0N43kWOF1DUm3esBvAS9cPFWZsM9x8nDXgbvtREcycDPA6E+yJsSC+086CigeUY6sVA==
+expo@~52.0.47:
+  version "52.0.47"
+  resolved "https://registry.yarnpkg.com/expo/-/expo-52.0.47.tgz#b2a25bdcbd2059094396750e896946d2e2e61753"
+  integrity sha512-Mkvl7Qi2k+V3FdNRUD+yDj8GqU4IiYulLfl36BmSZs8lh/kCYPhTiyBLiEGPfz7d25QKbPWG727ESozbkbvatw==
   dependencies:
     "@babel/runtime" "^7.20.0"
     "@expo/cli" "0.22.26"
@@ -4537,7 +4559,7 @@ expo@~52.0.46:
     "@expo/config-plugins" "~9.0.17"
     "@expo/fingerprint" "0.11.11"
     "@expo/metro-config" "0.19.12"
-    "@expo/vector-icons" "^14.0.0"
+    "@expo/vector-icons" "~14.0.4"
     babel-preset-expo "~12.0.11"
     expo-asset "~11.0.5"
     expo-constants "~17.0.8"
@@ -7679,6 +7701,11 @@ react-is@^16.13.1, react-is@^16.7.0:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
   integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
+
+react-native-fast-image@^8.6.3:
+  version "8.6.3"
+  resolved "https://registry.yarnpkg.com/react-native-fast-image/-/react-native-fast-image-8.6.3.tgz#6edc3f9190092a909d636d93eecbcc54a8822255"
+  integrity sha512-Sdw4ESidXCXOmQ9EcYguNY2swyoWmx53kym2zRsvi+VeFCHEdkO+WG1DK+6W81juot40bbfLNhkc63QnWtesNg==
 
 react-native-gesture-handler@~2.20.2:
   version "2.20.2"
