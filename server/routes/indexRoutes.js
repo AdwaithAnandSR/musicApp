@@ -7,6 +7,17 @@ import addSong from "../handlers/addSong.js";
 
 const router = express.Router();
 
+// await musicModel.findByIdAndUpdate("6868971ad81aead9c40ab59a", {
+//     $set: { synced: true }
+// });
+
+// const songs = await musicModel.find({
+//     title: { $regex: "gabri", $options: "i" } // i : case-insensitive
+// });
+
+// const songs = await musicModel.findById("684ecceddcdf01936ef28846");
+
+// console.log(songs.lyrics, songs.synced);
 
 router.post("/checkSongExistsByYtId", async (req, res) => {
     const { id } = req.body;
@@ -65,25 +76,7 @@ router.post("/getGlobalSongs", async (req, res) => {
 router.post("/searchSong", async (req, res) => {
     const { text } = req.body;
     try {
-        if (text.includes("sync:")) {
-            const match = text.match(/sync:(\d+)/);
-            if (match) {
-                const number = parseInt(match[1], 10);
-                console.log("Found number:", number);
-                const limit = 10;
-                const songs = await musicModel
-                    .find({
-                        lyrics: { $exists: true, $not: { $size: 0 } },
-                        synced: false
-                    })
-                    .sort({ createdAt: -1 })
-                    .skip((number - 1) * limit)
-                    .limit(limit);
-
-                return res.json({ songs });
-            }
-        }
-
+        
         const songs = await musicModel.find({
             title: { $regex: text, $options: "i" } // i : case-insensitive
         });
