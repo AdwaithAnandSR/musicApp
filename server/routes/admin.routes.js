@@ -17,8 +17,9 @@ import {
 import getRemainingSongs from "../handlers/admin/getRemainingSong.js";
 import addNewLyricToDb from "../handlers/admin/addNewLyricToDb.js";
 import getSongById from "../handlers/admin/getSongById.js";
-import searchSong from "../handlers/admin/searchSongs.js";
+import {searchLyric, searchSong} from "../handlers/admin/search.js";
 import removeLyric from "../handlers/admin/removeLyric.js";
+import {updateArtist, deleteSong, swapLyric} from "../handlers/admin/manageSong.js";
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.post("/getUnSyncedLyrics", getUnSyncedLyrics);
 
 router.post("/setSyncedSong", setSyncedSong);
 
-router.post("/removeLyric", removeLyric); 
+router.post("/removeLyric", removeLyric);
 
 router.post("/addLyricsToSong", addLyricsToSong); // add lyrics from lyrics db
 
@@ -39,6 +40,14 @@ router.post("/getSongsToBeSynced", getSongsToBeSynced);
 router.post("/getSongById", getSongById);
 
 router.post("/searchSong", searchSong);
+
+router.post("/searchLyric", searchLyric);
+
+router.post("/deleteSong", deleteSong);
+
+router.post("/updateArtist", updateArtist);
+
+router.post("/swapLyric", swapLyric);
 
 // lyrics model
 
