@@ -2,11 +2,17 @@ import { useRef, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
-import { useGlobalSongs } from "../../store/list.store.js";
-import useGetAllSongs from "../../hooks/useGetAllSongs.js";
+// import { useGlobalSongs } from "../../store/list.store.js";
+// import useGetAllSongs from "../../hooks/useGetAllSongs.js";
 
-import ListItem from "../../components/ListItem.jsx";
-import Header from "../../components/ListHeader.jsx";
+// import ListItem from "../../components/ListItem.jsx";
+// import Header from "../../components/ListHeader.jsx";
+
+import { useGlobalSongs } from "../../../store/list.store.js";
+import useGetAllSongs from "../../../hooks/useGetAllSongs.js";
+
+import ListItem from "../../../components/ListItem.jsx";
+import Header from "../../../components/ListHeader.jsx";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
@@ -48,6 +54,7 @@ const Home = () => {
             <AnimatedFlashList
                 data={allSongs}
                 renderItem={renderItem}
+                showsVerticalScrollIndicator={false}
                 keyExtractor={item => item._id}
                 onEndReachedThreshold={0.5}
                 initialNumToRender={7}

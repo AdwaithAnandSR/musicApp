@@ -3,10 +3,15 @@ import { StyleSheet, Text, View, Animated } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 
-import useGetPlaylistSongs from "../../../../hooks/useGetPlaylistSongs.js";
+// import useGetPlaylistSongs from "../../../../hooks/useGetPlaylistSongs.js";
 
-import ListItem from "../../../../components/ListItem.jsx";
-import Header from "../../../../components/ListHeader.jsx";
+// import ListItem from "../../../../components/ListItem.jsx";
+// import Header from "../../../../components/ListHeader.jsx";
+
+import useGetPlaylistSongs from "../../../../../hooks/useGetPlaylistSongs.js";
+
+import ListItem from "../../../../../components/ListItem.jsx";
+import Header from "../../../../../components/ListHeader.jsx";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const limit = 50,

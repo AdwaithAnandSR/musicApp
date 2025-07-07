@@ -11,14 +11,23 @@ import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 
-import { useTrack } from "../../store/track.store.js";
-import { useStatus } from "../../store/appState.store.js";
+// import { useTrack } from "../../store/track.store.js";
+// import { useStatus } from "../../store/appState.store.js";
 
-import Controllers from "../../components/fullView/ControllersContainer.jsx";
-import SliderContainer from "../../components/fullView/SliderContainer.jsx";
-import Lyrics from "../../components/fullView/LyricsView.jsx";
-import NavBar from "../../components/fullView/NavBar.jsx";
-import OptionsContainer from "../../components/fullView/OptionsContainer.jsx";
+// import Controllers from "../../components/fullView/ControllersContainer.jsx";
+// import SliderContainer from "../../components/fullView/SliderContainer.jsx";
+// import Lyrics from "../../components/fullView/LyricsView.jsx";
+// import NavBar from "../../components/fullView/NavBar.jsx";
+// import OptionsContainer from "../../components/fullView/OptionsContainer.jsx";
+
+import { useTrack } from "../../../store/track.store.js";
+import { useStatus } from "../../../store/appState.store.js";
+
+import Controllers from "../../../components/fullView/ControllersContainer.jsx";
+import SliderContainer from "../../../components/fullView/SliderContainer.jsx";
+import Lyrics from "../../../components/fullView/LyricsView.jsx";
+import NavBar from "../../../components/fullView/NavBar.jsx";
+import OptionsContainer from "../../../components/fullView/OptionsContainer.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
@@ -78,7 +87,7 @@ const TrackControllerFullView = () => {
                 <Image
                     source={
                         track?.cover ||
-                        require("../../assets/images/images.jpeg")
+                        require("../../../assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}
                     contentFit="cover"

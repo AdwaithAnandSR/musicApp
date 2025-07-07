@@ -1,13 +1,11 @@
-import { Stack } from "expo-router";
+import { Stack, Tabs } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import "./(trackFullView)/TrackControllerFullView.jsx";
-import Navbar from "../components/Navbar.jsx";
-import Toast from "../services/Toast.js";
 
-import { TrackProvider } from "../context/track.context.js";
+const isLoggedIn = true;
 
-const _layout = () => {
+
+const Layout = () => {
     return (
         <SafeAreaView
             style={{
@@ -15,28 +13,18 @@ const _layout = () => {
                 backgroundColor: "black"
             }}
         >
-            <TrackProvider>
-                <Navbar />
-                <Stack
-                    screenOptions={{
-                        headerShown: false,
-                        animation: "none"
-                    }}
-                >
+
+            <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Protected guard={!isLoggedIn}>
                     <Stack.Screen name="index" />
-                    <Stack.Screen name="(tabs)" />
-                    <Stack.Screen
-                        name="(trackFullView)/TrackControllerFullView"
-                        options={{
-                            animation: "slide_from_bottom",
-                            animationDuration: 50
-                        }}
-                    />
-                </Stack>
-                <Toast />
-            </TrackProvider>
+                </Stack.Protected>
+
+                <Stack.Protected guard={isLoggedIn}>
+                    <Stack.Screen name="secure" />
+                </Stack.Protected>
+            </Stack>
         </SafeAreaView>
     );
 };
 
-export default _layout;
+export default Layout;

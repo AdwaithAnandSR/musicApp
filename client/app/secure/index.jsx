@@ -6,7 +6,7 @@ const Index = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.text}>
-                {list[Math.floor(Math.random() * 7)]}
+                SECURED
             </Text>
         </View>
     );

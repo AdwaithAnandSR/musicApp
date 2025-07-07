@@ -1,9 +1,14 @@
 import { View, Text, StyleSheet, TextInput, Dimensions } from "react-native";
 import React, { useState, useMemo } from "react";
 import { FlashList } from "@shopify/flash-list";
-import ListItem from "../../components/ListItem.jsx";
 
-import useSearch from "../../hooks/useSearch.js";
+// import ListItem from "../../components/ListItem.jsx";
+
+// import useSearch from "../../hooks/useSearch.js";
+
+import ListItem from "../../../components/ListItem.jsx";
+
+import useSearch from "../../../hooks/useSearch.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 

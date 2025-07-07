@@ -6,7 +6,8 @@ import {
     MaterialCommunityIcons
 } from "@expo/vector-icons";
 
-import TrackControllerMinView from "../../components/TrackControllerMinView.jsx";
+import TrackControllerMinView from "../../../components/TrackControllerMinView.jsx";
+// import TrackControllerMinView from "../../components/TrackControllerMinView.jsx";
 
 const activeIconSize = 28,
     inactiveIconSize = 25;

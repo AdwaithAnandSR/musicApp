@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Constants from "expo-constants";
+
 import { useQueueManager } from "../store/track.store.js";
 import { useGlobalSongs } from "../store/list.store.js";
 import Toast from "../services/Toast.js";
 import { storage } from "../services/storage.js";
+import { useAppState } from "../context/app.context.js";
 
 let api = Constants.expoConfig.extra.clientApi;
 
@@ -12,6 +14,7 @@ let api = Constants.expoConfig.extra.clientApi;
 
 const useGetAllSongs = ({ limit }) => {
     const [loading, setLoading] = useState(true);
+    const { insertSongs, getSongs } = useAppState();
 
     const page = useGlobalSongs(state => state.page);
     const allPages = useGlobalSongs(state => state.allPages);
@@ -48,8 +51,15 @@ const useGetAllSongs = ({ limit }) => {
             }
 
             if (page == 1 && data.length != 0) {
-                storage.set("songs", JSON.stringify(data.slice(0, 7)));
-                storage.set("storedPage", res.data.page);
+                // storage.set("songs", JSON.stringify(data.slice(0, 7)));
+                // storage.set("storedPage", res.data.page);
+
+                for (const item of data.slice(0, 5)) {
+                    await insertSongs(item);
+                }
+
+                const songs = await getSongs();
+                console.log(songs);
             }
         } catch (err) {
             if (!err.response) {
