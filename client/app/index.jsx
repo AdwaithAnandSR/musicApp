@@ -1,5 +1,29 @@
-import { Redirect } from "expo-router";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 
-const index = () => <Redirect href="Home" />;
+const Index = () => {
+    const list = ["🥳", "😶‍🌫️", "😈", "💫", "🍄", "👨‍🎤", "🧑‍🎤"];
+    return (
+        <View style={styles.container}>
+            <Text style={styles.text}>
+                {list[Math.floor(Math.random() * 7)]}
+            </Text>
+        </View>
+    );
+};
 
-export default index;
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "black"
+    },
+    text: {
+        color: "white",
+        fontSize: 80,
+        fontWeight: "bold"
+    }
+});
+
+export default Index;
