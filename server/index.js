@@ -8,7 +8,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 import mongoConfig from "./config/mongodb.config.js";
-import indexRoutes from "./routes/indexRoutes.js";
+import indexRoutes from "./routes/index.routes.js";
+import usersRoutes from "./routes/users.routes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import playlistRoutes from "./routes/playlist.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
@@ -31,6 +32,7 @@ app.use("/lyrics", lyrics);
 app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
 app.use("/admin", adminRoutes);
+app.use("/users", usersRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

@@ -1,23 +1,12 @@
 import express from "express";
-import { signin, signup } from "../handlers/auth.handler.js";
 
 import musicModel from "../models/musics.js";
+import userModel from "../models/users.js";
+
 import findSong from "../handlers/findSong.js";
 import addSong from "../handlers/addSong.js";
 
 const router = express.Router();
-
-// await musicModel.findByIdAndUpdate("6868971ad81aead9c40ab59a", {
-//     $set: { synced: true }
-// });
-
-// const songs = await musicModel.find({
-//     title: { $regex: "gabri", $options: "i" } // i : case-insensitive
-// });
-
-// const songs = await musicModel.findById("684ecceddcdf01936ef28846");
-
-// console.log(songs.lyrics, songs.synced);
 
 router.post("/checkSongExistsByYtId", async (req, res) => {
     const { id } = req.body;
@@ -34,7 +23,14 @@ router.post("/addSong", addSong);
 
 router.post("/getGlobalSongs", async (req, res) => {
     try {
-        const { limit, allPages } = req.body;
+        const { limit, allPages, userId } = req.body;
+        
+        let isAuth = false 
+        
+        if(userId){
+            const user = await userModel.findOne({ userId})
+            if(user) isAuth = user.isAuthenticated
+        }
 
         const count = await musicModel.countDocuments({});
         const totalPages = Math.ceil(count / limit);
@@ -51,12 +47,6 @@ router.post("/getGlobalSongs", async (req, res) => {
 
         const page =
             availablePages[Math.floor(Math.random() * availablePages.length)];
-        console.log(
-            "availablePages: ",
-            availablePages,
-            " Random unused page:",
-            page
-        );
 
         const musics = await musicModel
             .find({})
@@ -66,7 +56,7 @@ router.post("/getGlobalSongs", async (req, res) => {
 
         return res
             .status(200)
-            .json({ musics, availablePages: availablePages.length--, page });
+            .json({ musics, availablePages: availablePages.length--, page, isAuth });
     } catch (error) {
         console.error("error while fetching songs: ", error);
         return res.status(500).json({ error: "Internal server error" });
@@ -76,7 +66,6 @@ router.post("/getGlobalSongs", async (req, res) => {
 router.post("/searchSong", async (req, res) => {
     const { text } = req.body;
     try {
-        
         const songs = await musicModel.find({
             title: { $regex: text, $options: "i" } // i : case-insensitive
         });
@@ -87,8 +76,5 @@ router.post("/searchSong", async (req, res) => {
     }
 });
 
-// authentication routes
-router.post("/signin", signin);
-router.post("/signup", signup);
 
 export default router;
