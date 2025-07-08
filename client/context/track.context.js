@@ -24,7 +24,7 @@ export const TrackProvider = ({ children }) => {
     const updateTrack = useTrackDets(state => state.update);
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
     const queue = useQueueManager(state => state.queue);
-    const currentQueueIndex = useQueueManager(state => state.currentIndex);
+    const currentIndex = useQueueManager(state => state.currentIndex);
     const updateCurrentIndex = useQueueManager(
         state => state.updateCurrentIndex
     );
@@ -42,27 +42,27 @@ export const TrackProvider = ({ children }) => {
     };
 
     const skipToNext = useCallback(() => {
-        const nextIndex = currentQueueIndex + 1;
+        const nextIndex = currentIndex + 1;
         if (nextIndex >= queue.length) return;
+
         const nextTrack = queue[nextIndex];
         if (nextTrack) {
             updateTrack(nextTrack);
             updateCurrentIndex(nextIndex);
         }
-        if (nextIndex == queue.length - 3) updatePage();
+        if (nextIndex == queue.length - 5 || nextIndex == queue.length - 1)
+            updatePage();
         resetShowLyrics();
-        
-    }, [currentQueueIndex, queue, updateTrack, updateCurrentIndex]);
+    }, [currentIndex, queue, updateTrack, updateCurrentIndex]);
 
     const skipToPrevious = () => {
-        if (currentQueueIndex <= 0) return;
-        const nextTrack = queue[currentQueueIndex - 1];
+        if (currentIndex <= 0) return;
+        const nextTrack = queue[currentIndex - 1];
         if (nextTrack) {
             updateTrack(nextTrack);
-            updateCurrentIndex(currentQueueIndex - 1);
+            updateCurrentIndex(currentIndex - 1);
         }
         resetShowLyrics();
-        
     };
 
     const seek = sec => player.seekTo(sec);

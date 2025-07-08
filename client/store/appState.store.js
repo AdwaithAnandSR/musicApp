@@ -1,4 +1,10 @@
 import { create } from "zustand";
+import { isAuthenticated as isAuth } from "../services/storage.js"
+
+export const useAppStatus = create(set=> ({
+    isAuthenticated: isAuth || false,
+    setIsAuthenticated: (val)=> set(()=> ({ isAuthenticated: val }))
+}))
 
 export const useMultiSelect = create(set => ({
     selectedSongs: [],
@@ -22,13 +28,13 @@ export const useStatus = create(set => ({
     showLyrics2: false,
     showSyncedLyric: false,
 
-  currentLyricIndex: -1,
-  setCurrentLyricIndex: (index) => set({ currentLyricIndex: index }),
+    currentLyricIndex: -1,
+    setCurrentLyricIndex: index => set({ currentLyricIndex: index }),
 
     setShowLyrics1: () =>
         set(state => ({
             showLyrics1: !state.showLyrics1,
-            showLyrics2: state.showLyrics1 ? state.showLyrics2 : false,
+            showLyrics2: state.showLyrics1 ? state.showLyrics2 : false
         })),
 
     setShowLyrics2: () =>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     View,
     Text,
@@ -8,31 +9,38 @@ import {
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 
 import { useStatus } from "../../store/appState.store.js";
+import { useTrack } from "../../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const activeLyricColor = "rgb(246,7,135)",
     iconSize = 12;
 
-const OptionsContainer = ({
-    lyric1,
-    lyric2,
-    isSynced,
-    syncedLyric,
-    artist
-}) => {
+const OptionsContainer = () => {
+    const [artistIndex, setArtistIndex] = useState(0);
+
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
     const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
     const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
     const setShowSyncedLyric = useStatus(state => state.setShowSyncedLyric);
+    const track = useTrack(state => state.track);
+
+    const artists = track?.artist?.split(",");
+
+    const handleShowArtist = () => {
+        if (artistIndex < artists.length - 1) {
+            setArtistIndex(prev => prev + 1);
+        } else setArtistIndex(0);
+    };
 
     return (
         <View style={styles.optionsContainer}>
             <View style={styles.left}>
-                {artist && artist.toLowerCase() != "unknown" && (
+                {track?.artist.toLowerCase() != "unknown" && (
                     <TouchableOpacity
+                        onPress={handleShowArtist}
                         style={[
                             styles.options,
                             { borderColor: activeLyricColor }
@@ -51,14 +59,14 @@ const OptionsContainer = ({
                                 { color: activeLyricColor }
                             ]}
                         >
-                            {artist}
+                            {artists[artistIndex].trim()}
                         </Text>
                     </TouchableOpacity>
                 )}
             </View>
 
             <View style={styles.right}>
-                {isSynced && showLyrics1 && (
+                {track?.synced && showLyrics1 && (
                     <TouchableOpacity
                         onPress={setShowSyncedLyric}
                         style={[
@@ -92,7 +100,7 @@ const OptionsContainer = ({
                     </TouchableOpacity>
                 )}
 
-                {lyric1?.length > 0 && (
+                {track?.lyrics?.length > 0 && (
                     <TouchableOpacity
                         onPress={setShowLyrics1}
                         style={[
@@ -121,12 +129,12 @@ const OptionsContainer = ({
                                 }
                             ]}
                         >
-                            lyric 1
+                            {"Lyric 1"}
                         </Text>
                     </TouchableOpacity>
                 )}
 
-                {lyric2?.length > 0 && (
+                {track?.lyricsAsText?.length > 0 && (
                     <TouchableOpacity
                         onPress={setShowLyrics2}
                         style={[
@@ -153,7 +161,7 @@ const OptionsContainer = ({
                                 }
                             ]}
                         >
-                            lyric 2
+                            {"lyric 2"}
                         </Text>
                     </TouchableOpacity>
                 )}
@@ -168,7 +176,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: vw * 0.075,
-        minHeight: vh * 0.04
+        minHeight: vh * 0.05
     },
     right: {
         flexDirection: "row",

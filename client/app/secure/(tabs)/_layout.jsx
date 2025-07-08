@@ -7,7 +7,6 @@ import {
 } from "@expo/vector-icons";
 
 import TrackControllerMinView from "../../../components/TrackControllerMinView.jsx";
-// import TrackControllerMinView from "../../components/TrackControllerMinView.jsx";
 
 const activeIconSize = 28,
     inactiveIconSize = 25;
@@ -23,10 +22,10 @@ const Layout = () => {
                     tabBarStyle: {
                         position: "absolute",
                         zIndex: 99999,
-                        paddingTop: 5,
-                        backgroundColor: "#000000c5",
+                        paddingTop: 3,
+                        backgroundColor: "#000000d0",
                         borderTopWidth: 0,
-                        height: 45,
+                        height: 43,
                         borderTopLeftRadius: 30,
                         borderTopRightRadius: 30
                     }

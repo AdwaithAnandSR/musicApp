@@ -1,9 +1,9 @@
 import { create } from "zustand";
-import { songs, storedPage } from "../services/storage.js";
+import { storedPage } from "../services/storage.js";
 
 
 export const useGlobalSongs = create((set, get) => ({
-    allSongs: songs || [],
+    allSongs: [],
     allPages: [storedPage] || [],
     page: 1,
     hasMore: true,

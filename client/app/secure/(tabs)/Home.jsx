@@ -2,12 +2,6 @@ import { useRef, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
-// import { useGlobalSongs } from "../../store/list.store.js";
-// import useGetAllSongs from "../../hooks/useGetAllSongs.js";
-
-// import ListItem from "../../components/ListItem.jsx";
-// import Header from "../../components/ListHeader.jsx";
-
 import { useGlobalSongs } from "../../../store/list.store.js";
 import useGetAllSongs from "../../../hooks/useGetAllSongs.js";
 
@@ -17,7 +11,7 @@ import Header from "../../../components/ListHeader.jsx";
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 const Home = () => {
-    const LIMIT = 50,
+    const LIMIT = 30,
         HEADER_HEIGHT = 250;
     const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -36,11 +30,6 @@ const Home = () => {
         [loading, hasMore]
     );
 
-    const renderItem = useCallback(
-        ({ item }) => <ListItem LoadQueue={allSongs} ID={"HOME"} item={item} />,
-        [allSongs]
-    );
-
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
             <Header
@@ -53,7 +42,9 @@ const Home = () => {
 
             <AnimatedFlashList
                 data={allSongs}
-                renderItem={renderItem}
+                renderItem={({ item }) => (
+                    <ListItem LoadQueue={allSongs} ID={"HOME"} item={item} />
+                )}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={item => item._id}
                 onEndReachedThreshold={0.5}

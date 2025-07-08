@@ -3,8 +3,12 @@ import { MMKV } from "react-native-mmkv";
 export const storage = new MMKV();
 
 export const playlists = JSON.parse(storage.getString("playlists") || "[]");
-export const songs = JSON.parse(storage.getString("songs") || "[]");
+
 export const storedPage = storage.getNumber("storedPage");
+
+export const userId = storage.getString("userId");
+
+export const isAuthenticated = storage.getBoolean("isAuthenticated");
 
 const size = storage.size;
 console.log(

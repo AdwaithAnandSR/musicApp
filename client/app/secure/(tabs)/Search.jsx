@@ -1,46 +1,69 @@
+import React, { useState, useRef } from "react";
 import { View, Text, StyleSheet, TextInput, Dimensions } from "react-native";
-import React, { useState, useMemo } from "react";
 import { FlashList } from "@shopify/flash-list";
 
-// import ListItem from "../../components/ListItem.jsx";
-
-// import useSearch from "../../hooks/useSearch.js";
-
 import ListItem from "../../../components/ListItem.jsx";
-
-import useSearch from "../../../hooks/useSearch.js";
+import handleSearch from "../../../controllers/search.controller.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Search = () => {
-    const [text, setText] = useState();
-    const { songs } = useSearch({ text });
+    const [text, setText] = useState("");
+    const [songs, setSongs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const typingTimeout = useRef(null);
 
-    const listHeader = useMemo(
-        () => (
-            <View>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search Song"
-                    placeholderTextColor="white"
-                    value={text}
-                    onChangeText={setText}
-                />
-                <Text>Search</Text>
-            </View>
-        ),
-        [text]
-    );
+    const handleChangeText = text => {
+        setText(text);
+        setLoading(true);
+
+        if (text.trim() == "") {
+            setSongs([]);
+            setLoading(false);
+        }
+
+        if (typingTimeout.current) clearTimeout(typingTimeout.current);
+
+        typingTimeout.current = setTimeout(async () => {
+            const result = await handleSearch(text);
+            if (text.trim() != "") setSongs(result);
+            setLoading(false);
+        }, 500);
+    };
 
     return (
         <View style={styles.container}>
+            <View>
+                <View>
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search Song"
+                        placeholderTextColor="white"
+                        value={text}
+                        onChangeText={handleChangeText}
+                    />
+                    <Text>Search</Text>
+                </View>
+                <Text></Text>
+                {loading ? (
+                    <Text style={styles.loading}>Loading...</Text>
+                ) : text?.trim() !== "" && songs?.length === 0 ? (
+                    <Text style={styles.loading}>"No Songs Found!"</Text>
+                ) : null}
+            </View>
+
             <FlashList
                 data={songs}
                 estimatedItemSize={vh * 0.95 || 100}
-                ListHeaderComponent={listHeader}
                 renderItem={({ item }) => (
-                    <ListItem LoadQueue={songs} ID={"SEARCH"} item={item} />
+                    <ListItem
+                        LoadQueue={songs}
+                        ID={"SEARCH"}
+                        item={item}
+                        text={text}
+                    />
                 )}
+                keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}
             />
         </View>
@@ -66,6 +89,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: vw * 0.03,
         marginHorizontal: "auto",
         marginTop: vh * 0.01
+    },
+    loading: {
+        color: "#fac3ec",
+        fontWeight: 900,
+        textAlign: "center"
     }
 });
 

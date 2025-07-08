@@ -61,3 +61,25 @@ export const authenticate = async (req, res) => {
         console.error(error);
     }
 };
+
+export const nickname = async (req, res) => {
+    try {
+        let { name, userId } = req.query;
+
+        if (!userId || name?.trim() === "")
+            return res.send("check query parameters!!!");
+
+        const user = await User.findOneAndUpdate(
+            { userId },
+            { $set: { nickname: name } },
+            { new: true }
+        );
+
+        if (!user) return res.send("user not exists");
+
+        res.send(user);
+    } catch (error) {
+        console.error(error);
+    }
+};
+

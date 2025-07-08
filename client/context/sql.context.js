@@ -1,24 +1,23 @@
 import { useRef, useContext, createContext, useEffect, useState } from "react";
-// import * as SQLite from "expo-sqlite";/
 import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
 
-import { useGlobalSongs } from "../store/list.store.js"
+import { useGlobalSongs } from "../store/list.store.js";
+import { useAppStatus } from "../store/appState.store.js";
+import { userId } from "../services/storage.js";
 
-const AppContext = createContext();
+import fetchUser from "../controllers/auth/checkIsAuth.js";
 
-export const AppStateProvider = ({ children }) => {
+const SqlContext = createContext();
+
+export const SqlControllerProvider = ({ children }) => {
     const db = useSQLiteContext();
-    const updateAllSongs = useGlobalSongs(state=> state.updateAllSongs)
+    const updateAllSongs = useGlobalSongs(state => state.updateAllSongs);
+    const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
 
-    if (!db) {
-        console.error("db not initialised");
-        return;
-    }
+    if (!db) return console.error("db not initialised");
 
     const init = async () => {
         try {
-            await db.execAsync(`DROP TABLE songs;`);
-
             await db.execAsync(
                 `CREATE TABLE IF NOT EXISTS songs (
                     _id TEXT PRIMARY KEY, 
@@ -31,31 +30,26 @@ export const AppStateProvider = ({ children }) => {
                     lyricsAsText TEXT
                 );`
             );
-            
+
             let songs = await db.getAllAsync(`SELECT * FROM songs;`);
-            let formatted = songs.map(item=> {
-                return{
-                    _id: item._id,
-                    title: item.title,
-                    url: item.url,
-                    cover: item.cover,
-                    artist: item.artist,
-                    : item.artist,
-                }
-            })
-            
-            updateAllSongs(songs)
+            let formatted = songs.map(item => {
+                return {
+                    ...item,
+                    synced: item.synced == 1,
+                    lyrics: JSON.parse(item.lyrics),
+                    lyricsAsText: JSON.parse(item.lyricsAsText)
+                };
+            });
+
+            updateAllSongs(formatted);
         } catch (error) {
             console.error(error);
         }
     };
-
     init();
 
     const insertSongs = async item => {
         try {
-            await db.getAllAsync(`DELETE FROM songs;`);
-            
             await db.runAsync(
                 `INSERT INTO songs VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
                 [
@@ -74,20 +68,15 @@ export const AppStateProvider = ({ children }) => {
         }
     };
 
-    const getSongs = async () => {
-        const songs = await db.getAllAsync(`SELECT * FROM songs;`);
-
-        console.log(songs);
-        return songs;
+    const clearSongs = async () => {
+        await db.getAllAsync(`DELETE FROM songs;`);
     };
 
-    const clearSongs = async () => {};
-
     return (
-        <AppContext.Provider value={{ insertSongs, getSongs, clearSongs }}>
+        <SqlContext.Provider value={{ insertSongs, clearSongs }}>
             {children}
-        </AppContext.Provider>
+        </SqlContext.Provider>
     );
 };
 
-export const useAppState = () => useContext(AppContext);
+export const useSqlControlls = () => useContext(SqlContext);

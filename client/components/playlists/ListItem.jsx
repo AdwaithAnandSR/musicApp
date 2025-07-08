@@ -30,7 +30,7 @@ const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
 
     const handleRoute = () => {
         router.push({
-            pathname: `/playlists/${item._id}/PlaylistSongs`,
+            pathname: `secure//playlists/${item._id}/PlaylistSongs`,
             params: { playlistName: item?.name }
         });
     };
