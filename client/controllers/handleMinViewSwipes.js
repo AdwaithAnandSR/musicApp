@@ -15,7 +15,7 @@ const handleSwipeEnd = async (
 
     if (diffX > 100) skipToNext();
     else if (diffX < -100) skipToPrevious();
-    else if (diffX === 0) router.push("TrackControllerFullView");
+    else if (diffX === 0) router.push("secure/TrackControllerFullView");
     else if (diffY > 45) updateTrack({});
 };
 

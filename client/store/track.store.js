@@ -30,7 +30,10 @@ export const useQueueManager = create(set => ({
             };
         }),
     updateId: newId => set(() => ({ id: newId })),
-    updateCurrentIndex: index => set(() => ({ currentIndex: index }))
+    updateCurrentIndex: index =>
+        set((state) => {
+            return { currentIndex: index != -1 ? index : state.currentIndex};
+        })
 }));
 
 export const useAudioMonitor = create(set => ({

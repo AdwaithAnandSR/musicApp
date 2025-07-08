@@ -11,15 +11,6 @@ import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 
-// import { useTrack } from "../../store/track.store.js";
-// import { useStatus } from "../../store/appState.store.js";
-
-// import Controllers from "../../components/fullView/ControllersContainer.jsx";
-// import SliderContainer from "../../components/fullView/SliderContainer.jsx";
-// import Lyrics from "../../components/fullView/LyricsView.jsx";
-// import NavBar from "../../components/fullView/NavBar.jsx";
-// import OptionsContainer from "../../components/fullView/OptionsContainer.jsx";
-
 import { useTrack } from "../../../store/track.store.js";
 import { useStatus } from "../../../store/appState.store.js";
 
@@ -70,13 +61,7 @@ const TrackControllerFullView = () => {
                 </Text>
             </View>
 
-            <OptionsContainer
-                isSynced={track.synced}
-                syncedLyric={track.syncedLyric}
-                lyric1={track.lyrics}
-                lyric2={track.lyricsAsText}
-                artist={track.artist}
-            />
+            <OptionsContainer />
 
             <View
                 style={[
@@ -100,7 +85,10 @@ const TrackControllerFullView = () => {
 
             {/* slider */}
 
-            <SliderContainer defaultDuration={track?.duration} lightVibrant={colors?.lightVibrant} />
+            <SliderContainer
+                defaultDuration={track?.duration}
+                lightVibrant={colors?.lightVibrant}
+            />
 
             {/* controllers */}
             <Controllers />

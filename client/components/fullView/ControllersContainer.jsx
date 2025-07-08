@@ -36,6 +36,7 @@ const ControllersContainer = () => {
         }
     };
 
+
     return (
         <View style={styles.controllsContainer}>
             <TouchableOpacity

@@ -6,12 +6,12 @@ import Navbar from "../../components/Navbar.jsx";
 import Toast from "../../services/Toast.js";
 
 import { TrackProvider } from "../../context/track.context.js";
-import { AppStateProvider } from "../../context/app.context.js";
+import { SqlControllerProvider } from "../../context/sql.context.js";
 
 const _layout = () => {
     return (
         <SQLiteProvider databaseName="musicApp.db">
-            <AppStateProvider>
+            <SqlControllerProvider>
                 <TrackProvider>
                     <Navbar />
                     <Stack
@@ -31,7 +31,7 @@ const _layout = () => {
                     </Stack>
                     <Toast />
                 </TrackProvider>
-            </AppStateProvider>
+            </SqlControllerProvider>
         </SQLiteProvider>
     );
 };

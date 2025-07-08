@@ -1,12 +1,43 @@
-import React from "react";
+import { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 
+import { storage, userId } from "../services/storage.js";
+import { useAppStatus } from '../store/appState.store.js'
+import fetchUser from "../controllers/auth/checkIsAuth.js"
+
+const generateId = () => {
+    return (
+        "id-" +
+        Date.now().toString(36) +
+        "-" +
+        Math.random().toString(36).substr(2, 9)
+    );
+};
+
+
 const Index = () => {
-    const list = ["🥳", "😶‍🌫️", "😈", "💫", "🍄", "👨‍🎤", "🧑‍🎤"];
+    let id;
+    const setIsAuthenticated = useAppStatus(state=> state.setIsAuthenticated)
+
+    if (!userId || userId?.trim() === "") {
+        id = generateId();
+        storage.set("userId", id);
+    } else id = userId;
+
+    
+    
+    useEffect(() => {
+        const interval = setInterval(function() {
+            if (id) fetchUser(id, setIsAuthenticated);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [id]);
+    
+
     return (
         <View style={styles.container}>
-            <Text style={styles.text}>
-                {list[Math.floor(Math.random() * 7)]}
+            <Text adjustsFontSizeToFit numberOfLines={1} style={styles.text}>
+                {id}
             </Text>
         </View>
     );
@@ -20,8 +51,9 @@ const styles = StyleSheet.create({
         backgroundColor: "black"
     },
     text: {
-        color: "white",
-        fontSize: 80,
+        color: "#f9c1e9",
+        width: "85%",
+        fontSize: 60,
         fontWeight: "bold"
     }
 });

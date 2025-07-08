@@ -37,7 +37,7 @@ const TrackControllerMinView = () => {
             "#04c24f", // light greeen
             "#59fcd1", // light blue
             "#c75ef4", // light violet
-            "#f52041", // light red
+            "#192420", // light red
             "#cafd63", // yellowish green
             "#f72c93", // light pink
             "#f6b60b", // yellowish orange
@@ -53,12 +53,12 @@ const TrackControllerMinView = () => {
             Animated.sequence([
                 Animated.timing(colorAnimation, {
                     toValue: 1,
-                    duration: 200000,
+                    duration: 300000,
                     useNativeDriver: false
                 }),
                 Animated.timing(colorAnimation, {
                     toValue: 0,
-                    duration: 200000,
+                    duration: 300000,
                     useNativeDriver: false
                 })
             ])
@@ -122,7 +122,7 @@ const TrackControllerMinView = () => {
 const styles = StyleSheet.create({
     container: {
         width: "98%",
-        height: vh * 0.085,
+        height: vh * 0.083,
         marginLeft: "1%",
         alignItems: "center",
         flexDirection: "row",
@@ -131,11 +131,12 @@ const styles = StyleSheet.create({
         borderRadius: vw,
         position: "absolute",
         zIndex: 99999999,
-        bottom: 50
+        bottom: 48
     },
     gradient: {
         width: "100%",
         height: "100%",
+
         position: "absolute"
     },
     anim: {

@@ -2,14 +2,6 @@ import { useState, useRef } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
-// import FloatingAdd from "../../../components/playlists/FloatingAdd.jsx";
-// import AddPlaylist from "../../../components/playlists/AddPlaylist.jsx";
-// import ListItem from "../../../components/playlists/ListItem.jsx";
-// import Header from "../../../components/ListHeader.jsx";
-
-// import * as storage from "../../../services/storage.js";
-// import useGetPlaylists from "../../../hooks/useGetPlaylists.js";
-
 import FloatingAdd from "../../../../components/playlists/FloatingAdd.jsx";
 import AddPlaylist from "../../../../components/playlists/AddPlaylist.jsx";
 import ListItem from "../../../../components/playlists/ListItem.jsx";
@@ -35,7 +27,7 @@ const Playlists = () => {
             <Header
                 title="Playlists"
                 scrollY={scrollY}
-                containerStyles={{ height: 100 }}
+                containerStyles={{ height: HEADER_HEIGHT }}
             />
             <AnimatedFlashList
                 data={playlists}
