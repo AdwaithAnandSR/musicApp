@@ -1,20 +1,20 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const schema = mongoose.Schema({
-   username: {
-      type: String,
-      required: true
-   },
-   password: {
-      type: String,
-      required: true
-   },
-   role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user'
-   }
-   
-})
+    nickname: String,
+    userId: {
+        type: String,
+        required: true
+    },
+    isAuthenticated: {
+        type: Boolean,
+        default: false
+    },
+    role: {
+        type: String,
+        enum: ["user", "admin"],
+        default: "user"
+    }
+});
 
-export default mongoose.model('user', schema)
+export default mongoose.model("user", schema);
