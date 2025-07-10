@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs } from "expo-router";
 import {
     FontAwesome,
@@ -13,10 +13,11 @@ const activeIconSize = 28,
 
 const Layout = () => {
     return (
-        <View style={{ flex: 1, backgroundColor: "black" }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
             <Tabs
                 screenOptions={{
                     tabBarActiveTintColor: "rgb(246,7,135)",
+                    tabBarHideOnKeyboard: true,
                     tabBarShowLabel: false,
                     headerShown: false,
                     tabBarStyle: {
@@ -75,7 +76,7 @@ const Layout = () => {
                 />
             </Tabs>
             <TrackControllerMinView />
-        </View>
+        </SafeAreaView>
     );
 };
 
