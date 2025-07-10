@@ -1,9 +1,12 @@
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 
+import { useGlobalSongs } from "../../store/list.store.js";
 import handleDelete from "../../controllers/playlists/handleDeletePlaylist.js";
 
-const LongPressOptions = ({ id, setPlaylists, setShowOptions }) => {
+const LongPressOptions = ({ id, setShowOptions }) => {
+    const deletePlaylist = useGlobalSongs(state=> state.deletePlaylist)
+    
     return (
         <View style={styles.container}>
             <TouchableOpacity onPress={()=> setShowOptions(false)} style={styles.btn}>
@@ -11,7 +14,7 @@ const LongPressOptions = ({ id, setPlaylists, setShowOptions }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-                onPress={() => handleDelete({ id, setPlaylists })}
+                onPress={() => handleDelete({ id, deletePlaylist })}
                 style={styles.btn}
             >
                 <Text style={[styles.text, {color: "#fd2249"}]}>Delete</Text>

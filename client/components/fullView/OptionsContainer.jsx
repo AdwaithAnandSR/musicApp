@@ -27,10 +27,12 @@ const OptionsContainer = () => {
     const setShowSyncedLyric = useStatus(state => state.setShowSyncedLyric);
     const track = useTrack(state => state.track);
 
-    const artists = track?.artist?.split(",");
+    const artists = track?.artist?.split(",") || [];
+
+    console.log(track.artist);
 
     const handleShowArtist = () => {
-        if (artistIndex < artists.length - 1) {
+        if (artistIndex < artists?.length - 1) {
             setArtistIndex(prev => prev + 1);
         } else setArtistIndex(0);
     };
@@ -38,7 +40,7 @@ const OptionsContainer = () => {
     return (
         <View style={styles.optionsContainer}>
             <View style={styles.left}>
-                {track?.artist.toLowerCase() != "unknown" && (
+                {!track?.artist || track?.artist?.toLowerCase() != "unknown" && (
                     <TouchableOpacity
                         onPress={handleShowArtist}
                         style={[
@@ -59,7 +61,7 @@ const OptionsContainer = () => {
                                 { color: activeLyricColor }
                             ]}
                         >
-                            {artists[artistIndex].trim()}
+                            {artists[artistIndex]?.trim()}
                         </Text>
                     </TouchableOpacity>
                 )}

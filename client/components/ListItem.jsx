@@ -12,51 +12,11 @@ import LottieView from "lottie-react-native";
 import { useTrack, useQueueManager } from "../store/track.store.js";
 import { useMultiSelect, useStatus } from "../store/appState.store.js";
 
+import HighlightedText from "../components/HighlightedTitle.jsx"
+
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
-
-const HighlightedText = ({ title, search, isCurrent }) => {
-    search = search.trim();
-    if (search == "")
-        return (
-            <Text
-                numberOfLines={2}
-                style={[
-                    styles.title,
-                    { color: isCurrent ? "rgb(246,7,135)" : "white" }
-                ]}
-            >
-                {title}
-            </Text>
-        );
-
-    const regex = new RegExp(`(${search})`, "gi");
-    const parts = title.split(regex);
-
-    return (
-        <Text
-            numberOfLines={2}
-            style={[
-                styles.title,
-                { color: isCurrent ? "rgb(246,7,135)" : "white" }
-            ]}
-        >
-            {parts.map((part, index) =>
-                part.toLowerCase() === search.toLowerCase() ? (
-                    <Text
-                        key={index}
-                        style={[styles.title, { color: "rgb(246,7,135)" }]}
-                    >
-                        {part}
-                    </Text>
-                ) : (
-                    <Text key={index}>{part}</Text>
-                )
-            )}
-        </Text>
-    );
-};
 
 const ListItem = ({ item, LoadQueue, ID, text = "" }) => {
     const updateTrack = useTrack(state => state.update);

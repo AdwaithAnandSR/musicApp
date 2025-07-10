@@ -1,19 +1,15 @@
 import axios from "axios";
 import Constants from "expo-constants";
 
+import { useGlobalSongs } from "../../store/list.store.js";
+
 const api = Constants.expoConfig.extra.clientApi;
 // const api = "http://10.32.129.27:5000";
 
-const handleCreatePlaylist = async (
-    name,
-    desc,
-    setMessage,
-    setIsAddNewPlaylist,
-    setPlaylists
-) => {
+const handleCreatePlaylist = async (name, desc, setMessage) => {
     try {
+        const addPlaylist = useGlobalSongs.getState().addPlaylist;
         setMessage("creating...");
-        console.log(api);
         const res = await axios.post(`${api}/playlist/create`, {
             name: name.trim(),
             desc
@@ -21,8 +17,7 @@ const handleCreatePlaylist = async (
 
         if (res.status === 200) {
             setMessage("Playlist created successfully");
-            setPlaylists(prev=> [...prev, res.data.playlist])
-            setIsAddNewPlaylist(false);
+            addPlaylist(res.data.playlist);
         }
     } catch (error) {
         if (error?.response?.data?.message)
