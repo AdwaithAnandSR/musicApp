@@ -29,7 +29,7 @@ const Index = () => {
     useEffect(() => {
         const interval = setInterval(function() {
             if (id) fetchUser(id, setIsAuthenticated);
-        }, 5000);
+        }, 10000);
         return () => clearInterval(interval);
     }, [id]);
     
