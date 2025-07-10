@@ -2,7 +2,7 @@ import playlistModel from "../../models/playlist.js";
 
 const getPlaylists = async (req, res) => {
     try {
-        const playlists = await playlistModel.find({});
+        const playlists = await playlistModel.find({}, {songs: 0});
 
         if (playlists)
             return res.json({
