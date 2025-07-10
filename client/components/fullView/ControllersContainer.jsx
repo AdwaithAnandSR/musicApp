@@ -11,8 +11,8 @@ const ControllersContainer = () => {
     const isPlaying = useAudioMonitor(state => state.isPlaying);
     const isBuffering = useAudioMonitor(state => state.isBuffering);
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
-    const duration = useAudioMonitor(state => state.duration);
-    const currentTime = useAudioMonitor(state => state.currentTime);
+    // const duration = useAudioMonitor(state => state.duration);
+    // const currentTime = useAudioMonitor(state => state.currentTime);
 
     const intervalRef = useRef(null);
 

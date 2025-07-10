@@ -26,9 +26,7 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
 
     return (
         <View style={styles.sliderContainer}>
-            <Text style={styles.timeText}>
-                {formatTime( currentTime)}
-            </Text>
+            <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
             <Slider
                 style={styles.slider}
                 minimumValue={0}
@@ -43,7 +41,11 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
                 maximumTrackTintColor="#a6a5a5"
                 thumbTintColor={lightVibrant}
             />
-            <Text style={styles.timeText}>{formatTime(duration ? duration: defaultDuration ? defaultDuration: -1 )}</Text>
+            <Text style={styles.timeText}>
+                {formatTime(
+                    duration ? duration : defaultDuration ? defaultDuration : -1
+                )}
+            </Text>
         </View>
     );
 };
@@ -54,7 +56,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginVertical: vh * 0.05
+        marginVertical: vh * 0.04
     },
     slider: {
         width: vw * 0.7,

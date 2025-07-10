@@ -40,6 +40,10 @@ const Search = () => {
                         placeholder="Search Song"
                         placeholderTextColor="white"
                         value={text}
+                        returnKeyType="search"
+                        onSubmitEditing={async () => {
+                            setSongs(await handleSearch(text));
+                        }} 
                         onChangeText={handleChangeText}
                     />
                     <Text>Search</Text>

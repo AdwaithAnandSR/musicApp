@@ -107,7 +107,8 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         alignSelf: "center",
         width: "80%",
-        textAlign: "center"
+        textAlign: "center",
+        marginTop: vh * 0.03,
     },
     imageContainer: {
         width: vw * 0.85,

@@ -1,3 +1,4 @@
+import React from "react";
 import {
     View,
     Text,
@@ -92,7 +93,6 @@ const ListItem = ({ item, LoadQueue, ID, text = "" }) => {
         } else updateSelected(item);
     };
 
-
     return (
         <TouchableOpacity
             activeOpacity={0.6}
@@ -172,4 +172,6 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ListItem;
+export default React.memo(ListItem, (prev, next) => {
+    prev.item._id != next.item._id;
+});
