@@ -1,5 +1,5 @@
+
 import { Stack } from "expo-router";
-import { View } from "react-native";
 import { SQLiteProvider } from "expo-sqlite";
 
 import Navbar from "../../components/Navbar.jsx";
@@ -12,25 +12,25 @@ const _layout = () => {
     return (
         <SQLiteProvider databaseName="musicApp.db">
             <SqlControllerProvider>
-                <TrackProvider>
-                    <Navbar />
-                    <Stack
-                        screenOptions={{
-                            headerShown: false,
-                            animation: "none"
-                        }}
-                    >
-                        <Stack.Screen name="(tabs)" />
-                        <Stack.Screen
-                            name="(trackFullView)/TrackControllerFullView"
-                            options={{
-                                animation: "slide_from_bottom",
-                                animationDuration: 50
+                    <TrackProvider>
+                        <Navbar />
+                        <Stack
+                            screenOptions={{
+                                headerShown: false,
+                                animation: "none"
                             }}
-                        />
-                    </Stack>
-                    <Toast />
-                </TrackProvider>
+                        >
+                            <Stack.Screen name="(tabs)" />
+                            <Stack.Screen
+                                name="(trackFullView)/TrackControllerFullView"
+                                options={{
+                                    animation: "slide_from_bottom",
+                                    animationDuration: 50
+                                }}
+                            />
+                        </Stack>
+                        <Toast />
+                    </TrackProvider>
             </SqlControllerProvider>
         </SQLiteProvider>
     );

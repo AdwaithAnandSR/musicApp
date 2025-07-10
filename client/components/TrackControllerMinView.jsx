@@ -19,6 +19,7 @@ const blurhash =
 
 const TrackControllerMinView = () => {
     const [swipeStartPos, setSwipeStartPos] = useState({});
+    const [isVisible, setIsVisible] = useState(true);
     const { togglePlay, skipToNext, skipToPrevious } = trackController();
 
     const isBuffering = useAudioMonitor(state => state.isBuffering);
@@ -69,7 +70,7 @@ const TrackControllerMinView = () => {
         return () => loopAnimation.stop();
     }, [colorAnimation]);
 
-    if (!track || !track.url) return;
+    if (!track || !track.url || !isVisible) return;
 
     return (
         <TouchableOpacity
