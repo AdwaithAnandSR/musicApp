@@ -16,7 +16,7 @@ import LongPressOptions from "./LongPressOptions.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
+const ListItem = ({ item }) => {
     const [showOptions, setShowOptions] = useState(false);
     const isSelecting = useMultiSelect(
         state => state.selectedSongs?.length > 0
@@ -34,6 +34,8 @@ const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
             params: { playlistName: item?.name }
         });
     };
+    
+    if(!item?._id) return
 
     return (
         <TouchableOpacity
@@ -76,7 +78,6 @@ const ListItem = ({ item, setIsAddNewPlaylist, setPlaylists }) => {
                 <LongPressOptions
                     id={item?._id}
                     setShowOptions={setShowOptions}
-                    setPlaylists={setPlaylists}
                 />
             )}
         </TouchableOpacity>

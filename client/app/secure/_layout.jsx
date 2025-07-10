@@ -28,6 +28,13 @@ const _layout = () => {
                                     animationDuration: 50
                                 }}
                             />
+                            <Stack.Screen
+                                name="others/AddPlaylist"
+                                options={{
+                                    animation: "slide_from_right",
+
+                                }}
+                            />
                         </Stack>
                         <Toast />
                     </TrackProvider>

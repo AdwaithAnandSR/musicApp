@@ -3,24 +3,21 @@ import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import FloatingAdd from "../../../../components/playlists/FloatingAdd.jsx";
-import AddPlaylist from "../../../../components/playlists/AddPlaylist.jsx";
 import ListItem from "../../../../components/playlists/ListItem.jsx";
 import Header from "../../../../components/ListHeader.jsx";
 
-import * as storage from "../../../../services/storage.js";
+import { useGlobalSongs } from "../../../../store/list.store.js";
 import useGetPlaylists from "../../../../hooks/useGetPlaylists.js";
-
-const savedPlaylists = storage.playlists;
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 100;
 
 const Playlists = () => {
-    const [playlists, setPlaylists] = useState(savedPlaylists || []);
-    const [isAddNewPlaylist, setIsAddNewPlaylist] = useState(false);
+    const playlists = useGlobalSongs(state => state.playlists);
+
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    const { loading } = useGetPlaylists({ setPlaylists });
+    const { loading } = useGetPlaylists();
 
     return (
         <View style={styles.container}>
@@ -31,13 +28,7 @@ const Playlists = () => {
             />
             <AnimatedFlashList
                 data={playlists}
-                renderItem={({ item }) => (
-                    <ListItem
-                        item={item}
-                        setPlaylists={setPlaylists}
-                        setIsAddNewPlaylist={setIsAddNewPlaylist}
-                    />
-                )}
+                renderItem={({ item }) => <ListItem item={item} />}
                 ListEmptyComponent={
                     <Text
                         style={{
@@ -60,16 +51,7 @@ const Playlists = () => {
                 )}
             />
 
-            {isAddNewPlaylist && (
-                <AddPlaylist
-                    setIsAddNewPlaylist={setIsAddNewPlaylist}
-                    setPlaylists={setPlaylists}
-                />
-            )}
-
-            {!isAddNewPlaylist && (
-                <FloatingAdd handlePress={() => setIsAddNewPlaylist(true)} />
-            )}
+            <FloatingAdd />
         </View>
     );
 };
