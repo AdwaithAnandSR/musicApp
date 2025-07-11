@@ -4,15 +4,16 @@ import {
     Text,
     Dimensions,
     TouchableOpacity,
-    StyleSheet
+    StyleSheet,
+    Image
 } from "react-native";
-import { Image } from "expo-image";
+// import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 
 import { useTrack, useQueueManager } from "../store/track.store.js";
 import { useMultiSelect, useStatus } from "../store/appState.store.js";
 
-import HighlightedText from "../components/HighlightedTitle.jsx"
+import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
@@ -75,7 +76,9 @@ const ListItem = ({ item, LoadQueue, ID, text = "" }) => {
             <View style={styles.imageContainer}>
                 <Image
                     source={
-                        item.cover || require("../assets/images/images.jpeg")
+                        item.cover
+                            ? { uri: item.cover }
+                            : require("../assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}
                     contentFit="cover"
@@ -123,7 +126,8 @@ const styles = StyleSheet.create({
         width: vh * 0.06,
         height: vh * 0.06,
         borderRadius: vh * 0.5,
-        overflow: "hidden"
+        overflow: "hidden",
+        backgroundColor: '#232323',
     },
     title: {
         color: "white",
