@@ -5,6 +5,7 @@ import userModel from "../models/users.js";
 
 import findSong from "../handlers/findSong.js";
 import addSong from "../handlers/addSong.js";
+import formateTitle from "../utils/clearTitle.js";
 
 const router = express.Router();
 
@@ -13,9 +14,9 @@ router.post("/checkSongExistsByYtId", async (req, res) => {
 
     const exists = await musicModel.findOne({ ytId: id });
     const exists2 = await musicModel.findOne({ title });
+    const exists3 = await musicModel.findOne({ title: formateTitle(title)});
        
-       
-    if (exists || exists2) res.json({ exists: true });
+    if (exists || exists2 || exists3) res.json({ exists: true });
     else res.json({ exists: false });
 });
 
