@@ -4,7 +4,7 @@ import axios from "axios";
 import { storage } from "../../services/storage.js"
 
 let api = Constants.expoConfig.extra.clientApi;
-api = "http://localhost:5000";
+// api = "http://localhost:5000";
 
 const fetchUser = async (id, setIsAuthenticated) => {
     try {
