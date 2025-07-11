@@ -12,11 +12,8 @@ function cleanText(text) {
     const commonWords = [
         "lyrics",
         "4k",
-        "movie",
-        "film",
         "video",
         "audio",
-        "official",
         "music",
         "boosted",
         "bass",
