@@ -9,11 +9,13 @@ import addSong from "../handlers/addSong.js";
 const router = express.Router();
 
 router.post("/checkSongExistsByYtId", async (req, res) => {
-    const { id } = req.body;
+    const { id, title=''} = req.body;
 
     const exists = await musicModel.findOne({ ytId: id });
-
-    if (exists) res.json({ exists: true });
+    const exists2 = await musicModel.findOne({ title });
+       
+       
+    if (exists || exists2) res.json({ exists: true });
     else res.json({ exists: false });
 });
 
