@@ -26,9 +26,6 @@ export const setSyncedSong = async (req, res) => {
     try {
         const { id, syncedLyric, duration } = req.body;
 
-        console.log(syncedLyric, id, duration);
-
-        return;
 
         const song = await musicModel.findByIdAndUpdate(
             id,
@@ -36,6 +33,7 @@ export const setSyncedSong = async (req, res) => {
             { new: true, strict: false }
         );
 
+        console.log(song);
         res.json({ success: true });
     } catch (e) {
         console.log(e);
