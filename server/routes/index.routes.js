@@ -96,36 +96,6 @@ router.post("/searchSong", async (req, res) => {
     }
 });
 
-// router.post("/searchSong", async (req, res) => {
-//     const { text } = req.body;
-//     try {
-//         const regex = new RegExp(text, "i");
-//         const songs = await musicModel.find({ title: regex });
 
-//         const lowerText = text.toLowerCase();
-
-//         // Function to get priority score
-//         const getPriority = title => {
-//             const words = title.toLowerCase().split(" ");
-
-//             if (words[0] === lowerText) return 1; // Exact match as first word
-//             if (words[0].includes(lowerText)) return 2; // Partial match in first word
-//             return 3; // Anywhere else
-//         };
-
-//         const prioritized = songs.sort((a, b) => {
-//             const p1 = getPriority(a.title);
-//             const p2 = getPriority(b.title);
-
-//             if (p1 !== p2) return p1 - p2;
-//             return a.title.localeCompare(b.title); // Tie-breaker: sort alphabetically
-//         });
-
-//         res.json({ songs: prioritized });
-//     } catch (error) {
-//         console.error("Search error:", error);
-//         res.status(500).json({ error: "Internal Server Error" });
-//     }
-// });
 
 export default router;
