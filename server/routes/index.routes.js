@@ -89,7 +89,7 @@ router.post("/searchSong", async (req, res) => {
             return getPriority(a.title) - getPriority(b.title);
         });
 
-        res.json({ songs: prioritized });
+        res.json({ songs: prioritized.slice(0, 10) });
     } catch (error) {
         console.error("Search error:", error);
         res.status(500).json({ error: "Internal Server Error" });
