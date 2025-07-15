@@ -72,6 +72,11 @@ router.post("/getGlobalSongs", async (req, res) => {
 router.post("/searchSong", async (req, res) => {
     const { text } = req.body;
     try {
+if(text?.split(' ')?.length == 2) {
+
+if(text[1] === '|') text[1] = "";
+}
+
         const regex = new RegExp(text, "i");
         const songs = await musicModel.find({ title: regex });
 
@@ -89,7 +94,13 @@ router.post("/searchSong", async (req, res) => {
             return getPriority(a.title) - getPriority(b.title);
         });
 
-        res.json({ songs: prioritized.slice(0, 10) });
+
+
+if(text?.split(' ')?.length == 2) return res.json({ songs: prioritized.slice(0, 10) });
+
+
+
+        res.json({ songs: prioritized });
     } catch (error) {
         console.error("Search error:", error);
         res.status(500).json({ error: "Internal Server Error" });
