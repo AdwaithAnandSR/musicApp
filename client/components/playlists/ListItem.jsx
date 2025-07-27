@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
+import * as Haptics from "expo-haptics";
 
 import { useMultiSelect } from "../../store/appState.store.js";
 import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.js";
@@ -25,6 +26,7 @@ const ListItem = ({ item }) => {
     const reset = useMultiSelect(state => state.reset);
 
     const handleLongPress = () => {
+        Haptics.impactAsync("light");
         setShowOptions(true);
     };
 
@@ -34,8 +36,8 @@ const ListItem = ({ item }) => {
             params: { playlistName: item?.name }
         });
     };
-    
-    if(!item?._id) return
+
+    if (!item?._id) return;
 
     return (
         <TouchableOpacity
@@ -64,8 +66,7 @@ const ListItem = ({ item }) => {
                         addSongsToPlaylist({
                             id: item._id,
                             selectedSongs,
-                            reset,
-                            setIsAddNewPlaylist
+                            reset
                         })
                     }
                     style={styles.btn}

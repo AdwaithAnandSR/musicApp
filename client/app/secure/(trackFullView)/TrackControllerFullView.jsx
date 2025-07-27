@@ -4,9 +4,9 @@ import {
     Text,
     StyleSheet,
     Dimensions,
-    TouchableOpacity
+    TouchableOpacity,
+    Image
 } from "react-native";
-import { Image } from "expo-image";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
@@ -71,8 +71,9 @@ const TrackControllerFullView = () => {
             >
                 <Image
                     source={
-                        track?.cover ||
-                        require("../../../assets/images/images.jpeg")
+                        track?.cover
+                            ? { uri: track.cover }
+                            : require("../../../assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}
                     contentFit="cover"
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
         alignSelf: "center",
         width: "80%",
         textAlign: "center",
-        marginTop: vh * 0.03,
+        marginTop: vh * 0.03
     },
     imageContainer: {
         width: vw * 0.85,
@@ -116,8 +117,7 @@ const styles = StyleSheet.create({
         borderRadius: vw * 0.1,
         overflow: "hidden",
         alignSelf: "center",
-        marginTop: vh * 0.02,
-        marginBottom: vh * 0.04,
+        marginVertical: vh * 0.03,
         shadowOpacity: 1,
         elevation: 80
     }

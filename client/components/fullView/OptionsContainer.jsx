@@ -29,8 +29,6 @@ const OptionsContainer = () => {
 
     const artists = track?.artist?.split(",") || [];
 
-    console.log(track.artist);
-
     const handleShowArtist = () => {
         if (artistIndex < artists?.length - 1) {
             setArtistIndex(prev => prev + 1);
