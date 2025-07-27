@@ -4,9 +4,10 @@ import {
     StyleSheet,
     TouchableOpacity,
     Dimensions,
-    Animated
+    Animated,
+    Image
 } from "react-native";
-import { Image } from "expo-image";
+// import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
 
 import handleSwipe from "../controllers/handleMinViewSwipes.js";
@@ -96,7 +97,9 @@ const TrackControllerMinView = () => {
             <TouchableOpacity onPress={togglePlay} style={styles.imgContainer}>
                 <Image
                     source={
-                        track?.cover || require("../assets/images/images.jpeg")
+                        track?.cover
+                            ? { uri: track.cover }
+                            : require("../assets/images/images.jpeg")
                     }
                     style={{ width: "100%", height: "100%" }}
                     placeholder={{ blurhash }}
@@ -144,7 +147,6 @@ const styles = StyleSheet.create({
         width: 35,
         height: 35,
         opacity: 0.8,
-        marginLeft: -10,
         position: "absolute",
         alignSelf: "center",
         color: "#cc4cf9"

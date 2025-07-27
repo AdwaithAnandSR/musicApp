@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 
 import { storage, userId } from "../services/storage.js";
-import { useAppStatus } from '../store/appState.store.js'
-import fetchUser from "../controllers/auth/checkIsAuth.js"
+import { useAppStatus } from "../store/appState.store.js";
+import fetchUser from "../controllers/auth/checkIsAuth.js";
 
 const generateId = () => {
     return (
@@ -14,29 +14,29 @@ const generateId = () => {
     );
 };
 
-
 const Index = () => {
     let id;
-    const setIsAuthenticated = useAppStatus(state=> state.setIsAuthenticated)
+    const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
 
     if (!userId || userId?.trim() === "") {
         id = generateId();
         storage.set("userId", id);
     } else id = userId;
 
-    
-    
     useEffect(() => {
-        const interval = setInterval(function() {
+        const interval = setInterval(function () {
             if (id) fetchUser(id, setIsAuthenticated);
         }, 10000);
         return () => clearInterval(interval);
     }, [id]);
-    
 
     return (
         <View style={styles.container}>
-            <Text adjustsFontSizeToFit numberOfLines={1} style={styles.text}>
+            <Text
+                selectable
+                numberOfLines={1}
+                style={styles.text}
+            >
                 {id}
             </Text>
         </View>
@@ -53,8 +53,9 @@ const styles = StyleSheet.create({
     text: {
         color: "#f9c1e9",
         width: "85%",
-        fontSize: 60,
-        fontWeight: "bold"
+        fontSize: 35,
+        fontWeight: "bold",
+        textAlign: "center",
     }
 });
 

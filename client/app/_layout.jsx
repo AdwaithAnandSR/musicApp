@@ -4,8 +4,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppStatus } from "../store/appState.store.js";
 
 const Layout = () => {
-    const isAuthenticated = useAppStatus(state => state.isAuthenticated);
-    
+    let isAuthenticated = useAppStatus(state => state.isAuthenticated);
+
     return (
         <SafeAreaView
             style={{
