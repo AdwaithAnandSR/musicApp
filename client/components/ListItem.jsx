@@ -7,11 +7,13 @@ import {
     StyleSheet,
     Image
 } from "react-native";
-// import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
+import TrackPlayer from "react-native-track-player"
 
 import { useTrack, useQueueManager } from "../store/track.store.js";
 import { useMultiSelect, useStatus } from "../store/appState.store.js";
+
+import { usePlayerStore } from "../store/player.store.js";
 
 import HighlightedText from "../components/HighlightedTitle.jsx";
 
@@ -19,40 +21,36 @@ const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
-const ListItem = ({ item, LoadQueue, ID, text = "" }) => {
-    const updateTrack = useTrack(state => state.update);
-    const isCurrent = useTrack(state => state.track?._id === item._id);
-    const queueId = useQueueManager(state => state.id);
-    const updateQueueId = useQueueManager(state => state.updateId);
-    const updateCurrentIndex = useQueueManager(
-        state => state.updateCurrentIndex
-    );
-    const loadQueue = useQueueManager(state => state.loadQueue);
+const ListItem = ({ item, ID, text = "" }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
     const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
     const isSelected = useMultiSelect(state =>
         state.selectedSongs.some(song => song._id === item._id)
     );
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
-
+    
+    const { currentPlaylist, playTrack, setPlaylist, currentTrackId } = usePlayerStore();
+    
     if (!item?.url) return;
-
+    
+    
+    
+    const isCurrent = item.id === currentTrackId
     let words = item.title.split(text);
 
-    const handleShortPress = () => {
+    const handleShortPress = async () => {
         if (!isSelecting) {
             resetShowLyrics();
-            if (queueId !== ID) updateQueueId(ID);
-
-            const index = (LoadQueue || []).findIndex(
-                song => song._id === item._id
-            );
-
-            loadQueue(LoadQueue || []);
-            updateCurrentIndex(index > -1 ? index : 0);
-            updateTrack(item);
-        } else updateSelected(item);
+            if (currentPlaylist !== ID) {
+                await setPlaylist(ID)
+            }
+            
+            await playTrack(item.id)
+            
+        } else updateSelected(item.id);
     };
+    
+    
 
     return (
         <TouchableOpacity
@@ -76,8 +74,8 @@ const ListItem = ({ item, LoadQueue, ID, text = "" }) => {
             <View style={styles.imageContainer}>
                 <Image
                     source={
-                        item.cover
-                            ? { uri: item.cover }
+                        item.artwork
+                            ? { uri: item.artwork }
                             : require("../assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}
@@ -123,15 +121,15 @@ const styles = StyleSheet.create({
         marginLeft: 10
     },
     imageContainer: {
-        width: vh * 0.06,
-        height: vh * 0.06,
+        width: vw * 0.12,
+        height: vw * 0.12,
         borderRadius: vh * 0.5,
         overflow: "hidden",
         backgroundColor: '#232323',
     },
     title: {
         color: "white",
-        width: vw * 0.7,
+        width: vw * 0.85,
         fontWeight: "bold"
     }
 });

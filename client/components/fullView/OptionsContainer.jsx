@@ -7,9 +7,9 @@ import {
     TouchableOpacity
 } from "react-native";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import { useActiveTrack } from "react-native-track-player";
 
 import { useStatus } from "../../store/appState.store.js";
-import { useTrack } from "../../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -25,7 +25,7 @@ const OptionsContainer = () => {
     const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
     const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
     const setShowSyncedLyric = useStatus(state => state.setShowSyncedLyric);
-    const track = useTrack(state => state.track);
+    const track = useActiveTrack();
 
     const artists = track?.artist?.split(",") || [];
 

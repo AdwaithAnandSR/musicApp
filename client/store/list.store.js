@@ -5,13 +5,7 @@ export const useGlobalSongs = create((set, get) => ({
     allSongs: [],
     playlists: [...playlists] || [],
     allPages: [storedPage] || [],
-    page: 1,
     hasMore: true,
-
-    updatePage: () =>
-        set(state => ({
-            page: state.page + 1
-        })),
 
     updateAllPages: p =>
         set(state => ({

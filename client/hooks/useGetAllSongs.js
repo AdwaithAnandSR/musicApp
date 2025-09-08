@@ -2,29 +2,26 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Constants from "expo-constants";
 
-import { useQueueManager } from "../store/track.store.js";
-import { useGlobalSongs } from "../store/list.store.js";
-import { useAppStatus } from "../store/appState.store.js";
-import Toast from "../services/Toast.js";
+import { usePlayerStore } from "../store/player.store.js";
 import { storage, userId } from "../services/storage.js";
-import { useSqlControlls } from "../context/sql.context.js";
+import { useAppStatus } from "../store/appState.store.js";
+import { useGlobalSongs } from "../store/list.store.js";
+import Toast from "../services/Toast.js";
 
 let api = Constants.expoConfig.extra.clientApi;
+const PLAYLIST_NAME = "HOME";
 
-const useGetAllSongs = ({ limit }) => {
+const useGetAllSongs = ({ limit, page }) => {
     const [loading, setLoading] = useState(true);
-    const { insertSongs, clearSongs } = useSqlControlls();
+    const [hasMore, setHasMore] = useState(true);
 
-    const page = useGlobalSongs(state => state.page);
-    const allPages = useGlobalSongs(state => state.allPages);
-    const updateAllPages = useGlobalSongs(state => state.updateAllPages);
-    const updateHasMore = useGlobalSongs(state => state.updateHasMore);
-    const updateAllSongs = useGlobalSongs(state => state.updateAllSongs);
+    const addToPlaylist = usePlayerStore(state => state.addToPlaylist);
+    const playlists = usePlayerStore(state => state.playlists);
     const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
+    const allPages = useGlobalSongs(state => state.allPages);
+    const { updateAllPages, updateAllSongs } = useGlobalSongs();
 
-    // grab the store snapshot functions directly
-    const queueManager = useQueueManager.getState();
-    const globalSongsStore = useGlobalSongs.getState();
+    // const { insertSongs, clearSongs } = useSqlControlls();
 
     const fetchSongs = async () => {
         setLoading(true);
@@ -35,33 +32,25 @@ const useGetAllSongs = ({ limit }) => {
                 userId
             });
 
-            if (!res.data?.isAuth){
+            if (!res.data?.isAuth) {
                 storage.set("isAuthenticated", false);
                 return setIsAuthenticated(false);
-            } 
-
-            const data = res.data?.musics || [];
-
-            if (res.data.availablePages === 0) updateHasMore(false);
-
-            updateAllSongs(data);
-            updateAllPages(res.data?.page);
-
-            const currentQueueId = queueManager.id;
-            const currentAllSongs = globalSongsStore.allSongs;
-
-            if (currentQueueId === "HOME") {
-                queueManager.updateQueue(data);
-            } else {
-                queueManager.loadQueue([...currentAllSongs, ...data]);
             }
 
-            if (page == 1 && data.length != 0) {
-                await clearSongs();
-                for (const item of data) {
-                    await insertSongs(item);
-                }
-                storage.set("storedPage", res.data.page);
+            const data = res.data;
+            const { availablePages, musics, page: newPage } = data;
+
+            updateAllPages(newPage);
+
+            if (availablePages === 0) setHasMore(false);
+            if (musics.length > 0) {
+                const mapped = musics.map(({ _id, cover, ...rest }) => ({
+                    id: _id,
+                    artwork: cover,
+                    ...rest
+                }));
+                updateAllSongs(mapped);
+                addToPlaylist(PLAYLIST_NAME, mapped);
             }
         } catch (err) {
             if (!err.response) {
@@ -93,7 +82,7 @@ const useGetAllSongs = ({ limit }) => {
         fetchSongs();
     }, [page, limit]);
 
-    return { loading };
+    return { loading, hasMore };
 };
 
 export default useGetAllSongs;
