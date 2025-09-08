@@ -7,27 +7,28 @@ import {
     Animated,
     Image
 } from "react-native";
-// import { Image } from "expo-image";
 import LottieView from "lottie-react-native";
+import TrackPlayer, { useActiveTrack, State, usePlaybackState } from "react-native-track-player";
 
 import handleSwipe from "../controllers/handleMinViewSwipes.js";
-import { useTrack as trackController } from "../context/track.context.js";
-import { useTrack, useAudioMonitor } from "../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
+const togglePlay = async () => {
+    const { state } = await TrackPlayer.getPlaybackState();
+    if (state === State.Playing) await TrackPlayer.pause();
+    else if (state === State.Paused || state === State.Ready)
+        await TrackPlayer.play();
+};
+
 const TrackControllerMinView = () => {
     const [swipeStartPos, setSwipeStartPos] = useState({});
     const [isVisible, setIsVisible] = useState(true);
-    const { togglePlay, skipToNext, skipToPrevious } = trackController();
 
-    const isBuffering = useAudioMonitor(state => state.isBuffering);
-    const isPlaying = useAudioMonitor(state => state.isPlaying);
-
-    const track = useTrack(state => state.track);
-    const updateTrack = useTrack(state => state.update);
+    const { state } = usePlaybackState()
+    const track = useActiveTrack();
 
     const arr = [0, 0.2, 0.4, 0.6, 0.8, 1];
     const randomElem = arr[Math.floor(Math.random() * arr.length)];
@@ -82,23 +83,15 @@ const TrackControllerMinView = () => {
                     y: e.nativeEvent.pageY
                 })
             }
-            onPressOut={e =>
-                handleSwipe(
-                    e,
-                    swipeStartPos,
-                    skipToNext,
-                    skipToPrevious,
-                    updateTrack
-                )
-            }
+            onPressOut={e => handleSwipe(e, swipeStartPos)}
             style={styles.container}
         >
             <Animated.View style={[styles.gradient, { backgroundColor }]} />
             <TouchableOpacity onPress={togglePlay} style={styles.imgContainer}>
                 <Image
                     source={
-                        track?.cover
-                            ? { uri: track.cover }
+                        track?.artwork
+                            ? { uri: track.artwork }
                             : require("../assets/images/images.jpeg")
                     }
                     style={{ width: "100%", height: "100%" }}
@@ -107,7 +100,7 @@ const TrackControllerMinView = () => {
                     transition={1000}
                 />
 
-                {(isPlaying || isBuffering) && (
+                {(state === State.Playing || state === State.Buffering) && (
                     <LottieView
                         source={require("../assets/animations/musicPlayingAnim2.json")}
                         autoPlay

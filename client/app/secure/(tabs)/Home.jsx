@@ -1,8 +1,9 @@
-import { useRef, useCallback, useMemo } from "react";
+import { useRef, useCallback, useMemo , useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import { useGlobalSongs } from "../../../store/list.store.js";
+import { usePlayerStore } from "../../../store/player.store.js";
 import useGetAllSongs from "../../../hooks/useGetAllSongs.js";
 
 import ListItem from "../../../components/ListItem.jsx";
@@ -14,13 +15,12 @@ const Home = () => {
     const LIMIT = 30,
         HEADER_HEIGHT = 250;
     const scrollY = useRef(new Animated.Value(0)).current;
+    const [page, setPage] = useState(1)
+    
+    const { loading, hasMore } = useGetAllSongs({ limit: LIMIT, page });
 
-    const updatePage = useGlobalSongs(state => state.updatePage);
-    const hasMore = useGlobalSongs(state => state.hasMore);
-    const allSongs = useGlobalSongs(state => state.allSongs);
-
-    const { loading } = useGetAllSongs({ limit: LIMIT });
-
+    const { HOME: allSongs} = usePlayerStore(state=> state.playlists)
+    
     const ListFooterComponent = useMemo(
         () => (
             <Text style={styles.text}>
@@ -43,10 +43,10 @@ const Home = () => {
             <AnimatedFlashList
                 data={allSongs}
                 renderItem={({ item }) => (
-                    <ListItem LoadQueue={allSongs} ID={"HOME"} item={item} />
+                    <ListItem ID={"HOME"} item={item} />
                 )}
                 showsVerticalScrollIndicator={false}
-                keyExtractor={item => item._id}
+                keyExtractor={item => item.id}
                 onEndReachedThreshold={0.5}
                 initialNumToRender={7}
                 estimatedItemSize={80}
@@ -58,7 +58,7 @@ const Home = () => {
                     index
                 })}
                 onEndReached={() => {
-                    if (!loading && hasMore) updatePage();
+                    if (!loading && hasMore) setPage(prev=> prev+1);
                 }}
                 contentContainerStyle={{
                     paddingBottom: 100,

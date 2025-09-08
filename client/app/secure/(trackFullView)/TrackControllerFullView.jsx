@@ -10,8 +10,8 @@ import {
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
+import { useActiveTrack } from "react-native-track-player";
 
-import { useTrack } from "../../../store/track.store.js";
 import { useStatus } from "../../../store/appState.store.js";
 
 import Controllers from "../../../components/fullView/ControllersContainer.jsx";
@@ -28,21 +28,23 @@ const activeLyricColor = "rgb(246,7,135)";
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
-    const track = useTrack(state => state.track);
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
 
-    if (!track) return;
+    const track = useActiveTrack()
+    
 
     useEffect(() => {
-        if (track && track.cover) {
-            getColors(track?.cover, {
+        if (track && track.artwork) {
+            getColors(track.artwork, {
                 fallback: "#228B22",
                 cache: true,
-                key: track._id
+                key: track.id
             }).then(setColors);
         }
     }, [track]);
+    
+    if (!track) return;
 
     return (
         <View style={[styles.container]}>
@@ -71,8 +73,8 @@ const TrackControllerFullView = () => {
             >
                 <Image
                     source={
-                        track?.cover
-                            ? { uri: track.cover }
+                        track?.artwork
+                            ? { uri: track.artwork }
                             : require("../../../assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}

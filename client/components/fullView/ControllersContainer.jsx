@@ -1,56 +1,58 @@
 import React, { useRef } from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { FontAwesome5, AntDesign } from "@expo/vector-icons";
+import TrackPlayer, {
+    useActiveTrack,
+    State,
+    usePlaybackState
+} from "react-native-track-player";
 
-import { useTrack } from "../../context/track.context.js";
-import { useAudioMonitor } from "../../store/track.store.js";
 import { useStatus } from "../../store/appState.store.js";
 
+const SEEK_INTERVAL = 5,
+    SEEK_REPEAT_MS = 300;
+
 const ControllersContainer = () => {
-    const { togglePlay, skipToNext, skipToPrevious, seek } = useTrack();
-    const isPlaying = useAudioMonitor(state => state.isPlaying);
-    const isBuffering = useAudioMonitor(state => state.isBuffering);
-    const resetShowLyrics = useStatus(state => state.resetShowLyrics);
-    // const duration = useAudioMonitor(state => state.duration);
-    // const currentTime = useAudioMonitor(state => state.currentTime);
-
     const intervalRef = useRef(null);
+    const resetShowLyrics = useStatus(state => state.resetShowLyrics);
+    const { state } = usePlaybackState();
 
-    const handleLongPress = dir => {
+    const startSeeking = (direction = 1) => {
+        if (intervalRef.current) return;
+
         intervalRef.current = setInterval(() => {
-            const state = useAudioMonitor.getState();
-            const current = state.currentTime;
-            const dur = state.duration;
-
-            let newTime = dir === "f" ? current + 5 : current - 5;
-            newTime = Math.max(0, Math.min(newTime, dur)); // clamp between 0 and duration
-
-            seek(newTime);
-        }, 500);
+            TrackPlayer.seekBy(SEEK_INTERVAL * direction);
+        }, SEEK_REPEAT_MS);
     };
 
-    const handlePressOut = () => {
+    const stopSeeking = () => {
         if (intervalRef.current) {
             clearInterval(intervalRef.current);
             intervalRef.current = null;
         }
     };
 
+    const togglePlay = async () => {
+        const { state } = await TrackPlayer.getPlaybackState();
+        if (state === State.Playing) await TrackPlayer.pause();
+        else if (state === State.Paused || state === State.Ready)
+            await TrackPlayer.play();
+    };
 
     return (
         <View style={styles.controllsContainer}>
             <TouchableOpacity
-                onPress={() => {
+                onPress={async () => {
                     resetShowLyrics();
-                    skipToPrevious();
+                    await TrackPlayer.skipToPrevious();
                 }}
-                onLongPress={() => handleLongPress("b")}
-                onPressOut={handlePressOut}
+                onLongPress={() => startSeeking(-1)}
+                onPressOut={stopSeeking}
                 style={styles.btnContainer}
             >
                 <AntDesign name="stepbackward" size={28} color="white" />
             </TouchableOpacity>
-            {isPlaying || isBuffering ? (
+            {state === State.Playing || state === State.Buffering ? (
                 <TouchableOpacity
                     onPress={togglePlay}
                     style={styles.btnContainer}
@@ -66,12 +68,12 @@ const ControllersContainer = () => {
                 </TouchableOpacity>
             )}
             <TouchableOpacity
-                onPress={() => {
+                onPress={async () => {
                     resetShowLyrics();
-                    skipToNext();
+                    await TrackPlayer.skipToNext();
                 }}
-                onLongPress={() => handleLongPress("f")}
-                onPressOut={handlePressOut}
+                onLongPress={() => startSeeking()}
+                onPressOut={stopSeeking}
                 style={styles.btnContainer}
             >
                 <AntDesign name="stepforward" size={28} color="white" />

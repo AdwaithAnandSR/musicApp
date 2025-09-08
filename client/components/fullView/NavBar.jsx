@@ -11,15 +11,16 @@ import { Entypo, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useGlobalSongs } from "../../store/list.store.js";
-import { useTrack } from "../../store/track.store.js";
+import { useActiveTrack } from "react-native-track-player";
+
 import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const activeLyricColor = "rgb(246,7,135)";
 
-const MenuOptions = ({setShowMenu}) => {
+const MenuOptions = ({ setShowMenu }) => {
     const playlists = useGlobalSongs(state => state.playlists);
-    const track = useTrack(state => state.track);
+    const track = useActiveTrack();
 
     const [showPlaylist, setShowPlaylist] = useState(false);
 

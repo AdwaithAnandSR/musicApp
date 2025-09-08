@@ -1,64 +1,75 @@
 {
-  "expo": {
-    "name": "Music",
-    "slug": "music",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "music",
-    "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.adwaithananddev.music"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#000000"
-      },
-      "package": "com.adwaithananddev.music"
-    },
-    "web": {
-      "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/icon.png"
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#000000"
+    "expo": {
+        "name": "Music",
+        "slug": "music",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/images/icon.png",
+        "scheme": "music",
+        "userInterfaceStyle": "dark",
+        "newArchEnabled": true,
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.adwaithananddev.music"
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/images/icon.png",
+                "backgroundColor": "#000000"
+            },
+            "package": "com.adwaithananddev.music",
+            "permissions": [
+                "INTERNET",
+                "MODIFY_AUDIO_SETTINGS",
+                "READ_EXTERNAL_STORAGE",
+                "RECORD_AUDIO",
+                "SYSTEM_ALERT_WINDOW",
+                "VIBRATE",
+                "WRITE_EXTERNAL_STORAGE",
+                "FOREGROUND_SERVICE",
+                "WAKE_LOCK"
+            ]
+        },
+        "web": {
+            "bundler": "metro",
+            "output": "static",
+            "favicon": "./assets/images/icon.png"
+        },
+        "plugins": [
+            "expo-router",
+            [
+                "expo-splash-screen",
+                {
+                    "image": "./assets/images/icon.png",
+                    "imageWidth": 200,
+                    "resizeMode": "contain",
+                    "backgroundColor": "#000000"
+                }
+            ],
+            "expo-secure-store",
+            "expo-sqlite",
+            "expo-audio",
+            "expo-font",
+            "expo-web-browser"
+        ],
+        "experiments": {
+            "typedRoutes": true
+        },
+        "extra": {
+            "clientApi": "https://vivid-music.vercel.app",
+            "router": {
+                "origin": false
+            },
+            "eas": {
+                "projectId": "324699e8-88f7-4bd9-abee-3232ea9a5ca4"
+            }
+        },
+        "owner": "adwaithananddev",
+        "runtimeVersion": {
+            "policy": "appVersion"
+        },
+        "updates": {
+            "url": "https://u.expo.dev/324699e8-88f7-4bd9-abee-3232ea9a5ca4"
         }
-      ],
-      "expo-secure-store",
-      "expo-sqlite",
-      "expo-audio",
-      "expo-font",
-      "expo-web-browser"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "clientApi": "https://vivid-music.vercel.app",
-      "router": {
-        "origin": false
-      },
-      "eas": {
-        "projectId": "324699e8-88f7-4bd9-abee-3232ea9a5ca4"
-      }
-    },
-    "owner": "adwaithananddev",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/324699e8-88f7-4bd9-abee-3232ea9a5ca4"
     }
-  }
 }

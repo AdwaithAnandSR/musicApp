@@ -1,11 +1,11 @@
 import { useRef, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import { useProgress } from 'react-native-track-player'
 
 import SyncedRenderItem from "../../components/fullView/LyricRenderItem.jsx";
 
 import { useStatus } from "../../store/appState.store.js";
-import { useAudioMonitor } from "../../store/track.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -26,7 +26,7 @@ const LyricsView = ({ track }) => {
     const setShowSyncedLyrc = useStatus(state => state.setShowSyncedLyrc);
     const currentLyricIndex = useStatus(state => state.currentLyricIndex);
     const setCurrentLyricIndex = useStatus(state => state.setCurrentLyricIndex);
-    const currentTime = useAudioMonitor(state => state.currentTime);
+    const { position: currentTime} = useProgress();
 
     const lyricsRef = useRef();
 

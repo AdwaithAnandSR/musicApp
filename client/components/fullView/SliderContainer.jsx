@@ -1,18 +1,14 @@
 import { useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Slider from "@react-native-community/slider";
-
-import { useTrack } from "../../context/track.context.js";
-import { useAudioMonitor } from "../../store/track.store.js";
+import TrackPlayer, { useProgress } from "react-native-track-player"
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     const [isSeeking, setIsSeeking] = useState();
-    const { seek } = useTrack();
-    const duration = useAudioMonitor(state => state.duration);
-    const currentTime = useAudioMonitor(state => state.currentTime);
-
+    const { duration, position: currentTime } = useProgress(state => state.duration);
+    
     const formatTime = ms => {
         if (!ms || ms < 0) return "00:00";
         const minutes = Math.floor(ms / 60);
@@ -33,8 +29,8 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
                 maximumValue={1}
                 value={!isSeeking && currentTime / duration}
                 onSlidingStart={() => setIsSeeking(true)}
-                onSlidingComplete={value => {
-                    seek(value * duration);
+                onSlidingComplete={async value => {
+                    await TrackPlayer.seekTo(value * duration);
                     setIsSeeking(false);
                 }}
                 minimumTrackTintColor="#FFFFFF"
