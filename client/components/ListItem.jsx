@@ -8,9 +8,12 @@ import {
     Image
 } from "react-native";
 import LottieView from "lottie-react-native";
-import TrackPlayer from "react-native-track-player"
+import {
+    useActiveTrack,
+    usePlaybackState,
+    State
+} from "react-native-track-player";
 
-import { useTrack, useQueueManager } from "../store/track.store.js";
 import { useMultiSelect, useStatus } from "../store/appState.store.js";
 
 import { usePlayerStore } from "../store/player.store.js";
@@ -28,29 +31,30 @@ const ListItem = ({ item, ID, text = "" }) => {
         state.selectedSongs.some(song => song._id === item._id)
     );
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
-    
-    const { currentPlaylist, playTrack, setPlaylist, currentTrackId } = usePlayerStore();
-    
+
+    const { state } = usePlaybackState();
+    const currentTrack =  useActiveTrack()
+    const { currentPlaylist, playTrack, setPlaylist, currentTrackId } =
+        usePlayerStore();
+
     if (!item?.url) return;
-    
-    
-    
-    const isCurrent = item.id === currentTrackId
+
     let words = item.title.split(text);
+    const isCurrentPlaying =
+        currentTrack?.id === item.id && state != State.Stopped;
+
+    
 
     const handleShortPress = async () => {
         if (!isSelecting) {
             resetShowLyrics();
             if (currentPlaylist !== ID) {
-                await setPlaylist(ID)
+                await setPlaylist(ID);
             }
-            
-            await playTrack(item.id)
-            
+            await playTrack(item.id);
+
         } else updateSelected(item.id);
     };
-    
-    
 
     return (
         <TouchableOpacity
@@ -88,10 +92,10 @@ const ListItem = ({ item, ID, text = "" }) => {
             <HighlightedText
                 title={item.title}
                 search={text}
-                isCurrent={isCurrent}
+                isCurrent={isCurrentPlaying}
             />
 
-            {isCurrent && (
+            {isCurrentPlaying && (
                 <LottieView
                     autoPlay
                     source={require("../assets/animations/musicPlayingAnim.json")}
@@ -125,7 +129,7 @@ const styles = StyleSheet.create({
         height: vw * 0.12,
         borderRadius: vh * 0.5,
         overflow: "hidden",
-        backgroundColor: '#232323',
+        backgroundColor: "#232323"
     },
     title: {
         color: "white",
@@ -135,5 +139,5 @@ const styles = StyleSheet.create({
 });
 
 export default React.memo(ListItem, (prev, next) => {
-    prev.item._id != next.item._id;
+    return prev.item._id != next.item._id;
 });

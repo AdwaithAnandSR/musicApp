@@ -15,7 +15,8 @@ const useGetAllSongs = ({ limit, page }) => {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
-    const addToPlaylist = usePlayerStore(state => state.addToPlaylist);
+    const addToPlaylist =usePlayerStore(state => state.addToPlaylist)
+
     const playlists = usePlayerStore(state => state.playlists);
     const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
     const allPages = useGlobalSongs(state => state.allPages);
@@ -49,7 +50,7 @@ const useGetAllSongs = ({ limit, page }) => {
                     artwork: cover,
                     ...rest
                 }));
-                updateAllSongs(mapped);
+                // updateAllSongs(mapped);
                 addToPlaylist(PLAYLIST_NAME, mapped);
             }
         } catch (err) {

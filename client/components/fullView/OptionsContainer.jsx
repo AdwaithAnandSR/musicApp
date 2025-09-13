@@ -7,7 +7,7 @@ import {
     TouchableOpacity
 } from "react-native";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import { useActiveTrack } from "react-native-track-player";
+import TrackPlayer from "react-native-track-player";
 
 import { useStatus } from "../../store/appState.store.js";
 
@@ -25,7 +25,7 @@ const OptionsContainer = () => {
     const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
     const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
     const setShowSyncedLyric = useStatus(state => state.setShowSyncedLyric);
-    const track = useActiveTrack();
+    const track = TrackPlayer.getActiveTrack();
 
     const artists = track?.artist?.split(",") || [];
 

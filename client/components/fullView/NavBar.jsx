@@ -11,7 +11,7 @@ import { Entypo, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 
 import { useGlobalSongs } from "../../store/list.store.js";
-import { useActiveTrack } from "react-native-track-player";
+import TrackPlayer from "react-native-track-player";
 
 import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.js";
 
@@ -20,7 +20,7 @@ const activeLyricColor = "rgb(246,7,135)";
 
 const MenuOptions = ({ setShowMenu }) => {
     const playlists = useGlobalSongs(state => state.playlists);
-    const track = useActiveTrack();
+    const track = TrackPlayer.getActiveTrack();
 
     const [showPlaylist, setShowPlaylist] = useState(false);
 

@@ -4,29 +4,29 @@ import { FlashList } from "@shopify/flash-list";
 
 import ListItem from "../../../components/ListItem.jsx";
 import handleSearch from "../../../controllers/search.controller.js";
+import { usePlayerStore } from "../../../store/player.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const Search = () => {
     const [text, setText] = useState("");
-    const [songs, setSongs] = useState([]);
     const [loading, setLoading] = useState(false);
     const typingTimeout = useRef(null);
+
+    const songs = usePlayerStore(state => state.getSearchLists());
 
     const handleChangeText = text => {
         setText(text);
         setLoading(true);
 
         if (text.trim() == "") {
-            setSongs([]);
             setLoading(false);
         }
 
         if (typingTimeout.current) clearTimeout(typingTimeout.current);
 
         typingTimeout.current = setTimeout(async () => {
-            const result = await handleSearch(text);
-            if (text.trim() != "") setSongs(result);
+            await handleSearch(text);
             setLoading(false);
         }, 500);
     };
@@ -42,8 +42,8 @@ const Search = () => {
                         value={text}
                         returnKeyType="search"
                         onSubmitEditing={async () => {
-                            setSongs(await handleSearch(text));
-                        }} 
+                            await handleSearch(text)
+                        }}
                         onChangeText={handleChangeText}
                     />
                     <Text>Search</Text>
@@ -60,12 +60,7 @@ const Search = () => {
                 data={songs}
                 estimatedItemSize={vh * 0.95 || 100}
                 renderItem={({ item }) => (
-                    <ListItem
-                        LoadQueue={songs}
-                        ID={"SEARCH"}
-                        item={item}
-                        text={text}
-                    />
+                    <ListItem ID={"SEARCH"} item={item} text={text} />
                 )}
                 keyboardShouldPersistTaps="handled"
                 contentContainerStyle={{ paddingTop: 10, paddingBottom: 150 }}

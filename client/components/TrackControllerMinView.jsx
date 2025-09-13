@@ -71,8 +71,8 @@ const TrackControllerMinView = () => {
         // Cleanup to stop animation on component unmount
         return () => loopAnimation.stop();
     }, [colorAnimation]);
-
-    if (!track || !track.url || !isVisible) return;
+    
+    if (!track || !track.url || !isVisible || state === State.Stopped) return;
 
     return (
         <TouchableOpacity

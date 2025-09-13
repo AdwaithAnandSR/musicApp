@@ -15,7 +15,7 @@ const handleSwipeEnd = async (
     if (diffX > 100) await TrackPlayer.skipToNext();
     else if (diffX < -100) await TrackPlayer.skipToPrevious();
     else if (diffX === 0) router.push("secure/TrackControllerFullView");
-    else if (diffY > 45) await TrackPlayer.reset()
+    else if (diffY > 45) await TrackPlayer.stop()
 };
 
 export default handleSwipeEnd;
