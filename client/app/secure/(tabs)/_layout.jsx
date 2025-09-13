@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Tabs } from "expo-router";
 import {
@@ -7,11 +8,15 @@ import {
 } from "@expo/vector-icons";
 
 import TrackControllerMinView from "../../../components/TrackControllerMinView.jsx";
+import { SetupService } from "../../../services/setUpPlayer.ts";
 
 const activeIconSize = 28,
     inactiveIconSize = 25;
 
 const Layout = () => {
+    
+    const playerReady = useSetupPlayer()
+    
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
             <Tabs
@@ -79,5 +84,22 @@ const Layout = () => {
         </SafeAreaView>
     );
 };
+
+function useSetupPlayer() {
+    const [playerReady, setPlayerReady] = useState(false);
+
+    useEffect(() => {
+        let unmounted = false;
+        (async () => {
+            await SetupService();
+            if (unmounted) return;
+            setPlayerReady(true);
+        })();
+        return () => {
+            unmounted = true;
+        };
+    }, []);
+    return playerReady;
+}
 
 export default Layout;

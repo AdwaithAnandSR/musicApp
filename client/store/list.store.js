@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { storedPage, playlists } from "../services/storage.js";
 
 export const useGlobalSongs = create((set, get) => ({
-    allSongs: [],
+    allSongs:[],
     playlists: [...playlists] || [],
     allPages: [storedPage] || [],
     hasMore: true,

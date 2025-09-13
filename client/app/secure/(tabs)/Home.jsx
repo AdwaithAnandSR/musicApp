@@ -19,8 +19,8 @@ const Home = () => {
     
     const { loading, hasMore } = useGetAllSongs({ limit: LIMIT, page });
 
-    const { HOME: allSongs} = usePlayerStore(state=> state.playlists)
-    
+    const allSongs = usePlayerStore(state=> state.getHomeLists())
+
     const ListFooterComponent = useMemo(
         () => (
             <Text style={styles.text}>

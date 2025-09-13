@@ -7199,10 +7199,10 @@ react-native-screens@~4.11.1:
     react-native-is-edge-to-edge "^1.1.7"
     warn-once "^0.1.0"
 
-react-native-track-player@^5.0.0-alpha0:
-  version "5.0.0-alpha0"
-  resolved "https://registry.yarnpkg.com/react-native-track-player/-/react-native-track-player-5.0.0-alpha0.tgz#687c9376ce71e59bd7703ee0ec0d98b5c119c489"
-  integrity sha512-dxMI8aX75wS9S5/DM7dWN060uGjEitX3fhvLGtrQ96AgIKvOorKy3HkBU7DgvCF/6YDAMxez2PaZA+4A3DQWAQ==
+react-native-track-player@^5.0.0-alpha0-nightly-cad7f4b0cdea1ab20fd988debcfdbdced7907a39:
+  version "5.0.0-alpha0-nightly-cad7f4b0cdea1ab20fd988debcfdbdced7907a39"
+  resolved "https://registry.yarnpkg.com/react-native-track-player/-/react-native-track-player-5.0.0-alpha0-nightly-cad7f4b0cdea1ab20fd988debcfdbdced7907a39.tgz#fc5820fb583ddaa95be4dee9f7f4ad49727e1d9f"
+  integrity sha512-b1SIqntB0Wkn53EWdCi76SlPm1wZMIzKZxfMFrsc6bROQJrWbSQeG2YHeVFyZFP6WMOCxY0sQk8aKCcy9dcznw==
 
 react-native-web@^0.20.0:
   version "0.20.0"
