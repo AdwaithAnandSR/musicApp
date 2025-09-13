@@ -1,5 +1,7 @@
 import playlistModel from "../../models/playlist.js";
-import mongoose from 'mongoose';
+import musicModel from "../../models/musics.js";
+
+import mongoose from "mongoose";
 
 const getSongs = async (req, res) => {
     const { playlistId, page = 1, limit = 10 } = req.body;
@@ -30,9 +32,6 @@ const getSongs = async (req, res) => {
                 }
             }
         ]);
-        
-        console.log(playlist);
-        
         res.json(playlist[0]);
     } catch (err) {
         console.error(err);
