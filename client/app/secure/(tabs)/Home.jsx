@@ -2,7 +2,6 @@ import { useRef, useCallback, useMemo , useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
-import { useGlobalSongs } from "../../../store/list.store.js";
 import { usePlayerStore } from "../../../store/player.store.js";
 import useGetAllSongs from "../../../hooks/useGetAllSongs.js";
 
@@ -12,7 +11,7 @@ import Header from "../../../components/ListHeader.jsx";
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 const Home = () => {
-    const LIMIT = 30,
+    const LIMIT = 10,
         HEADER_HEIGHT = 250;
     const scrollY = useRef(new Animated.Value(0)).current;
     const [page, setPage] = useState(1)

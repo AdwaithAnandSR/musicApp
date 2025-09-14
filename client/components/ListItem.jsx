@@ -33,26 +33,24 @@ const ListItem = ({ item, ID, text = "" }) => {
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
 
     const { state } = usePlaybackState();
-    const currentTrack =  useActiveTrack()
-    const { currentPlaylist, playTrack, setPlaylist, currentTrackId } =
-        usePlayerStore();
+    const currentTrack = useActiveTrack();
+    const currentPlaylist = usePlayerStore(s => s.currentPlaylist);
+    const playTrack = usePlayerStore(s => s.playTrack);
+    const setPlaylist = usePlayerStore(s => s.setPlaylist);
 
     if (!item?.url) return;
 
-    let words = item.title.split(text);
     const isCurrentPlaying =
-        currentTrack?.id === item.id && state != State.Stopped;
-
+        currentTrack && currentTrack?.id === item.id && state != State.Stopped;
     
-
     const handleShortPress = async () => {
         if (!isSelecting) {
             resetShowLyrics();
             if (currentPlaylist !== ID) {
                 await setPlaylist(ID);
             }
-            await playTrack(item.id);
-
+            // 🔑 Small delay ensures TrackPlayer.add() completes
+            setTimeout(() => playTrack(item.id), 50);
         } else updateSelected(item.id);
     };
 
