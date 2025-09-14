@@ -12,6 +12,7 @@ let api = Constants.expoConfig.extra.clientApi;
 const PLAYLIST_NAME = "HOME";
 
 const useGetAllSongs = ({ limit, page }) => {
+    console.log('fetching songs...')
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
@@ -20,9 +21,7 @@ const useGetAllSongs = ({ limit, page }) => {
     const playlists = usePlayerStore(state => state.playlists);
     const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
     const allPages = useGlobalSongs(state => state.allPages);
-    const { updateAllPages, updateAllSongs } = useGlobalSongs();
-
-    // const { insertSongs, clearSongs } = useSqlControlls();
+    const { updateAllPages } = useGlobalSongs();
 
     const fetchSongs = async () => {
         setLoading(true);
@@ -50,7 +49,6 @@ const useGetAllSongs = ({ limit, page }) => {
                     artwork: cover,
                     ...rest
                 }));
-                // updateAllSongs(mapped);
                 addToPlaylist(PLAYLIST_NAME, mapped);
             }
         } catch (err) {

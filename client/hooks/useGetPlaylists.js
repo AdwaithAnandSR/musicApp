@@ -4,18 +4,21 @@ import Constants from "expo-constants";
 
 import { storage } from "../services/storage.js";
 import { useGlobalSongs } from "../store/list.store.js";
+import { usePlayerStore } from "../store/player.store.js";
 
 const api = Constants.expoConfig.extra.clientApi;
 
 const useGetAllSongs = () => {
     const [loading, setLoading] = useState(true);
     const updatePlaylists = useGlobalSongs(state => state.updatePlaylists);
+    const  addToPlaylist = usePlayerStore(state => state.addToPlaylist)
 
     useEffect(() => {
         const fetch = async () => {
             setLoading(true);
             const res = await axios.get(`${api}/playlist/get`);
             const data = res.data.playlists;
+
             updatePlaylists(data);
 
             setLoading(false);

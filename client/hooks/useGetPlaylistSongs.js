@@ -2,16 +2,20 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Constants from "expo-constants";
 
-const api = Constants.expoConfig.extra.clientApi;
-// const api = "http://10.32.129.27:5000";
+import { usePlayerStore } from "../store/player.store.js"
 
-const useGetPlaylistSongs = ({ page, limit, setSongs, playlistId }) => {
+const api = Constants.expoConfig.extra.clientApi;
+// const api = "http://localhost:5000";
+
+const useGetPlaylistSongs = ({ page, limit, playlistId }) => {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
     const [total, setTotal] = useState(-1);
+    
+    const addToPlaylist = usePlayerStore(state=> state.addToPlaylist)
 
     useEffect(() => {
-        if (!page || !limit || !setSongs || !playlistId) return;
+        if (!page || !limit || !playlistId) return;
 
         const fetchSongs = async () => {
             try {
@@ -24,14 +28,19 @@ const useGetPlaylistSongs = ({ page, limit, setSongs, playlistId }) => {
 
                 const songs = res.data.songs;
                 setTotal(res.data.totalSongs);
-                if (songs.length < limit) setHasMore(false);
-                setSongs(prev => {
-                    const existingIds = new Set(prev.map(song => song._id));
-                    const newSongs = songs.filter(
-                        song => !existingIds.has(song._id)
-                    );
-                    return [...prev, ...newSongs];
-                });
+                
+                if(songs?.length > 0){
+                    const mapped = songs.map(({ _id, cover, ...rest }) => ({
+                        id: _id,
+                        artwork: cover,
+                        ...rest
+                    }));
+                    await addToPlaylist(playlistId, mapped)
+                    if (songs.length < limit) setHasMore(false);
+                }
+                
+                
+                
             } catch (error) {
                 console.log(error);
             } finally {
@@ -39,7 +48,7 @@ const useGetPlaylistSongs = ({ page, limit, setSongs, playlistId }) => {
             }
         };
         fetchSongs();
-    }, [page, limit, playlistId, setSongs]);
+    }, [page, limit, playlistId]);
     return { loading, hasMore, total };
 };
 

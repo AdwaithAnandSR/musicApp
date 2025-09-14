@@ -3,12 +3,8 @@ import { StyleSheet, Text, View, Animated } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 
-// import useGetPlaylistSongs from "../../../../hooks/useGetPlaylistSongs.js";
-
-// import ListItem from "../../../../components/ListItem.jsx";
-// import Header from "../../../../components/ListHeader.jsx";
-
 import useGetPlaylistSongs from "../../../../../hooks/useGetPlaylistSongs.js";
+import { usePlayerStore } from "../../../../../store/player.store.js"
 
 import ListItem from "../../../../../components/ListItem.jsx";
 import Header from "../../../../../components/ListHeader.jsx";
@@ -19,7 +15,6 @@ const limit = 50,
 
 const PlaylistSongs = () => {
     const [page, setPage] = useState(1);
-    const [songs, setSongs] = useState([]);
     const scrollY = useRef(new Animated.Value(0)).current;
 
     const { playlistId, playlistName } = useGlobalSearchParams();
@@ -27,8 +22,11 @@ const PlaylistSongs = () => {
         playlistId,
         page,
         limit,
-        setSongs
     });
+    
+    const songs = usePlayerStore(state => state.playlists[playlistId])
+    
+    
 
     return (
         <View style={styles.container}>

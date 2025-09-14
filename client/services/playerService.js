@@ -1,24 +1,27 @@
-import TrackPlayer, { Event } from "react-native-track-player";
+import TrackPlayer, { Event, State } from "react-native-track-player";
+import axios from "axios";
+import Constants from "expo-constants";
+
+import { useGlobalSongs } from "../store/list.store.js";
+import { usePlayerStore } from "../store/player.store.js";
+import { userId } from "../services/storage.js";
+
+let api = Constants.expoConfig.extra.clientApi;
 
 export async function PlaybackService() {
-    TrackPlayer.addEventListener(Event.RemotePlayPause, () => {
-        console.log("Event.RemotePlayPause");
-        TrackPlayer.pause();
+    TrackPlayer.addEventListener(Event.RemotePlayPause, async () => {
+        try {
+            const { state } = await TrackPlayer.getPlaybackState();
+            if (state === State.Playing) await TrackPlayer.pause();
+            else await TrackPlayer.play();
+        } catch (e) {
+            console.log(e);
+        }
     });
 
-    TrackPlayer.addEventListener(Event.RemotePause, () => {
-        console.log("Event.RemotePause");
-        TrackPlayer.pause();
-    });
-
-    TrackPlayer.addEventListener(Event.RemotePlay, () => {
-        console.log("Event.RemotePlay");
-        TrackPlayer.play();
-    });
-
-    TrackPlayer.addEventListener(Event.RemoteNext, () => {
+    TrackPlayer.addEventListener(Event.RemoteNext, async () => {
         console.log("Event.RemoteNext");
-        TrackPlayer.skipToNext();
+        await TrackPlayer.skipToNext();
     });
 
     TrackPlayer.addEventListener(Event.RemotePrevious, () => {
@@ -41,39 +44,70 @@ export async function PlaybackService() {
         TrackPlayer.seekTo(event.position);
     });
 
-    TrackPlayer.addEventListener(Event.RemoteDuck, async event => {
-        console.log("Event.RemoteDuck", event);
-    });
+    TrackPlayer.addEventListener(
+        Event.PlaybackActiveTrackChanged,
+        async event => {
+            try {
+                if (
+                    usePlayerStore.getState().playlists[
+                        usePlayerStore.getState().currentPlaylist
+                    ].length -
+                        1 ===
+                    event.index
+                ) {
+                    const res = await axios.post(`${api}/getGlobalSongs`, {
+                        limit: 10,
+                        allPages: useGlobalSongs.getState().allPages,
+                        userId
+                    });
+                    const { availablePages, musics, page } = res.data;
 
-    TrackPlayer.addEventListener(Event.PlaybackQueueEnded, event => {
-        console.log("Event.PlaybackQueueEnded", event);
-    });
+                    useGlobalSongs.getState().updateAllPages(page);
 
-    TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, event => {
-        // console.log("Event.PlaybackActiveTrackChanged", event);
-    });
+                    if (musics.length > 0) {
+                        const mapped = musics.map(
+                            ({ _id, cover, ...rest }) => ({
+                                id: _id,
+                                artwork: cover,
+                                ...rest
+                            })
+                        );
 
-    TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, event => {
-        // console.log("Event.PlaybackProgressUpdated");
-    });
+                        await usePlayerStore
+                            .getState()
+                            .addToPlaylist(
+                                usePlayerStore.getState().currentPlaylist,
+                                mapped
+                            );
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    );
 
-    TrackPlayer.addEventListener(Event.PlaybackPlayWhenReadyChanged, event => {
-        // console.log("Event.PlaybackPlayWhenReadyChanged", event);
-    });
+    // TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, event => {
+    //     // console.log("Event.PlaybackProgressUpdated");
+    // });
 
-    TrackPlayer.addEventListener(Event.PlaybackState, event => {
-        // console.log("Event.PlaybackState", event);
-    });
+    // TrackPlayer.addEventListener(Event.PlaybackPlayWhenReadyChanged, event => {
+    //     // console.log("Event.PlaybackPlayWhenReadyChanged", event);
+    // });
 
-    TrackPlayer.addEventListener(Event.MetadataChapterReceived, event => {
-        // console.log("Event.MetadataChapterReceived");
-    });
+    // TrackPlayer.addEventListener(Event.PlaybackState, event => {
+    //     // console.log("Event.PlaybackState", event);
+    // });
 
-    TrackPlayer.addEventListener(Event.MetadataTimedReceived, event => {
-        // console.log("Event.MetadataTimedReceived");
-    });
+    // TrackPlayer.addEventListener(Event.MetadataChapterReceived, event => {
+    //     // console.log("Event.MetadataChapterReceived");
+    // });
 
-    TrackPlayer.addEventListener(Event.MetadataCommonReceived, event => {
-        // console.log("Event.MetadataCommonReceived");
-    });
+    // TrackPlayer.addEventListener(Event.MetadataTimedReceived, event => {
+    //     // console.log("Event.MetadataTimedReceived");
+    // });
+
+    // TrackPlayer.addEventListener(Event.MetadataCommonReceived, event => {
+    //     // console.log("Event.MetadataCommonReceived");
+    // });
 }

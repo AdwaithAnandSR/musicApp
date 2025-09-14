@@ -4,7 +4,7 @@ import TrackPlayer, {
     RepeatMode
 } from "react-native-track-player";
 
-export const DefaultRepeatMode = RepeatMode.Queue;
+export const DefaultRepeatMode = RepeatMode.Off;
 export const DefaultAudioServiceBehaviour =
     AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification;
 
@@ -39,10 +39,16 @@ export const SetupService = async () => {
                 Capability.SkipToNext,
                 Capability.SkipToPrevious
             ],
+            compactCapabilities: [
+                Capability.Play,
+                Capability.Pause,
+                Capability.SkipToNext,
+                Capability.SkipToPrevious
+            ],
             progressUpdateEventInterval: 2
         });
         await TrackPlayer.setRepeatMode(DefaultRepeatMode);
-        console.log("player setupped 🌇")
+        console.log("player setupped 🌇");
     } catch (error) {
         console.error("Error setting up player:", error);
         throw error;

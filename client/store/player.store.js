@@ -6,13 +6,15 @@ export const usePlayerStore = create((set, get) => ({
     currentPlaylist: null,
     currentTrackId: null,
 
-    addToPlaylist: (playlist, tracks) => {
+    addToPlaylist: async (playlist, tracks) => {
         set(state => ({
             playlists: {
                 ...state.playlists,
                 [playlist]: [...(state.playlists[playlist] || []), ...tracks]
             }
         }));
+        
+        if(get().currentPlaylist === playlist) await TrackPlayer.add(tracks)
     },
 
     replacePlaylist: (playlist, tracks) => {
@@ -42,30 +44,20 @@ export const usePlayerStore = create((set, get) => ({
 
     playTrack: async trackId => {
         const state = get();
-        
-        console.log("play ", trackId)
-
         const playlist = state.playlists[state.currentPlaylist] || [];
         const trackIndex = playlist.findIndex(t => t.id === trackId);
-
         if (trackIndex === -1) return;
-
-        if (state.currentPlaylist === "SEARCH") {
-            await TrackPlayer.reset();
-            await TrackPlayer.add(playlist);
-        }
 
         await TrackPlayer.skip(trackIndex);
         await TrackPlayer.play();
         set({ currentTrackId: trackId });
     },
-    
-    getHomeLists :()=>{
-        return get().playlists["HOME"]
+
+    getHomeLists: () => {
+        return get().playlists["HOME"];
     },
-    
-    getSearchLists :()=>{
-        return get().playlists["SEARCH"]
+
+    getSearchLists: () => {
+        return get().playlists["SEARCH"];
     }
-    
 }));
