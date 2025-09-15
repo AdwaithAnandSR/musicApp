@@ -100,4 +100,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default memo(Header, (prev, next) => prev.title === next.title);
+export default Header;

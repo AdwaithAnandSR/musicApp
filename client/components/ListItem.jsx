@@ -27,7 +27,7 @@ const ListItem = ({ item, ID, text = "", isSelected, isCurrentPlaying }) => {
 
     if (!item?.url) return null;
 
-    console.log("\nlist item: ", item.title);
+    console.log("\nlist item: ", item.title, isSelecting);
 
     const handleShortPress = async () => {
         if (!isSelecting) {

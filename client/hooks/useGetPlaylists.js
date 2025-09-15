@@ -8,6 +8,8 @@ import { usePlayerStore } from "../store/player.store.js";
 
 const api = Constants.expoConfig.extra.clientApi;
 
+// const api = "http://localhost:5000"
+
 const useGetAllSongs = () => {
     const [loading, setLoading] = useState(true);
     const updatePlaylists = useGlobalSongs(state => state.updatePlaylists);

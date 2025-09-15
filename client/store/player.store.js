@@ -1,10 +1,11 @@
 import { create } from "zustand";
-import TrackPlayer, { Capability } from "react-native-track-player";
+import TrackPlayer, { Capability, Event } from "react-native-track-player";
 
 export const usePlayerStore = create((set, get) => ({
-    playlists: { HOME: [], SEARCH: []},
+    playlists: { HOME: [], SEARCH: [] },
     currentPlaylist: null,
     currentTrackId: null,
+    currentPlaybackState: null,
 
     addToPlaylist: async (playlist, tracks) => {
         set(state => ({
@@ -13,8 +14,8 @@ export const usePlayerStore = create((set, get) => ({
                 [playlist]: [...(state.playlists[playlist] || []), ...tracks]
             }
         }));
-        
-        if(get().currentPlaylist === playlist) await TrackPlayer.add(tracks)
+
+        if (get().currentPlaylist === playlist) await TrackPlayer.add(tracks);
     },
 
     replacePlaylist: (playlist, tracks) => {
@@ -28,8 +29,8 @@ export const usePlayerStore = create((set, get) => ({
 
     setPlaylist: async playlist => {
         const state = get();
-        
-        if(state.currentPlaylist === playlist) return
+
+        if (state.currentPlaylist === playlist) return;
 
         const tracks = state.playlists[playlist] || [];
         if (tracks.length === 0) return;
@@ -53,5 +54,9 @@ export const usePlayerStore = create((set, get) => ({
         await TrackPlayer.skip(trackIndex);
         await TrackPlayer.play();
         set({ currentTrackId: trackId });
-    },
+    }
 }));
+
+TrackPlayer.addEventListener(Event.PlaybackState, ({ state }) => {
+    usePlayerStore.getState().currentPlaybackState = state;
+});
