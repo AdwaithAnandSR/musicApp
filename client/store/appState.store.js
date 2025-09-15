@@ -1,26 +1,27 @@
 import { create } from "zustand";
-import { isAuthenticated as isAuth } from "../services/storage.js"
+import { isAuthenticated as isAuth } from "../services/storage.js";
 
-export const useAppStatus = create(set=> ({
+export const useAppStatus = create(set => ({
     isAuthenticated: isAuth || false,
-    setIsAuthenticated: (val)=> set(()=> ({ isAuthenticated: val }))
-}))
+    setIsAuthenticated: val => set(() => ({ isAuthenticated: val }))
+}));
 
-export const useMultiSelect = create(set => ({
+export const useMultiSelect = create((set, get) => ({
     selectedSongs: [],
     reset: () =>
         set(() => ({
             selectedSongs: []
         })),
-    updateSelectedSongs: item =>
+    updateSelectedSongs: item => {
         set(state => {
-            const exists = state.selectedSongs.includes(item);
+            const exists = state.selectedSongs.some(i => i.id === item.id);
             const updated = exists
-                ? state.selectedSongs.filter(i => i !== item)
+                ? state.selectedSongs.filter(i => i.id !== item.id)
                 : [...state.selectedSongs, item];
 
             return { selectedSongs: updated };
-        })
+        });
+    }
 }));
 
 export const useStatus = create(set => ({

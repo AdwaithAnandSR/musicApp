@@ -1,17 +1,17 @@
 import React, { useEffect } from "react";
+import { View } from "react-native"
 import { Stack } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 
-import Navbar from "../../components/Navbar.jsx";
 import Toast from "../../services/Toast.js";
 
 import { SqlControllerProvider } from "../../context/sql.context.js";
 
 const _layout = () => {
     return (
-        <SQLiteProvider databaseName="musicApp.db">
-            <SqlControllerProvider>
-                    <Navbar />
+        <View style={{ flex: 1, backgroundColor: "black" }}>
+            <SQLiteProvider databaseName="musicApp.db">
+                <SqlControllerProvider>
                     <Stack
                         screenOptions={{
                             headerShown: false,
@@ -34,8 +34,9 @@ const _layout = () => {
                         />
                     </Stack>
                     <Toast />
-            </SqlControllerProvider>
-        </SQLiteProvider>
+                </SqlControllerProvider>
+            </SQLiteProvider>
+        </View>
     );
 };
 

@@ -1,8 +1,16 @@
-import { memo } from "react";
-import { TouchableOpacity, Text, StyleSheet, Animated } from "react-native";
+import { memo, useState, useEffect } from "react";
+import {
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    Animated,
+    View
+} from "react-native";
 
-const HEADER_HEIGHT = 250,
-    MIN_HEADER_HEIGHT = HEADER_HEIGHT - 80;
+import { useMultiSelect } from "../store/appState.store.js";
+
+const HEADER_HEIGHT = 250;
+const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 80;
 
 const Header = ({ title, containerStyles, total, scrollY }) => {
     const translateY = scrollY?.interpolate({
@@ -11,13 +19,16 @@ const Header = ({ title, containerStyles, total, scrollY }) => {
         extrapolate: "clamp"
     });
 
+    const selectedSongs = useMultiSelect(state => state.selectedSongs);
+
     return (
         <Animated.View
             style={[
                 styles.header,
                 containerStyles,
                 {
-                    transform: [{ translateY }]
+                    transform: [{ translateY }],
+                    marginTop: selectedSongs?.length > 0 ? 23 : 0
                 }
             ]}
         >
@@ -25,10 +36,18 @@ const Header = ({ title, containerStyles, total, scrollY }) => {
                 <Animated.Text style={[styles.headerText]}>
                     {title}
                 </Animated.Text>
-                {total > -1 && (
-                    <Text style={styles.headerText2}>{total || 0}</Text>
-                )}
+                {total > -1 && <Text style={styles.headerText2}>{total}</Text>}
             </TouchableOpacity>
+            {selectedSongs?.length > 0 && (
+                <TouchableOpacity
+                    onLongPress={() => useMultiSelect.getState().reset()}
+                    activeOpacity={0.3}
+                >
+                    <Text style={styles.selectedText}>
+                        Selected: {selectedSongs?.length}
+                    </Text>
+                </TouchableOpacity>
+            )}
         </Animated.View>
     );
 };
@@ -42,16 +61,18 @@ const styles = StyleSheet.create({
         position: "absolute",
         alignSelf: "flex-start",
         top: 0,
-        height: HEADER_HEIGHT,
+        width: "100%",
         zIndex: 1
     },
+
     textCont: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         alignSelf: "flex-start",
         paddingHorizontal: 10,
-        gap: 20
+        gap: 20,
+        width: "100%"
     },
     headerText: {
         color: "white",
@@ -69,7 +90,14 @@ const styles = StyleSheet.create({
         opacity: 0.7,
         letterSpacing: -2,
         alignSelf: "center"
+    },
+    selectedText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 20,
+        letterSpacing: -2,
+        paddingLeft: 13
     }
 });
 
-export default memo(Header, (prev, next) => prev.title !== next.title);
+export default memo(Header, (prev, next) => prev.title === next.title);

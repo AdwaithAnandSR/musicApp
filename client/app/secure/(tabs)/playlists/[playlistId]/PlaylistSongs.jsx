@@ -53,7 +53,6 @@ const PlaylistSongs = () => {
                 onEndReached={() => {
                     if (!loading && hasMore) setPage(prev => prev + 1);
                 }}
-                estimatedItemSize={79}
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT + 10,
                     paddingBottom: 150

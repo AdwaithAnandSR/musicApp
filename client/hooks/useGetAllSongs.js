@@ -12,7 +12,6 @@ let api = Constants.expoConfig.extra.clientApi;
 const PLAYLIST_NAME = "HOME";
 
 const useGetAllSongs = ({ limit, page }) => {
-    console.log('fetching songs...')
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
@@ -24,6 +23,7 @@ const useGetAllSongs = ({ limit, page }) => {
     const { updateAllPages } = useGlobalSongs();
 
     const fetchSongs = async () => {
+        console.log('fetching songs...')
         setLoading(true);
         try {
             const res = await axios.post(`${api}/getGlobalSongs`, {
@@ -39,7 +39,7 @@ const useGetAllSongs = ({ limit, page }) => {
 
             const data = res.data;
             const { availablePages, musics, page: newPage } = data;
-
+            
             updateAllPages(newPage);
 
             if (availablePages === 0) setHasMore(false);
@@ -50,6 +50,7 @@ const useGetAllSongs = ({ limit, page }) => {
                     ...rest
                 }));
                 addToPlaylist(PLAYLIST_NAME, mapped);
+                console.log("added to playlist")
             }
         } catch (err) {
             if (!err.response) {
@@ -79,7 +80,7 @@ const useGetAllSongs = ({ limit, page }) => {
     useEffect(() => {
         if (!page || !limit) return;
         fetchSongs();
-    }, [page, limit]);
+    }, [page]);
 
     return { loading, hasMore };
 };

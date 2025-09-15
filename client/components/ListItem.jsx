@@ -8,50 +8,35 @@ import {
     Image
 } from "react-native";
 import LottieView from "lottie-react-native";
-import {
-    useActiveTrack,
-    usePlaybackState,
-    State
-} from "react-native-track-player";
+import { State } from "react-native-track-player";
 
 import { useMultiSelect, useStatus } from "../store/appState.store.js";
-
 import { usePlayerStore } from "../store/player.store.js";
-
 import HighlightedText from "../components/HighlightedTitle.jsx";
 
+const { playTrack, setPlaylist } = usePlayerStore.getState();
 const { height: vh, width: vw } = Dimensions.get("window");
+
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
-const ListItem = ({ item, ID, text = "" }) => {
+const ListItem = ({ item, ID, text = "", isSelected, isCurrentPlaying }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
     const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
-    const isSelected = useMultiSelect(state =>
-        state.selectedSongs.some(song => song._id === item._id)
-    );
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
 
-    const { state } = usePlaybackState();
-    const currentTrack = useActiveTrack();
-    const currentPlaylist = usePlayerStore(s => s.currentPlaylist);
-    const playTrack = usePlayerStore(s => s.playTrack);
-    const setPlaylist = usePlayerStore(s => s.setPlaylist);
+    if (!item?.url) return null;
 
-    if (!item?.url) return;
+    console.log("\nlist item: ", item.title);
 
-    const isCurrentPlaying =
-        currentTrack && currentTrack?.id === item.id && state != State.Stopped;
-    
     const handleShortPress = async () => {
         if (!isSelecting) {
             resetShowLyrics();
-            if (currentPlaylist !== ID) {
-                await setPlaylist(ID);
-            }
-            // 🔑 Small delay ensures TrackPlayer.add() completes
-            setTimeout(() => playTrack(item.id), 50);
-        } else updateSelected(item.id);
+            await setPlaylist(ID);
+            setTimeout(async() => await playTrack(item.id), 50);
+        } else {
+            updateSelected(item);
+        }
     };
 
     return (
@@ -63,13 +48,7 @@ const ListItem = ({ item, ID, text = "" }) => {
         >
             {isSelected && (
                 <View style={styles.checkBoxContainer}>
-                    <Text
-                        style={{
-                            color: "rgb(246,7,135)"
-                        }}
-                    >
-                        ✓
-                    </Text>
+                    <Text style={{ color: "rgb(246,7,135)" }}>✓</Text>
                 </View>
             )}
 
@@ -97,7 +76,7 @@ const ListItem = ({ item, ID, text = "" }) => {
                 <LottieView
                     autoPlay
                     source={require("../assets/animations/musicPlayingAnim.json")}
-                    loop={true}
+                    loop
                     style={{
                         width: 40,
                         height: 40,
@@ -136,6 +115,11 @@ const styles = StyleSheet.create({
     }
 });
 
-export default React.memo(ListItem, (prev, next) => {
-    return prev.item._id != next.item._id;
-});
+// rerender only if id, isSelected or isCurrentPlaying changes
+export default React.memo(
+    ListItem,
+    (prev, next) =>
+        prev.item.id === next.item.id &&
+        prev.isSelected === next.isSelected &&
+        prev.isCurrentPlaying === next.isCurrentPlaying
+);

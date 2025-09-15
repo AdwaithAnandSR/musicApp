@@ -23,7 +23,7 @@ const togglePlay = async () => {
         await TrackPlayer.play();
 };
 
-const TrackControllerMinView = () => {
+const TrackControllerMinView = ({ tabBarHeight }) => {
     const [swipeStartPos, setSwipeStartPos] = useState({});
     const [isVisible, setIsVisible] = useState(true);
 
@@ -84,7 +84,7 @@ const TrackControllerMinView = () => {
                 })
             }
             onPressOut={e => handleSwipe(e, swipeStartPos)}
-            style={styles.container}
+            style={[styles.container, { bottom: tabBarHeight }]}
         >
             <Animated.View style={[styles.gradient, { backgroundColor }]} />
             <TouchableOpacity onPress={togglePlay} style={styles.imgContainer}>
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
         borderRadius: vw,
         position: "absolute",
         zIndex: 99999999,
-        bottom: 48
+        marginBottom: 5
     },
     gradient: {
         width: "100%",

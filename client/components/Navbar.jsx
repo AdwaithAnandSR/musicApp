@@ -47,6 +47,8 @@ const styles = StyleSheet.create({
         height: vh * 0.045,
         paddingHorizontal: vw * 0.055,
         position: "absolute",
+        backgroundColor: "red",
+        marginTop: vh * 0.08,
         zIndex: 999
     },
     selectDetsContainer: {
