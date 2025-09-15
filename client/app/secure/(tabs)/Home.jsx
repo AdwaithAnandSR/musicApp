@@ -1,8 +1,10 @@
-import { useRef, useCallback, useMemo , useState } from "react";
+import { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
+import { usePlaybackState, State } from "react-native-track-player";
 
 import { usePlayerStore } from "../../../store/player.store.js";
+import { useMultiSelect } from "../../../store/appState.store.js";
 import useGetAllSongs from "../../../hooks/useGetAllSongs.js";
 
 import ListItem from "../../../components/ListItem.jsx";
@@ -14,11 +16,15 @@ const Home = () => {
     const LIMIT = 10,
         HEADER_HEIGHT = 250;
     const scrollY = useRef(new Animated.Value(0)).current;
-    const [page, setPage] = useState(1)
-    
+    const [page, setPage] = useState(1);
+
     const { loading, hasMore } = useGetAllSongs({ limit: LIMIT, page });
 
-    const allSongs = usePlayerStore(state=> state.getHomeLists())
+    const allSongs = usePlayerStore(state => state.playlists["HOME"]);
+    const currentTrackId = usePlayerStore(state => state.currentTrackId);
+    const selectedSongs = useMultiSelect(state => state.selectedSongs);
+
+    const { state: playbackState } = usePlaybackState();
 
     const ListFooterComponent = useMemo(
         () => (
@@ -28,6 +34,11 @@ const Home = () => {
         ),
         [loading, hasMore]
     );
+
+    useEffect(() => {
+        console.log("Home mounted");
+        return () => console.log("Home unmounted");
+    }, []);
 
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
@@ -40,15 +51,25 @@ const Home = () => {
             />
 
             <AnimatedFlashList
-                data={allSongs}
+                data={allSongs.map(item => ({
+                    ...item,
+                    isCurrentPlaying:
+                        currentTrackId === item.id &&
+                        playbackState !== State.Stopped,
+                    isSelected: selectedSongs.some(song => song.id === item.id)
+                }))}
                 renderItem={({ item }) => (
-                    <ListItem ID={"HOME"} item={item} />
+                    <ListItem
+                        ID="HOME"
+                        item={item}
+                        isCurrentPlaying={item.isCurrentPlaying}
+                        isSelected={item.isSelected}
+                    />
                 )}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={item => item.id}
                 onEndReachedThreshold={0.5}
                 initialNumToRender={7}
-                estimatedItemSize={80}
                 window={10}
                 removeClippedSubviews={true}
                 getItemLayout={(data, index) => ({
@@ -57,7 +78,7 @@ const Home = () => {
                     index
                 })}
                 onEndReached={() => {
-                    if (!loading && hasMore) setPage(prev=> prev+1);
+                    if (!loading && hasMore) setPage(prev => prev + 1);
                 }}
                 contentContainerStyle={{
                     paddingBottom: 100,

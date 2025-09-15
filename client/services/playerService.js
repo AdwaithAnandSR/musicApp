@@ -48,10 +48,14 @@ export async function PlaybackService() {
         Event.PlaybackActiveTrackChanged,
         async event => {
             try {
+                
+                usePlayerStore.getState().currentTrackId = event.track?.id
+                
+                // load more song if playlist ends 
                 if (
                     usePlayerStore.getState().playlists[
                         usePlayerStore.getState().currentPlaylist
-                    ].length -
+                    ]?.length -
                         1 ===
                     event.index
                 ) {

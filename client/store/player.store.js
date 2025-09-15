@@ -2,7 +2,7 @@ import { create } from "zustand";
 import TrackPlayer, { Capability } from "react-native-track-player";
 
 export const usePlayerStore = create((set, get) => ({
-    playlists: {},
+    playlists: { HOME: [], SEARCH: []},
     currentPlaylist: null,
     currentTrackId: null,
 
@@ -28,6 +28,8 @@ export const usePlayerStore = create((set, get) => ({
 
     setPlaylist: async playlist => {
         const state = get();
+        
+        if(state.currentPlaylist === playlist) return
 
         const tracks = state.playlists[playlist] || [];
         if (tracks.length === 0) return;
@@ -52,12 +54,4 @@ export const usePlayerStore = create((set, get) => ({
         await TrackPlayer.play();
         set({ currentTrackId: trackId });
     },
-
-    getHomeLists: () => {
-        return get().playlists["HOME"];
-    },
-
-    getSearchLists: () => {
-        return get().playlists["SEARCH"];
-    }
 }));

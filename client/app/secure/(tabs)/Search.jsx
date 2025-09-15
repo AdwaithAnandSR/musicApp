@@ -13,8 +13,8 @@ const Search = () => {
     const [loading, setLoading] = useState(false);
     const typingTimeout = useRef(null);
 
-    const songs = usePlayerStore(state => state.getSearchLists());
-
+    const songs = usePlayerStore(state => state.playlists["SEARCH"]);
+    
     const handleChangeText = text => {
         setText(text);
         setLoading(true);
@@ -46,9 +46,8 @@ const Search = () => {
                         }}
                         onChangeText={handleChangeText}
                     />
-                    <Text>Search</Text>
                 </View>
-                <Text></Text>
+
                 {loading ? (
                     <Text style={styles.loading}>Loading...</Text>
                 ) : text?.trim() !== "" && songs?.length === 0 ? (
@@ -58,7 +57,6 @@ const Search = () => {
 
             <FlashList
                 data={songs}
-                estimatedItemSize={vh * 0.95 || 100}
                 renderItem={({ item }) => (
                     <ListItem ID={"SEARCH"} item={item} text={text} />
                 )}

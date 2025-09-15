@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View } from "react-native";
 import { Tabs } from "expo-router";
 import {
     FontAwesome,
@@ -11,14 +11,14 @@ import TrackControllerMinView from "../../../components/TrackControllerMinView.j
 import { SetupService } from "../../../services/setUpPlayer.ts";
 
 const activeIconSize = 28,
-    inactiveIconSize = 25;
+    inactiveIconSize = 25, tabBarHeight=55;
 
 const Layout = () => {
     
     const playerReady = useSetupPlayer()
     
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "black" }}>
+        <View style={{ flex: 1, backgroundColor: "black" }}>
             <Tabs
                 screenOptions={{
                     tabBarActiveTintColor: "rgb(246,7,135)",
@@ -31,7 +31,7 @@ const Layout = () => {
                         paddingTop: 3,
                         backgroundColor: "#000000d0",
                         borderTopWidth: 0,
-                        height: 43,
+                        height: tabBarHeight,
                         borderTopLeftRadius: 30,
                         borderTopRightRadius: 30
                     }
@@ -80,8 +80,8 @@ const Layout = () => {
                     }}
                 />
             </Tabs>
-            <TrackControllerMinView />
-        </SafeAreaView>
+            <TrackControllerMinView tabBarHeight={tabBarHeight} />
+        </View>
     );
 };
 

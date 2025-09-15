@@ -40,7 +40,6 @@ const Playlists = () => {
                         {loading ? "loading..." : "no playlists."}
                     </Text>
                 }
-                estimatedItemSize={80}
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT,
                     paddingBottom: 150

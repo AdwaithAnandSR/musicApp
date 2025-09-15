@@ -11,6 +11,8 @@ import { useStatus } from "../../store/appState.store.js";
 
 const SEEK_INTERVAL = 5,
     SEEK_REPEAT_MS = 300;
+    
+const playPauseIconSize = 28, nextPrevIconSize = 33
 
 const ControllersContainer = () => {
     const intervalRef = useRef(null);
@@ -50,21 +52,21 @@ const ControllersContainer = () => {
                 onPressOut={stopSeeking}
                 style={styles.btnContainer}
             >
-                <AntDesign name="stepbackward" size={28} color="white" />
+                <AntDesign name="step-backward" size={nextPrevIconSize} color="white" />
             </TouchableOpacity>
             {state === State.Playing || state === State.Buffering ? (
                 <TouchableOpacity
                     onPress={togglePlay}
                     style={styles.btnContainer}
                 >
-                    <FontAwesome5 name="pause" size={28} color="white" />
+                    <FontAwesome5 name="pause" size={playPauseIconSize} color="white" />
                 </TouchableOpacity>
             ) : (
                 <TouchableOpacity
                     onPress={togglePlay}
                     style={styles.btnContainer}
                 >
-                    <FontAwesome5 name="play" size={28} color="white" />
+                    <FontAwesome5 name="play" size={playPauseIconSize} color="white" />
                 </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -76,7 +78,7 @@ const ControllersContainer = () => {
                 onPressOut={stopSeeking}
                 style={styles.btnContainer}
             >
-                <AntDesign name="stepforward" size={28} color="white" />
+            <AntDesign name="step-forward" size={nextPrevIconSize} color="white" />
             </TouchableOpacity>
         </View>
     );
