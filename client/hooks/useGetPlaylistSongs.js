@@ -29,8 +29,6 @@ const useGetPlaylistSongs = ({ page, limit, playlistId }) => {
                 const songs = res.data.songs;
                 setTotal(res.data.totalSongs);
                 
-                console.log(songs)
-                
                 if(songs?.length > 0){
                     const mapped = songs.map(({ _id, cover, ...rest }) => ({
                         id: _id,
@@ -40,9 +38,6 @@ const useGetPlaylistSongs = ({ page, limit, playlistId }) => {
                     await addToPlaylist(playlistId, mapped)
                     if (songs.length < limit) setHasMore(false);
                 }
-                
-                
-                
             } catch (error) {
                 console.log(error);
             } finally {

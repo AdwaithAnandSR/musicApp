@@ -1,7 +1,7 @@
 import { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { usePlaybackState, State } from "react-native-track-player";
+import { State } from "react-native-track-player";
 
 import { usePlayerStore } from "../../../store/player.store.js";
 import { useMultiSelect } from "../../../store/appState.store.js";
@@ -24,7 +24,11 @@ const Home = () => {
     const currentTrackId = usePlayerStore(state => state.currentTrackId);
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
 
-    const { state: playbackState } = usePlaybackState();
+    const isPlayerStoped = usePlayerStore(
+        state => state.currentPlaybackState === State.Stopped
+    );
+    
+    console.log(isPlayerStoped)
 
     const ListFooterComponent = useMemo(
         () => (
@@ -35,10 +39,17 @@ const Home = () => {
         [loading, hasMore]
     );
 
+    const selectedIds = useMemo(
+        () => new Set(selectedSongs.map(s => s.id)),
+        [selectedSongs]
+    );
+
     useEffect(() => {
         console.log("Home mounted");
         return () => console.log("Home unmounted");
     }, []);
+
+    console.log("Home Rerendered");
 
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
@@ -51,19 +62,15 @@ const Home = () => {
             />
 
             <AnimatedFlashList
-                data={allSongs.map(item => ({
-                    ...item,
-                    isCurrentPlaying:
-                        currentTrackId === item.id &&
-                        playbackState !== State.Stopped,
-                    isSelected: selectedSongs.some(song => song.id === item.id)
-                }))}
+                data={allSongs}
                 renderItem={({ item }) => (
                     <ListItem
                         ID="HOME"
                         item={item}
-                        isCurrentPlaying={item.isCurrentPlaying}
-                        isSelected={item.isSelected}
+                        isCurrentPlaying={
+                            currentTrackId === item.id && !isPlayerStoped
+                        }
+                        isSelected={selectedIds.has(item.id)}
                     />
                 )}
                 showsVerticalScrollIndicator={false}
