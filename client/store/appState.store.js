@@ -3,7 +3,15 @@ import { isAuthenticated as isAuth } from "../services/storage.js";
 
 export const useAppStatus = create(set => ({
     isAuthenticated: isAuth || false,
-    setIsAuthenticated: val => set(() => ({ isAuthenticated: val }))
+    currentSelectedPlaylist: {},
+    isTimerSelecting: false,
+
+    setIsAuthenticated: val => set(() => ({ isAuthenticated: val })),
+    setCurrentSelectedPlaylist: playlist =>
+        set({ currentSelectedPlaylist: playlist }),
+
+    toggleTimerSelect: () =>
+        set(state => ({ isTimerSelecting: !state.isTimerSelecting }))
 }));
 
 export const useMultiSelect = create((set, get) => ({

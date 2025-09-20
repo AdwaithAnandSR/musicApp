@@ -11,7 +11,9 @@ import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 
-import { useMultiSelect } from "../../store/appState.store.js";
+import { useMultiSelect, useAppStatus } from "../../store/appState.store.js";
+
+
 import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.js";
 import LongPressOptions from "./LongPressOptions.jsx";
 
@@ -23,18 +25,17 @@ const ListItem = ({ item }) => {
         state => state.selectedSongs?.length > 0
     );
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
+    const setCurrentSelectedPlaylist = useAppStatus(state=> state.setCurrentSelectedPlaylist)
     const reset = useMultiSelect(state => state.reset);
 
     const handleLongPress = () => {
         Haptics.impactAsync("light");
         setShowOptions(true);
     };
-
+    
     const handleRoute = () => {
-        router.push({
-            pathname: `secure//playlists/${item._id}/PlaylistSongs`,
-            params: { playlistName: item?.name }
-        });
+        setCurrentSelectedPlaylist(item)
+        router.push("secure/playlists/PlaylistSongs");
     };
 
     if (!item?._id) return;
@@ -91,7 +92,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: vw * 0.05,
         alignItems: "center",
         justifyContent: "space-between",
-        flexDirection: "row"
+        flexDirection: "row",
+        marginBottom: 3
     },
     ImgNameCont: {
         flexDirection: "row",
@@ -101,6 +103,8 @@ const styles = StyleSheet.create({
     imageContainer: {
         width: vh * 0.06,
         height: vh * 0.06,
+        minHeight: 50, 
+        minWidth: 50,
         borderRadius: vh * 0.5,
         overflow: "hidden"
     },

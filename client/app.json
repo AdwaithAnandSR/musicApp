@@ -50,7 +50,8 @@
             "expo-sqlite",
             "expo-audio",
             "expo-font",
-            "expo-web-browser"
+            "expo-web-browser",
+            "./plugins/icon.plugin.js"
         ],
         "experiments": {
             "typedRoutes": true

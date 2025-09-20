@@ -7,9 +7,10 @@ import {
     TouchableOpacity
 } from "react-native";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
-import TrackPlayer from "react-native-track-player";
+import TrackPlayer, { useActiveTrack } from "react-native-track-player";
 
 import { useStatus } from "../../store/appState.store.js";
+import { usePlayerStore } from "../../store/player.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -25,7 +26,7 @@ const OptionsContainer = () => {
     const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
     const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
     const setShowSyncedLyric = useStatus(state => state.setShowSyncedLyric);
-    const track = TrackPlayer.getActiveTrack();
+    const track = usePlayerStore(state => state.currentTrack);
 
     const artists = track?.artist?.split(",") || [];
 
@@ -38,31 +39,32 @@ const OptionsContainer = () => {
     return (
         <View style={styles.optionsContainer}>
             <View style={styles.left}>
-                {!track?.artist || track?.artist?.toLowerCase() != "unknown" && (
-                    <TouchableOpacity
-                        onPress={handleShowArtist}
-                        style={[
-                            styles.options,
-                            { borderColor: activeLyricColor }
-                        ]}
-                    >
-                        <Feather
-                            name="user"
-                            size={15}
-                            color={activeLyricColor}
-                        />
-                        <Text
-                            adjustsFontSizeToFit
-                            numberOfLines={1}
+                {!track?.artist ||
+                    (track?.artist?.toLowerCase() != "unknown" && (
+                        <TouchableOpacity
+                            onPress={handleShowArtist}
                             style={[
-                                styles.optionsText,
-                                { color: activeLyricColor }
+                                styles.options,
+                                { borderColor: activeLyricColor }
                             ]}
                         >
-                            {artists[artistIndex]?.trim()}
-                        </Text>
-                    </TouchableOpacity>
-                )}
+                            <Feather
+                                name="user"
+                                size={15}
+                                color={activeLyricColor}
+                            />
+                            <Text
+                                adjustsFontSizeToFit
+                                numberOfLines={1}
+                                style={[
+                                    styles.optionsText,
+                                    { color: activeLyricColor }
+                                ]}
+                            >
+                                {artists[artistIndex]?.trim()}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
             </View>
 
             <View style={styles.right}>

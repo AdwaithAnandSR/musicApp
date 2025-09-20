@@ -1,6 +1,7 @@
 import { router } from "expo-router";
 import TrackPlayer from "react-native-track-player"
 
+// "../app/secure/(tabs)/(trackFullView)/TrackControllerFullView.jsx"
 
 const handleSwipeEnd = async (
     e,

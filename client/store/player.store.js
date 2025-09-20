@@ -1,11 +1,18 @@
 import { create } from "zustand";
 import TrackPlayer, { Capability, Event } from "react-native-track-player";
+import { storage } from "../services/storage.js";
 
 export const usePlayerStore = create((set, get) => ({
-    playlists: { HOME: [], SEARCH: [] },
+    playlists: {
+        HOME: [],
+        SEARCH: []
+    },
     currentPlaylist: null,
     currentTrackId: null,
     currentPlaybackState: null,
+    currentTrack: {},
+    repeatMode: "off",
+    timer: null,
 
     addToPlaylist: async (playlist, tracks) => {
         set(state => ({
@@ -27,7 +34,7 @@ export const usePlayerStore = create((set, get) => ({
         }));
     },
 
-    setPlaylist: async playlist => {
+    setPlaylist: async (playlist, trackId) => {
         const state = get();
 
         if (state.currentPlaylist === playlist) return;
@@ -46,6 +53,7 @@ export const usePlayerStore = create((set, get) => ({
     },
 
     playTrack: async trackId => {
+        set({ currentTrackId: trackId });
         const state = get();
         const playlist = state.playlists[state.currentPlaylist] || [];
         const trackIndex = playlist.findIndex(t => t.id === trackId);
@@ -53,10 +61,20 @@ export const usePlayerStore = create((set, get) => ({
 
         await TrackPlayer.skip(trackIndex);
         await TrackPlayer.play();
-        set({ currentTrackId: trackId });
-    }
+    },
+
+    updateRepeatMode: async mode => set({ repeatMode: mode }),
+
+    setTimer: async time => set({ timer: time })
 }));
 
 TrackPlayer.addEventListener(Event.PlaybackState, ({ state }) => {
-    usePlayerStore.getState().currentPlaybackState = state;
+    usePlayerStore.setState({ currentPlaybackState: state });
+});
+
+TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, ({ track }) => {
+    if (usePlayerStore.getState().currentTrackId === null) return;
+    usePlayerStore.setState({ currentTrackId: track?.id });
+
+    usePlayerStore.setState({ currentTrack: track });
 });

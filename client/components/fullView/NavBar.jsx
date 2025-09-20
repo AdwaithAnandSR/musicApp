@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Entypo, Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { FlashList } from "@shopify/flash-list";
 
 import { useGlobalSongs } from "../../store/list.store.js";
 import TrackPlayer from "react-native-track-player";
@@ -18,44 +19,49 @@ import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.j
 const { height: vh, width: vw } = Dimensions.get("window");
 const activeLyricColor = "rgb(246,7,135)";
 
+const MenuItem = ({ label, icon, onPress, onLongPress }) => (
+    <TouchableOpacity
+        onPress={onPress}
+        onLongPress={onLongPress}
+        style={styles.menuItem}
+    >
+        {icon}
+        <Text style={styles.menuText}>{label}</Text>
+    </TouchableOpacity>
+);
+
 const MenuOptions = ({ setShowMenu }) => {
     const playlists = useGlobalSongs(state => state.playlists);
     const track = TrackPlayer.getActiveTrack();
 
     const [showPlaylist, setShowPlaylist] = useState(false);
 
-    const Playlists = () => (
-        <ScrollView>
-            {playlists.map(item => (
-                <TouchableOpacity
-                    key={item._id}
-                    onPress={() =>
-                        addSongsToPlaylist({
-                            id: item._id,
-                            selectedSongs: [track],
-                            reset: () => setShowMenu(false)
-                        })
-                    }
-                    style={styles.menuItem}
-                >
-                    <Text style={styles.menuText}> {item.name}</Text>
-                </TouchableOpacity>
-            ))}
-        </ScrollView>
-    );
-
     return (
         <View style={styles.menu}>
             {showPlaylist ? (
-                <Playlists />
+                <FlashList
+                    data={playlists}
+                    estimatedItemSize={50}
+                    renderItem={({ item }) => (
+                        <MenuItem
+                            key={item._id}
+                            label={item.name}
+                            onLongPress={() =>
+                                addSongsToPlaylist({
+                                    id: item._id,
+                                    selectedSongs: [track],
+                                    reset: () => setShowMenu(false)
+                                })
+                            }
+                        />
+                    )}
+                />
             ) : (
-                <TouchableOpacity
+                <MenuItem
+                    label="Playlist"
+                    icon={<Entypo name="plus" size={20} color="white" />}
                     onPress={() => setShowPlaylist(true)}
-                    style={styles.menuItem}
-                >
-                    <Entypo name="plus" size={20} color="white" />
-                    <Text style={styles.menuText}>Playlist</Text>
-                </TouchableOpacity>
+                />
             )}
         </View>
     );
@@ -125,7 +131,6 @@ const styles = StyleSheet.create({
         borderColor: "#323232",
         borderWidth: 1,
         minWidth: vw * 0.4,
-        maxHeight: vh * 0.3,
         maxWidth: vw * 0.7,
         borderRadius: 23,
         position: "absolute",

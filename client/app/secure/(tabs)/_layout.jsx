@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { View } from "react-native";
 import { Tabs } from "expo-router";
+import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
+
 import {
     FontAwesome,
     Ionicons,
@@ -11,76 +13,29 @@ import TrackControllerMinView from "../../../components/TrackControllerMinView.j
 import { SetupService } from "../../../services/setUpPlayer.ts";
 
 const activeIconSize = 28,
-    inactiveIconSize = 25, tabBarHeight=55;
+    inactiveIconSize = 25,
+    tabBarHeight = 55,
+    tabBarActiveTintColor = "rgb(246,7,135)";
 
 const Layout = () => {
-    
-    const playerReady = useSetupPlayer()
-    
+    const playerReady = useSetupPlayer();
     return (
-        <View style={{ flex: 1, backgroundColor: "black" }}>
-            <Tabs
-                screenOptions={{
-                    tabBarActiveTintColor: "rgb(246,7,135)",
-                    tabBarHideOnKeyboard: true,
-                    tabBarShowLabel: false,
-                    headerShown: false,
-                    tabBarStyle: {
-                        position: "absolute",
-                        zIndex: 99999,
-                        paddingTop: 3,
-                        backgroundColor: "#000000d0",
-                        borderTopWidth: 0,
-                        height: tabBarHeight,
-                        borderTopLeftRadius: 30,
-                        borderTopRightRadius: 30
-                    }
-                }}
-            >
-                <Tabs.Screen
-                    name="Home"
-                    options={{
-                        tabBarIcon: ({ color, focused }) => (
-                            <FontAwesome
-                                name="music"
-                                size={
-                                    focused ? activeIconSize : inactiveIconSize
-                                }
-                                color={color}
-                            />
-                        )
-                    }}
-                />
-                <Tabs.Screen
-                    name="Search"
-                    options={{
-                        tabBarIcon: ({ color, focused }) => (
-                            <Ionicons
-                                name="search"
-                                size={
-                                    focused ? activeIconSize : inactiveIconSize
-                                }
-                                color={color}
-                            />
-                        )
-                    }}
-                />
-                <Tabs.Screen
-                    name="playlists"
-                    options={{
-                        tabBarIcon: ({ color, focused }) => (
-                            <MaterialCommunityIcons
-                                name="playlist-music"
-                                size={
-                                    focused ? activeIconSize : inactiveIconSize
-                                }
-                                color={color}
-                            />
-                        )
-                    }}
-                />
-            </Tabs>
-            <TrackControllerMinView tabBarHeight={tabBarHeight} />
+        <View style={{ flex: 1, backgroundColor: "black"}}>
+        <NativeTabs backgroundColor="black">
+            <NativeTabs.Trigger name="Home">
+                <Label>Home</Label>
+                <Icon drawable="ic_music" />
+            </NativeTabs.Trigger>
+            <NativeTabs.Trigger name="Search">
+                <Label>Search</Label>
+                <Icon drawable="ic_search" />
+            </NativeTabs.Trigger>
+            <NativeTabs.Trigger name="playlists">
+                <Label>Playlists</Label>
+                <Icon drawable="ic_queue" />
+            </NativeTabs.Trigger>
+        </NativeTabs>
+        <TrackControllerMinView tabBarHeight={100} />
         </View>
     );
 };

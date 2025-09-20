@@ -14,7 +14,7 @@ const Search = () => {
     const typingTimeout = useRef(null);
 
     const songs = usePlayerStore(state => state.playlists["SEARCH"]);
-    
+
     const handleChangeText = text => {
         setText(text);
         setLoading(true);
@@ -42,7 +42,7 @@ const Search = () => {
                         value={text}
                         returnKeyType="search"
                         onSubmitEditing={async () => {
-                            await handleSearch(text)
+                            await handleSearch(text);
                         }}
                         onChangeText={handleChangeText}
                     />
@@ -56,7 +56,7 @@ const Search = () => {
             </View>
 
             <FlashList
-                data={songs}
+                data={songs.slice(0, 100)}
                 renderItem={({ item }) => (
                     <ListItem ID={"SEARCH"} item={item} text={text} />
                 )}
@@ -70,10 +70,9 @@ const Search = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black",
         position: "relative",
         top: 0,
-        paddingTop: 25
+        paddingTop: 30
     },
     searchInput: {
         width: vw * 0.9,
@@ -90,7 +89,8 @@ const styles = StyleSheet.create({
     loading: {
         color: "#fac3ec",
         fontWeight: 900,
-        textAlign: "center"
+        textAlign: "center",
+        marginTop: 10
     }
 });
 
