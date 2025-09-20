@@ -8,13 +8,19 @@ const api = Constants.expoConfig.extra.clientApi;
 const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
     try {
         Toast.show("please wait...", "pending");
-
+        
+        selectedSongs = selectedSongs.map(({ id, artwork, ...rest }) => ({
+            _id: id,
+            cover: artwork,
+            ...rest
+        }));
+        
         const res = await axios.post(`${api}/playlist/add`, {
             id,
             selectedSongs
         });
-        
-        if(selectedSongs?.length == 1) reset();
+
+        if (selectedSongs?.length == 1) reset();
 
         if (res.status === 200) {
             reset();

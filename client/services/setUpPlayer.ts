@@ -6,7 +6,7 @@ import TrackPlayer, {
 
 export const DefaultRepeatMode = RepeatMode.Off;
 export const DefaultAudioServiceBehaviour =
-    AppKilledPlaybackBehavior.StopPlaybackAndRemoveNotification;
+    AppKilledPlaybackBehavior.ContinuePlayback;
 
 const setupPlayer = async (
     options: Parameters<typeof TrackPlayer.setupPlayer>[0]
