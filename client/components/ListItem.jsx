@@ -20,20 +20,28 @@ const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
-const ListItem = ({ item, ID, text = "", isSelected, isCurrentPlaying }) => {
+const ListItem = ({ item, ID, text = "" }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
     const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
 
-    if (!item?.url) return null;
+    const isCurrentPlaying = usePlayerStore(
+        state =>
+            state.currentPlaybackState !== State.Stopped &&
+            state.currentTrackId === item.id
+    );
 
-    console.log("\nlist item: ", item.title, isSelecting);
+    const isSelected = useMultiSelect(state =>
+        state.selectedSongs.some(song => song.id === item.id)
+    );
+
+    if (!item?.url) return null;
 
     const handleShortPress = async () => {
         if (!isSelecting) {
             resetShowLyrics();
-            await setPlaylist(ID);
-            setTimeout(async() => await playTrack(item.id), 50);
+            await setPlaylist(ID, item.id);
+            setTimeout(async () => await playTrack(item.id), 50);
         } else {
             updateSelected(item);
         }
@@ -115,11 +123,4 @@ const styles = StyleSheet.create({
     }
 });
 
-// rerender only if id, isSelected or isCurrentPlaying changes
-export default React.memo(
-    ListItem,
-    (prev, next) =>
-        prev.item.id === next.item.id &&
-        prev.isSelected === next.isSelected &&
-        prev.isCurrentPlaying === next.isCurrentPlaying
-);
+export default ListItem;

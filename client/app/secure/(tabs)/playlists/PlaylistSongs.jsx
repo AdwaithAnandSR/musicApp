@@ -2,36 +2,38 @@ import { useState, useRef } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { useGlobalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
-import { usePlaybackState, State } from "react-native-track-player";
 
-import useGetPlaylistSongs from "../../../../../hooks/useGetPlaylistSongs.js";
-import { usePlayerStore } from "../../../../../store/player.store.js"
-import { useMultiSelect } from "../../../../../store/appState.store.js";
-
-import ListItem from "../../../../../components/ListItem.jsx";
-import Header from "../../../../../components/ListHeader.jsx";
+import useGetPlaylistSongs from "../../../../hooks/useGetPlaylistSongs.js";
+import { usePlayerStore } from "../../../../store/player.store.js";
+import { useAppStatus } from "../../../../store/appState.store.js";
+import ListItem from "../../../../components/ListItem.jsx";
+import Header from "../../../../components/ListHeader.jsx";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
-const limit = 50,
+const limit = 10,
     HEADER_HEIGHT = 250;
+    
 
 const PlaylistSongs = () => {
     const [page, setPage] = useState(1);
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    const { playlistId, playlistName } = useGlobalSearchParams();
+    const playlistId = useAppStatus(
+        state => state.currentSelectedPlaylist?._id
+    );
+    const playlistName = useAppStatus(
+        state => state.currentSelectedPlaylist?.name
+    );
+
+    const songs = usePlayerStore(state => state.playlists[playlistId]);
+
     const { loading, hasMore, total } = useGetPlaylistSongs({
         playlistId,
         page,
-        limit,
+        limit
     });
-    
-    const songs = usePlayerStore(state => state.playlists[playlistId])
-    const currentTrackId = usePlayerStore(state => state.currentTrackId);
-    const selectedSongs = useMultiSelect(state => state.selectedSongs);
-    
-    const { state: playbackState } = usePlaybackState();
 
+    
     return (
         <View style={styles.container}>
             <Header
@@ -42,22 +44,12 @@ const PlaylistSongs = () => {
             />
 
             <AnimatedFlashList
-                data={songs?.map(item => ({
-                    ...item,
-                    isCurrentPlaying:
-                        currentTrackId === item.id &&
-                        playbackState !== State.Stopped,
-                    isSelected: selectedSongs.some(song => song.id === item.id)
-                }))}
+                data={songs}
                 renderItem={({ item }) => (
-                    <ListItem
-                        ID={playlistId}
-                        item={item}
-                        isCurrentPlaying={item.isCurrentPlaying}
-                        isSelected={item.isSelected}
-                    />
+                    <ListItem ID={playlistId} item={item} />
                 )}
                 onEndReachedThreshold={0.5}
+                showsVerticalScrollIndicator={false}
                 ListFooterComponent={
                     <Text style={styles.loader}>
                         {loading && hasMore

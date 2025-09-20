@@ -21,35 +21,12 @@ const Home = () => {
     const { loading, hasMore } = useGetAllSongs({ limit: LIMIT, page });
 
     const allSongs = usePlayerStore(state => state.playlists["HOME"]);
-    const currentTrackId = usePlayerStore(state => state.currentTrackId);
-    const selectedSongs = useMultiSelect(state => state.selectedSongs);
 
-    const isPlayerStoped = usePlayerStore(
-        state => state.currentPlaybackState === State.Stopped
+    const ListFooterComponent = () => (
+        <Text style={styles.text}>
+            {loading ? "Loading..." : hasMore ? null : "No more songs"}
+        </Text>
     );
-    
-    console.log(isPlayerStoped)
-
-    const ListFooterComponent = useMemo(
-        () => (
-            <Text style={styles.text}>
-                {loading ? "Loading..." : hasMore ? null : "No more songs"}
-            </Text>
-        ),
-        [loading, hasMore]
-    );
-
-    const selectedIds = useMemo(
-        () => new Set(selectedSongs.map(s => s.id)),
-        [selectedSongs]
-    );
-
-    useEffect(() => {
-        console.log("Home mounted");
-        return () => console.log("Home unmounted");
-    }, []);
-
-    console.log("Home Rerendered");
 
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
@@ -63,16 +40,7 @@ const Home = () => {
 
             <AnimatedFlashList
                 data={allSongs}
-                renderItem={({ item }) => (
-                    <ListItem
-                        ID="HOME"
-                        item={item}
-                        isCurrentPlaying={
-                            currentTrackId === item.id && !isPlayerStoped
-                        }
-                        isSelected={selectedIds.has(item.id)}
-                    />
-                )}
+                renderItem={({ item }) => <ListItem ID="HOME" item={item} />}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={item => item.id}
                 onEndReachedThreshold={0.5}

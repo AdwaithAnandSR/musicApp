@@ -10,7 +10,7 @@ import { useGlobalSongs } from "../../../../store/list.store.js";
 import useGetPlaylists from "../../../../hooks/useGetPlaylists.js";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
-const HEADER_HEIGHT = 100;
+const HEADER_HEIGHT = 250;
 
 const Playlists = () => {
     const playlists = useGlobalSongs(state => state.playlists);
@@ -24,11 +24,12 @@ const Playlists = () => {
             <Header
                 title="Playlists"
                 scrollY={scrollY}
-                containerStyles={{ height: HEADER_HEIGHT }}
+                containerStyles={{ height: HEADER_HEIGHT,  }}
             />
             <AnimatedFlashList
                 data={playlists}
                 renderItem={({ item }) => <ListItem item={item} />}
+                showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <Text
                         style={{
@@ -58,7 +59,7 @@ const Playlists = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black"
+        backgroundColor: "black",
     }
 });
 

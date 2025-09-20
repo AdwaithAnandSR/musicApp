@@ -4,114 +4,118 @@ import Constants from "expo-constants";
 
 import { useGlobalSongs } from "../store/list.store.js";
 import { usePlayerStore } from "../store/player.store.js";
+import { useAppStatus } from "../store/appState.store.js";
+
 import { userId } from "../services/storage.js";
 
 let api = Constants.expoConfig.extra.clientApi;
 
 export async function PlaybackService() {
-    TrackPlayer.addEventListener(Event.RemotePlayPause, async () => {
-        try {
-            const { state } = await TrackPlayer.getPlaybackState();
-            if (state === State.Playing) await TrackPlayer.pause();
-            else await TrackPlayer.play();
-        } catch (e) {
-            console.log(e);
-        }
-    });
+    const subs = [];
 
-    TrackPlayer.addEventListener(Event.RemoteNext, async () => {
-        console.log("Event.RemoteNext");
-        await TrackPlayer.skipToNext();
-    });
-
-    TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-        console.log("Event.RemotePrevious");
-        TrackPlayer.skipToPrevious();
-    });
-
-    TrackPlayer.addEventListener(Event.RemoteJumpForward, async event => {
-        console.log("Event.RemoteJumpForward", event);
-        TrackPlayer.seekBy(event.interval);
-    });
-
-    TrackPlayer.addEventListener(Event.RemoteJumpBackward, async event => {
-        console.log("Event.RemoteJumpBackward", event);
-        TrackPlayer.seekBy(-event.interval);
-    });
-
-    TrackPlayer.addEventListener(Event.RemoteSeek, event => {
-        console.log("Event.RemoteSeek", event);
-        TrackPlayer.seekTo(event.position);
-    });
-
-    TrackPlayer.addEventListener(
-        Event.PlaybackActiveTrackChanged,
-        async event => {
+    subs.push(
+        TrackPlayer.addEventListener(Event.RemotePlayPause, async () => {
             try {
-                
-                usePlayerStore.getState().currentTrackId = event.track?.id
-                
-                // load more song if playlist ends 
-                if (
-                    usePlayerStore.getState().playlists[
-                        usePlayerStore.getState().currentPlaylist
-                    ]?.length -
-                        1 ===
-                    event.index
-                ) {
-                    const res = await axios.post(`${api}/getGlobalSongs`, {
-                        limit: 10,
-                        allPages: useGlobalSongs.getState().allPages,
-                        userId
-                    });
-                    const { availablePages, musics, page } = res.data;
-
-                    useGlobalSongs.getState().updateAllPages(page);
-
-                    if (musics.length > 0) {
-                        const mapped = musics.map(
-                            ({ _id, cover, ...rest }) => ({
-                                id: _id,
-                                artwork: cover,
-                                ...rest
-                            })
-                        );
-
-                        await usePlayerStore
-                            .getState()
-                            .addToPlaylist(
-                                usePlayerStore.getState().currentPlaylist,
-                                mapped
-                            );
-                    }
-                }
+                const { state } = await TrackPlayer.getPlaybackState();
+                if (state === State.Playing) await TrackPlayer.pause();
+                else await TrackPlayer.play();
             } catch (e) {
-                console.error(e);
+                console.log(e);
             }
-        }
+        })
     );
 
-    // TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, event => {
-    //     // console.log("Event.PlaybackProgressUpdated");
-    // });
+    subs.push(
+        TrackPlayer.addEventListener(Event.RemoteNext, async () => {
+            await TrackPlayer.skipToNext();
+        })
+    );
 
-    // TrackPlayer.addEventListener(Event.PlaybackPlayWhenReadyChanged, event => {
-    //     // console.log("Event.PlaybackPlayWhenReadyChanged", event);
-    // });
+    subs.push(
+        TrackPlayer.addEventListener(Event.RemotePrevious, () => {
+            TrackPlayer.skipToPrevious();
+        })
+    );
 
-    // TrackPlayer.addEventListener(Event.PlaybackState, event => {
-    //     // console.log("Event.PlaybackState", event);
-    // });
+    subs.push(
+        TrackPlayer.addEventListener(Event.RemoteJumpForward, async event => {
+            TrackPlayer.seekBy(event.interval);
+        })
+    );
 
-    // TrackPlayer.addEventListener(Event.MetadataChapterReceived, event => {
-    //     // console.log("Event.MetadataChapterReceived");
-    // });
+    subs.push(
+        TrackPlayer.addEventListener(Event.RemoteJumpBackward, async event => {
+            TrackPlayer.seekBy(-event.interval);
+        })
+    );
 
-    // TrackPlayer.addEventListener(Event.MetadataTimedReceived, event => {
-    //     // console.log("Event.MetadataTimedReceived");
-    // });
+    subs.push(
+        TrackPlayer.addEventListener(Event.RemoteSeek, event => {
+            TrackPlayer.seekTo(event.position);
+        })
+    );
 
-    // TrackPlayer.addEventListener(Event.MetadataCommonReceived, event => {
-    //     // console.log("Event.MetadataCommonReceived");
-    // });
+    subs.push(
+        TrackPlayer.addEventListener(
+            Event.PlaybackActiveTrackChanged,
+            async event => {
+                try {
+                    if (
+                        usePlayerStore.getState().playlists[
+                            usePlayerStore.getState().currentPlaylist
+                        ]?.length -
+                            1 ===
+                        event.index
+                    ) {
+
+                        const res = await axios.post(`${api}/getGlobalSongs`, {
+                            limit: 10,
+                            allPages: useGlobalSongs.getState().allPages,
+                            userId
+                        });
+                        const { availablePages, musics, page } = res.data;
+
+                        useGlobalSongs.getState().updateAllPages(page);
+
+                        if (musics.length > 0) {
+                            const mapped = musics.map(
+                                ({ _id, cover, ...rest }) => ({
+                                    id: _id,
+                                    artwork: cover,
+                                    ...rest
+                                })
+                            );
+
+                            await usePlayerStore
+                                .getState()
+                                .addToPlaylist(
+                                    usePlayerStore.getState().currentPlaylist,
+                                    mapped
+                                );
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        )
+    );
+
+    subs.push(
+        TrackPlayer.addEventListener(
+            Event.PlaybackProgressUpdated,
+            async event => {
+                const timer = usePlayerStore.getState().timer;
+                if (timer != null && timer < Date.now()) {
+                    await TrackPlayer.stop();
+                    usePlayerStore.getState().setTimer(null);
+                }
+            }
+        )
+    );
+
+    // Return cleanup (TrackPlayer v5 style)
+    return () => {
+        subs.forEach(sub => sub.remove());
+    };
 }

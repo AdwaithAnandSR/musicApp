@@ -10,14 +10,15 @@ import {
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
-import { useActiveTrack } from "react-native-track-player";
 
 import { useStatus } from "../../../store/appState.store.js";
+import { usePlayerStore } from "../../../store/player.store.js";
 
 import Controllers from "../../../components/fullView/ControllersContainer.jsx";
 import SliderContainer from "../../../components/fullView/SliderContainer.jsx";
 import Lyrics from "../../../components/fullView/LyricsView.jsx";
 import NavBar from "../../../components/fullView/NavBar.jsx";
+import Footer from "../../../components/fullView/Footer.jsx";
 import OptionsContainer from "../../../components/fullView/OptionsContainer.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
@@ -28,11 +29,11 @@ const activeLyricColor = "rgb(246,7,135)";
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
-    const showLyrics1 = useStatus(state => state.showLyrics1);
-    const showLyrics2 = useStatus(state => state.showLyrics2);
+    const showLyrics = useStatus(
+        state => state.showLyrics1 || state.showLyrics2
+    );
 
-    const track = useActiveTrack()
-    
+    const track = usePlayerStore(state => state.currentTrack);
 
     useEffect(() => {
         if (track && track.artwork) {
@@ -43,7 +44,7 @@ const TrackControllerFullView = () => {
             }).then(setColors);
         }
     }, [track]);
-    
+
     if (!track) return;
 
     return (
@@ -83,7 +84,7 @@ const TrackControllerFullView = () => {
                     filter="contrast(1.25) brightness(0.8)"
                     style={{ width: "100%", height: "100%" }}
                 />
-                {(showLyrics1 || showLyrics2) && <Lyrics track={track} />}
+                {showLyrics && <Lyrics track={track} />}
             </View>
 
             {/* slider */}
@@ -95,6 +96,9 @@ const TrackControllerFullView = () => {
 
             {/* controllers */}
             <Controllers />
+            
+            {/* footer */}
+            <Footer />
         </View>
     );
 };
@@ -102,7 +106,7 @@ const TrackControllerFullView = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#000000"
+        backgroundColor: "black"
     },
     title: {
         color: "white",

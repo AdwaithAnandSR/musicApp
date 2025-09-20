@@ -8,9 +8,14 @@ import {
     Image
 } from "react-native";
 import LottieView from "lottie-react-native";
-import TrackPlayer, { useActiveTrack, State, usePlaybackState } from "react-native-track-player";
+import TrackPlayer, {
+    useActiveTrack,
+    State,
+    usePlaybackState
+} from "react-native-track-player";
 
 import handleSwipe from "../controllers/handleMinViewSwipes.js";
+import { usePlayerStore } from "../store/player.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
@@ -27,8 +32,15 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
     const [swipeStartPos, setSwipeStartPos] = useState({});
     const [isVisible, setIsVisible] = useState(true);
 
-    const { state } = usePlaybackState()
     const track = useActiveTrack();
+    const isStopped = usePlayerStore(
+        state => state.currentPlaybackState === State.Stopped
+    );
+    const isPlaying = usePlayerStore(
+        state =>
+            state.currentPlaybackState !== State.Stopped &&
+            state.currentPlaybackState !== State.Paused
+    );
 
     const arr = [0, 0.2, 0.4, 0.6, 0.8, 1];
     const randomElem = arr[Math.floor(Math.random() * arr.length)];
@@ -71,9 +83,10 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
         // Cleanup to stop animation on component unmount
         return () => loopAnimation.stop();
     }, [colorAnimation]);
-    
-    if (!track || !track.url || !isVisible || state === State.Stopped) return;
 
+    if (!track || !track.url || !isVisible || isStopped) return;
+
+    
     return (
         <TouchableOpacity
             activeOpacity={0.9}
@@ -100,7 +113,7 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                     transition={1000}
                 />
 
-                {(state === State.Playing || state === State.Buffering) && (
+                {isPlaying && (
                     <LottieView
                         source={require("../assets/animations/musicPlayingAnim2.json")}
                         autoPlay
@@ -114,12 +127,53 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
             </Text>
         </TouchableOpacity>
     );
+    // return (
+    //     <TouchableOpacity
+    //         activeOpacity={0.9}
+    //         onPressIn={e =>
+    //             setSwipeStartPos({
+    //                 x: e.nativeEvent.pageX,
+    //                 y: e.nativeEvent.pageY
+    //             })
+    //         }
+    //         onPressOut={e => handleSwipe(e, swipeStartPos)}
+    //         style={[styles.container, { bottom: tabBarHeight }]}
+    //     >
+    //         <Animated.View style={[styles.gradient, { backgroundColor }]} />
+    //         <TouchableOpacity onPress={togglePlay} style={styles.imgContainer}>
+    //             <Image
+    //                 source={
+    //                     track?.artwork
+    //                         ? { uri: track.artwork }
+    //                         : require("../assets/images/images.jpeg")
+    //                 }
+    //                 style={{ width: "100%", height: "100%" }}
+    //                 placeholder={{ blurhash }}
+    //                 contentFit="cover"
+    //                 transition={1000}
+    //             />
+
+    //             {isPlaying && (
+    //                 <LottieView
+    //                     source={require("../assets/animations/musicPlayingAnim2.json")}
+    //                     autoPlay
+    //                     loop
+    //                     style={styles.anim}
+    //                 />
+    //             )}
+    //         </TouchableOpacity>
+    //         <Text numberOfLines={2} style={styles.title}>
+    //             {track?.title}
+    //         </Text>
+    //     </TouchableOpacity>
+    // );
 };
 
 const styles = StyleSheet.create({
     container: {
         width: "98%",
         height: vh * 0.083,
+        minHeight: 60,
         marginLeft: "1%",
         alignItems: "center",
         flexDirection: "row",
@@ -147,6 +201,8 @@ const styles = StyleSheet.create({
     imgContainer: {
         width: vh * 0.06,
         height: vh * 0.06,
+        minHeight: 40,
+        minWidth: 40,
         borderRadius: vh * 0.5,
         overflow: "hidden",
         marginLeft: vw * 0.03,

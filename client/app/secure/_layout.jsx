@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { View } from "react-native"
+import { View } from "react-native";
 import { Stack } from "expo-router";
 import { SQLiteProvider } from "expo-sqlite";
 
@@ -22,10 +22,12 @@ const _layout = () => {
                         <Stack.Screen
                             name="(trackFullView)/TrackControllerFullView"
                             options={{
+                                presentation: "modal", // 👈 key change
                                 animation: "slide_from_bottom",
-                                animationDuration: 50
+                                headerShown: false
                             }}
                         />
+
                         <Stack.Screen
                             name="others/AddPlaylist"
                             options={{

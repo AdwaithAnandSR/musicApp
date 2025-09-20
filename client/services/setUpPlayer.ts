@@ -48,7 +48,6 @@ export const SetupService = async () => {
             progressUpdateEventInterval: 2
         });
         await TrackPlayer.setRepeatMode(DefaultRepeatMode);
-        console.log("player setupped 🌇");
     } catch (error) {
         console.error("Error setting up player:", error);
         throw error;

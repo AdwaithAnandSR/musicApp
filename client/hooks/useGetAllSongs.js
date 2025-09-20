@@ -23,7 +23,6 @@ const useGetAllSongs = ({ limit, page }) => {
     const { updateAllPages } = useGlobalSongs();
 
     const fetchSongs = async () => {
-        console.log('fetching songs...')
         setLoading(true);
         try {
             const res = await axios.post(`${api}/getGlobalSongs`, {
@@ -50,7 +49,9 @@ const useGetAllSongs = ({ limit, page }) => {
                     ...rest
                 }));
                 addToPlaylist(PLAYLIST_NAME, mapped);
-                console.log("added to playlist")
+                if(page == 1){
+                    storage.set("HOME", JSON.stringify(data));
+                }
             }
         } catch (err) {
             if (!err.response) {

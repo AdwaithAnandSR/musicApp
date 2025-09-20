@@ -22,8 +22,8 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         position: "absolute",
-        bottom: vh * 0.18,
-        right: vw * 0.08
+        bottom: vh * 0.21,
+        right: vw * 0.03
     }
 });
 
