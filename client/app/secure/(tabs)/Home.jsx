@@ -13,7 +13,7 @@ import Header from "../../../components/ListHeader.jsx";
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 const Home = () => {
-    const LIMIT = 10,
+    const LIMIT = 50,
         HEADER_HEIGHT = 250;
     const scrollY = useRef(new Animated.Value(0)).current;
     const [page, setPage] = useState(1);

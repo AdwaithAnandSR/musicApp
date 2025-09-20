@@ -15,16 +15,31 @@ export const usePlayerStore = create((set, get) => ({
     timer: null,
 
     addToPlaylist: async (playlist, tracks) => {
+        const currentTracks = get().playlists[playlist] || [];
+
+        // Combine and remove duplicates by id
+        const allTracks = [...currentTracks, ...tracks];
+        const seen = new Set();
+        const updatedTracks = allTracks.filter(track => {
+            if (seen.has(track.id)) return false;
+            seen.add(track.id);
+            return true;
+        });
+
         set(state => ({
             playlists: {
                 ...state.playlists,
-                [playlist]: [...(state.playlists[playlist] || []), ...tracks]
+                [playlist]: updatedTracks
             }
         }));
 
-        if (get().currentPlaylist === playlist) await TrackPlayer.add(tracks);
+        if (get().currentPlaylist === playlist) {
+            const existingIds = new Set(currentTracks.map(t => t.id));
+            const newTracks = tracks.filter(t => !existingIds.has(t.id));
+            if (newTracks.length) await TrackPlayer.add(newTracks);
+        }
     },
-
+    
     replacePlaylist: (playlist, tracks) => {
         set(state => ({
             playlists: {

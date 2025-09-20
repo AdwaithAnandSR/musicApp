@@ -4290,10 +4290,10 @@ expo-asset@~12.0.8:
     "@expo/image-utils" "^0.8.7"
     expo-constants "~18.0.8"
 
-expo-audio@~1.0.11:
-  version "1.0.11"
-  resolved "https://registry.yarnpkg.com/expo-audio/-/expo-audio-1.0.11.tgz#b4db470cad7abcd53b01516627b70d9452f0de36"
-  integrity sha512-yGUMytDWwCHyLRd84QATt7qUIv7N+gZyJAQKV/7dprc9ZGtMNSTKiHWbe0RipexCNqsyLV1sXJGSg1I/SUZgpw==
+expo-audio@~1.0.13:
+  version "1.0.13"
+  resolved "https://registry.yarnpkg.com/expo-audio/-/expo-audio-1.0.13.tgz#e9e79fece878296560f5d2f5080562232d0629e0"
+  integrity sha512-Z91jMYv/BMpn5Dkyu204RyNl2EpXRx8HgScTYlwRRYewtfTH8NN+bwZQAApn33NwGhW1cIlcuG/XCAeJBr9l4Q==
 
 expo-constants@~18.0.8:
   version "18.0.8"
@@ -4301,6 +4301,14 @@ expo-constants@~18.0.8:
   integrity sha512-Tetphsx6RVImCTZeBAclRQMy0WOODY3y6qrUoc88YGUBVm8fAKkErCSWxLTCc6nFcJxdoOMYi62LgNIUFjZCLA==
   dependencies:
     "@expo/config" "~12.0.8"
+    "@expo/env" "~2.0.7"
+
+expo-constants@~18.0.9:
+  version "18.0.9"
+  resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-18.0.9.tgz#fcaf37e97ea2b928bd3b92f2ea9836984ab6e48b"
+  integrity sha512-sqoXHAOGDcr+M9NlXzj1tGoZyd3zxYDy215W6E0Z0n8fgBaqce9FAYQE2bu5X4G629AYig5go7U6sQz7Pjcm8A==
+  dependencies:
+    "@expo/config" "~12.0.9"
     "@expo/env" "~2.0.7"
 
 expo-dev-client@~6.0.12:
@@ -4413,10 +4421,10 @@ expo-modules-core@3.0.15:
   dependencies:
     invariant "^2.2.4"
 
-expo-router@~6.0.4:
-  version "6.0.4"
-  resolved "https://registry.yarnpkg.com/expo-router/-/expo-router-6.0.4.tgz#f9c4c79e060b45d4af842549b662da0377066ace"
-  integrity sha512-RZRHAhUCCU6QNTnVhoy0PAJxbLy7OF78F4/4fwJna3cHGTtokPvJYUwz8kOZOOub/7l8jqgxnT7eKAk1dw9uXQ==
+expo-router@~6.0.7:
+  version "6.0.7"
+  resolved "https://registry.yarnpkg.com/expo-router/-/expo-router-6.0.7.tgz#9bba7e6528887126714ff942a466f483b47d529b"
+  integrity sha512-dP/35aQadCuplEP99CZ0sLrVpnCFCQGnCBtFlI0Tph75PbepdWhI7XC0Vzt7MoNBLF9NW80q5CeZdXTvybc+4w==
   dependencies:
     "@expo/metro-runtime" "^6.1.2"
     "@expo/schema-utils" "^0.1.7"
@@ -4493,10 +4501,10 @@ expo-updates-interface@~2.0.0:
   resolved "https://registry.yarnpkg.com/expo-updates-interface/-/expo-updates-interface-2.0.0.tgz#7721cb64c37bcb46b23827b2717ef451a9378749"
   integrity sha512-pTzAIufEZdVPKql6iMi5ylVSPqV1qbEopz9G6TSECQmnNde2nwq42PxdFBaUEd8IZJ/fdJLQnOT3m6+XJ5s7jg==
 
-expo-updates@~29.0.10:
-  version "29.0.10"
-  resolved "https://registry.yarnpkg.com/expo-updates/-/expo-updates-29.0.10.tgz#c46fc65586c15481e5f226c421f36d059cf0926e"
-  integrity sha512-W2/6xRgKZUZ2wTQr+EPJPhcPQCvSOF3+tdolS2kwLEuGjqypoFVT3+6r0XwKRSI1d3zFMxGWLRPzQTn1q8Fd2w==
+expo-updates@~29.0.11:
+  version "29.0.11"
+  resolved "https://registry.yarnpkg.com/expo-updates/-/expo-updates-29.0.11.tgz#d9bdc8676f563330461f7950fa504dd4bb48aafc"
+  integrity sha512-zD7Zxe3P61WA6fyTdKRckmTFr7h/0BaSSD+Ssr73YiOLOak7GJUb19B+ysADjJP1L0IIOUR9U/UkMLv0r8k9dA==
   dependencies:
     "@expo/code-signing-certificates" "0.0.5"
     "@expo/plist" "^0.4.7"
@@ -5663,10 +5671,10 @@ jest-environment-node@^29.7.0:
     jest-mock "^29.7.0"
     jest-util "^29.7.0"
 
-jest-expo@~54.0.11:
-  version "54.0.11"
-  resolved "https://registry.yarnpkg.com/jest-expo/-/jest-expo-54.0.11.tgz#1ab55d26a2ba7b56a229f0172a2323784f6dcac4"
-  integrity sha512-SR9Tnxp45f6UYWPTbWEkigKnWvNk8CxN6msAHf43PmzKRVClvzIJYSR4+h1hV4aTNVpPXB7vaTTgzl1TG1x53Q==
+jest-expo@~54.0.12:
+  version "54.0.12"
+  resolved "https://registry.yarnpkg.com/jest-expo/-/jest-expo-54.0.12.tgz#297e57d4744d6fb8fbc8a81cad2aa4acb23e899a"
+  integrity sha512-76dZ0Mk4/lBMwmGRWoSFQ08rfmMTVhnAp3Hxua5cND2TVISZcsya3LUZVKfPYxb5lB7H4OR6B7KStQJFkrnJjg==
   dependencies:
     "@expo/config" "~12.0.9"
     "@expo/json-file" "^10.0.7"
