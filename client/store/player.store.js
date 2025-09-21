@@ -39,7 +39,7 @@ export const usePlayerStore = create((set, get) => ({
             if (newTracks.length) await TrackPlayer.add(newTracks);
         }
     },
-    
+
     replacePlaylist: (playlist, tracks) => {
         set(state => ({
             playlists: {
@@ -51,16 +51,16 @@ export const usePlayerStore = create((set, get) => ({
 
     setPlaylist: async (playlist, trackId) => {
         const state = get();
+        const queue = await TrackPlayer.getQueue();
 
-        if (state.currentPlaylist === playlist) return;
+        if (state.currentPlaylist === playlist && queue?.length > 0) return;
+        console.log("pass");
 
         const tracks = state.playlists[playlist] || [];
         if (tracks.length === 0) return;
 
-        if (state.currentPlaylist !== playlist) {
-            await TrackPlayer.reset();
-            await TrackPlayer.add(tracks);
-        }
+        await TrackPlayer.reset();
+        await TrackPlayer.add(tracks);
 
         set({
             currentPlaylist: playlist
