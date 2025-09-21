@@ -13,7 +13,6 @@ import { FlashList } from "@shopify/flash-list";
 
 import { useGlobalSongs } from "../../store/list.store.js";
 import { usePlayerStore } from "../../store/player.store.js";
-import TrackPlayer from "react-native-track-player";
 
 import addSongsToPlaylist from "../../controllers/playlists/addSongsToPlaylist.js";
 
@@ -33,8 +32,6 @@ const MenuItem = ({ label, icon, onPress, onLongPress }) => (
 
 const MenuOptions = ({ setShowMenu }) => {
     const playlists = useGlobalSongs(state => state.playlists);
-    // const track = TrackPlayer.getActiveTrack();
-    
     const track = usePlayerStore(state=> state.currentTrack)
 
     const [showPlaylist, setShowPlaylist] = useState(false);
