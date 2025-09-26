@@ -87,7 +87,20 @@ const accounts = [
         CLOUDINARY_API_KEY: 962254451362664,
 
         email: "adwaithanand1818@gmail.com"
-    }
+    },
+
+{
+
+CLOUDINARY_CLOUD_NAME: "du0gm3ett",
+
+CLOUDINARY_API_KEY: 918421913634417,
+
+CLOUDINARY_API_SECRET: "7H4DUUV73O-Z-yRCfcadQZ67OlQ", 
+
+email: "adwaith.anand.dev@gmail.com"
+
+}
+
 ];
 
 router.get("/cloudStatus", async (req, res) => {
@@ -110,7 +123,7 @@ router.get("/cloudStatus", async (req, res) => {
             const usage = await cloudinary.api.usage();
 
             return {
-                email: account.email,
+                email: account.email, cloudName: account.CLOUDINARY_CLOUD_NAME,
                 usage: {
                     transformations: usage.transformations.credits_usage + " GB",
                     resources: usage.resources,
@@ -118,7 +131,8 @@ router.get("/cloudStatus", async (req, res) => {
                     storage: usage.storage.credits_usage + " GB",
                     credits: usage.credits
                 },
-                requests: usage.requests
+                requests: usage.requests,
+
             };
         } catch (error) {
             return {
