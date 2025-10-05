@@ -22,7 +22,6 @@ const musicSchema = mongoose.Schema({
         default: false
     },
     lyrics: [
-        language: String,
         {
             start: Number,
             end: Number,
@@ -30,13 +29,16 @@ const musicSchema = mongoose.Schema({
         }
     ],
     transcripted_lyrics: [
-        language: String,
         {
             start: Number,
             end: Number,
             line: String
         }
     ],
+    isSubtitleAdded: {
+        type: Boolean,
+        default: false
+    },
     lyricsAsText: [{ type: String }],
     createdAt: {
         type: Date,

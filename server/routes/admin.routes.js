@@ -61,4 +61,22 @@ router.post("/addNewLyricToDb", addNewLyricToDb);
 // cloud
 
 router.get("/cloudStatus", cloudStatus);
+
+
+// youtube subtitles 
+
+router.post("/getRemainingSongsForAddSubtitleAsLyrics", async(req, res)=>{
+    const { limit, page } = req.body;
+    
+    const songs = await musicModel
+        .find({
+            isSubtitleAdded: false
+        })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit);
+
+    return res.json({ songs })
+})
+
 export default router;
