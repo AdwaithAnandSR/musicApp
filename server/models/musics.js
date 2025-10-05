@@ -22,6 +22,15 @@ const musicSchema = mongoose.Schema({
         default: false
     },
     lyrics: [
+        language: String,
+        {
+            start: Number,
+            end: Number,
+            line: String
+        }
+    ],
+    transcripted_lyrics: [
+        language: String,
         {
             start: Number,
             end: Number,
