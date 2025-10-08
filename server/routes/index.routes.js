@@ -50,13 +50,13 @@ router.post("/getGlobalSongs", async (req, res) => {
 
         const page =
             availablePages[Math.floor(Math.random() * availablePages.length)];
-        
+
         const musics = await musicModel
             .find({})
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
-            .limit(limit)
-            // .allowDiskUse(true);
+            .limit(limit);
+        // .allowDiskUse(true);
 
         return res.status(200).json({
             musics,
@@ -77,9 +77,10 @@ router.post("/searchSong", async (req, res) => {
             if (text[1] === "|") text[1] = "";
         }
 
-        const regex = new RegExp(text, "i");
-        const songs = await musicModel.find({ title: regex }).allowDiskUse(true)
-
+        const songs = await musicModel
+            .find({ title: { $regex: text, $options: "i" } })
+            .limit(50)
+            .lean(); // faster, returns plain JS objects
         const prioritized = songs.sort((a, b) => {
             const getPriority = title => {
                 const lowerTitle = title.toLowerCase();
