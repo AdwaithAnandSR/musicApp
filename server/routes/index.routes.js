@@ -9,8 +9,6 @@ import formateTitle from "../utils/clearTitle.js";
 
 const router = express.Router();
 
-await musicModel.collection.dropIndex("title_text");
-
 router.post("/checkSongExistsByYtId", async (req, res) => {
     const { id, title = "" } = req.body;
 
