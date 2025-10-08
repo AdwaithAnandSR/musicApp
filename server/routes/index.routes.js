@@ -9,13 +9,15 @@ import formateTitle from "../utils/clearTitle.js";
 
 const router = express.Router();
 
+await musicModel.collection.dropIndex("title_text");
+
 router.post("/checkSongExistsByYtId", async (req, res) => {
-    const { id, title=''} = req.body;
+    const { id, title = "" } = req.body;
 
     const exists = await musicModel.findOne({ ytId: id });
     const exists2 = await musicModel.findOne({ title });
-    const exists3 = await musicModel.findOne({ title: formateTitle(title)});
-       
+    const exists3 = await musicModel.findOne({ title: formateTitle(title) });
+
     if (exists || exists2 || exists3) res.json({ exists: true });
     else res.json({ exists: false });
 });
@@ -50,12 +52,13 @@ router.post("/getGlobalSongs", async (req, res) => {
 
         const page =
             availablePages[Math.floor(Math.random() * availablePages.length)];
-
+        
         const musics = await musicModel
             .find({})
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
-            .limit(limit);
+            .limit(limit)
+            .allowDiskUse(true);
 
         return res.status(200).json({
             musics,
@@ -72,10 +75,9 @@ router.post("/getGlobalSongs", async (req, res) => {
 router.post("/searchSong", async (req, res) => {
     const { text } = req.body;
     try {
-if(text?.split(' ')?.length == 2) {
-
-if(text[1] === '|') text[1] = "";
-}
+        if (text?.split(" ")?.length == 2) {
+            if (text[1] === "|") text[1] = "";
+        }
 
         const regex = new RegExp(text, "i");
         const songs = await musicModel.find({ title: regex });
@@ -94,11 +96,8 @@ if(text[1] === '|') text[1] = "";
             return getPriority(a.title) - getPriority(b.title);
         });
 
-
-
-if(text?.split(' ')?.length == 2) return res.json({ songs: prioritized.slice(0, 10) });
-
-
+        if (text?.split(" ")?.length == 2)
+            return res.json({ songs: prioritized.slice(0, 10) });
 
         res.json({ songs: prioritized });
     } catch (error) {
@@ -106,7 +105,5 @@ if(text?.split(' ')?.length == 2) return res.json({ songs: prioritized.slice(0, 
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
-
-
 
 export default router;
