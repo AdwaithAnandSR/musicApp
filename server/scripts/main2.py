@@ -35,6 +35,8 @@ def upload_lyric(lyrics, song_id):
             print(f"✅ upload successfull.")
         else:
             status["error"] += 1
+            print(f"❌ upload failed.")
+            
     except Exception as e:
         status["error"] += 1
         print("Error uploading lyric:", e)
@@ -65,7 +67,7 @@ def process_song(song):
             return f"🚫 Skipped upload for {title}"
 
     upload_lyric(transcript, song["_id"])
-    return f"✅ Uploaded lyrics for {title[:20]}"
+    return
 
 
 # Limit threads to avoid overloading network / API
