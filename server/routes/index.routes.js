@@ -58,7 +58,7 @@ router.post("/getGlobalSongs", async (req, res) => {
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit)
-            .allowDiskUse(true);
+            // .allowDiskUse(true);
 
         return res.status(200).json({
             musics,
