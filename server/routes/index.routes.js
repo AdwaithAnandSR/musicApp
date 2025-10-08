@@ -78,7 +78,7 @@ router.post("/searchSong", async (req, res) => {
         }
 
         const regex = new RegExp(text, "i");
-        const songs = await musicModel.find({ title: regex });
+        const songs = await musicModel.find({ title: regex }).useDiskSpace(true)
 
         const prioritized = songs.sort((a, b) => {
             const getPriority = title => {
