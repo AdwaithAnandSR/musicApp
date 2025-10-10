@@ -6,6 +6,8 @@ import { usePlayerStore } from "../store/player.store.js";
 import { storage, userId } from "../services/storage.js";
 import { useAppStatus } from "../store/appState.store.js";
 import { useGlobalSongs } from "../store/list.store.js";
+import { useSqlControlls } from "../context/sql.context.js";
+
 import Toast from "../services/Toast.js";
 
 let api = Constants.expoConfig.extra.clientApi;
@@ -15,12 +17,12 @@ const useGetAllSongs = ({ limit, page }) => {
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
 
-    const addToPlaylist =usePlayerStore(state => state.addToPlaylist)
-
+    const addToPlaylist = usePlayerStore(state => state.addToPlaylist);
     const playlists = usePlayerStore(state => state.playlists);
     const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
     const allPages = useGlobalSongs(state => state.allPages);
     const { updateAllPages } = useGlobalSongs();
+    const { insertSongs,clearSongs } = useSqlControlls();
 
     const fetchSongs = async () => {
         setLoading(true);
@@ -38,7 +40,7 @@ const useGetAllSongs = ({ limit, page }) => {
 
             const data = res.data;
             const { availablePages, musics, page: newPage } = data;
-            
+
             updateAllPages(newPage);
 
             if (availablePages === 0) setHasMore(false);
@@ -49,8 +51,9 @@ const useGetAllSongs = ({ limit, page }) => {
                     ...rest
                 }));
                 addToPlaylist(PLAYLIST_NAME, mapped);
-                if(page == 1){
-                    storage.set("HOME", JSON.stringify(data));
+                if (page == 1) {
+                    await clearSongs()
+                    for (let i = 0; i < 15; i++) insertSongs(mapped[i]);
                 }
             }
         } catch (err) {

@@ -20,10 +20,10 @@ export const SqlControllerProvider = ({ children }) => {
         try {
             await db.execAsync(
                 `CREATE TABLE IF NOT EXISTS songs (
-                    _id TEXT PRIMARY KEY, 
+                    id TEXT PRIMARY KEY, 
                     title TEXT NOT NULL,
                     url TEXT NOT NULL,
-                    cover TEXT,
+                    artwork TEXT,
                     artist TEXT,
                     synced INTERGER,
                     lyrics TEXT,
@@ -47,16 +47,21 @@ export const SqlControllerProvider = ({ children }) => {
         }
     };
     init();
+    
+    const clearSongs = async () => {
+        await db.getAllAsync(`DELETE FROM songs;`);
+    };
 
     const insertSongs = async item => {
         try {
+            
             await db.runAsync(
                 `INSERT INTO songs VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
                 [
-                    item._id,
+                    item.id,
                     item.title,
                     item.url,
-                    item.cover ?? "",
+                    item.artwork ?? "",
                     item.artist ?? "",
                     item.synced ? 1 : 0,
                     JSON.stringify(item.lyrics),
@@ -68,9 +73,6 @@ export const SqlControllerProvider = ({ children }) => {
         }
     };
 
-    const clearSongs = async () => {
-        await db.getAllAsync(`DELETE FROM songs;`);
-    };
 
     return (
         <SqlContext.Provider value={{ insertSongs, clearSongs }}>

@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import LottieView from "lottie-react-native";
 import TrackPlayer, {
-    useActiveTrack,
     State,
     usePlaybackState
 } from "react-native-track-player";
@@ -32,15 +31,18 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
     const [swipeStartPos, setSwipeStartPos] = useState({});
     const [isVisible, setIsVisible] = useState(true);
 
-    const track = useActiveTrack();
+    const track = usePlayerStore(state=> state.currentTrack);
+    
     const isStopped = usePlayerStore(
         state => state.currentPlaybackState === State.Stopped
     );
+    
     const isPlaying = usePlayerStore(
         state =>
             state.currentPlaybackState !== State.Stopped &&
             state.currentPlaybackState !== State.Paused
     );
+    
 
     const arr = [0, 0.2, 0.4, 0.6, 0.8, 1];
     const randomElem = arr[Math.floor(Math.random() * arr.length)];

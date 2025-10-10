@@ -30,13 +30,14 @@ const ListItem = ({ item, ID, text = "" }) => {
             state.currentPlaybackState !== State.Stopped &&
             state.currentTrackId === item.id
     );
+    
 
     const isSelected = useMultiSelect(state =>
         state.selectedSongs.some(song => song.id === item.id)
     );
 
     if (!item?.url) return null;
-
+    
     const handleShortPress = async () => {
         if (!isSelecting) {
             resetShowLyrics();
