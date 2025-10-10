@@ -16,6 +16,6 @@ console.log(
 );
 
 if (size > 20000) {
-    storage.delete("songs");
+    storage.delete("HOME");
     storage.trim();
 }

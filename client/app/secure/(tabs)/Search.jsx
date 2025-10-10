@@ -8,6 +8,7 @@ import { usePlayerStore } from "../../../store/player.store.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
+const limit = 25;
 const Search = () => {
     const [text, setText] = useState("");
     const [loading, setLoading] = useState(false);
@@ -15,18 +16,19 @@ const Search = () => {
 
     const songs = usePlayerStore(state => state.playlists["SEARCH"]);
 
-    const handleChangeText = text => {
-        setText(text);
+    const handleChangeText = txt => {
+        setText(txt);
         setLoading(true);
 
-        if (text.trim() == "") {
+        if (txt.trim() === "") {
             setLoading(false);
+            return;
         }
 
         if (typingTimeout.current) clearTimeout(typingTimeout.current);
 
         typingTimeout.current = setTimeout(async () => {
-            await handleSearch(text);
+            await handleSearch(txt, 1, limit); // always reset page for new search
             setLoading(false);
         }, 500);
     };
@@ -42,7 +44,7 @@ const Search = () => {
                         value={text}
                         returnKeyType="search"
                         onSubmitEditing={async () => {
-                            await handleSearch(text);
+                            await handleSearch(text, page, limit);
                         }}
                         onChangeText={handleChangeText}
                     />
@@ -56,7 +58,7 @@ const Search = () => {
             </View>
 
             <FlashList
-                data={songs.slice(0, 100)}
+                data={songs}
                 renderItem={({ item }) => (
                     <ListItem ID={"SEARCH"} item={item} text={text} />
                 )}

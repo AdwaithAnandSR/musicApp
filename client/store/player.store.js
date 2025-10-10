@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import TrackPlayer, { Capability, Event } from "react-native-track-player";
-import { storage } from "../services/storage.js";
+import * as SQLite from "expo-sqlite";
+
+const db = SQLite.openDatabaseSync("musicApp.db");
 
 export const usePlayerStore = create((set, get) => ({
     playlists: {
@@ -40,7 +42,7 @@ export const usePlayerStore = create((set, get) => ({
         }
     },
 
-    replacePlaylist: (playlist, tracks) => {
+    replacePlaylist: async (playlist, tracks) => {
         set(state => ({
             playlists: {
                 ...state.playlists,
@@ -54,7 +56,6 @@ export const usePlayerStore = create((set, get) => ({
         const queue = await TrackPlayer.getQueue();
 
         if (state.currentPlaylist === playlist && queue?.length > 0) return;
-        console.log("pass");
 
         const tracks = state.playlists[playlist] || [];
         if (tracks.length === 0) return;
@@ -71,6 +72,7 @@ export const usePlayerStore = create((set, get) => ({
         set({ currentTrackId: trackId });
         const state = get();
         const playlist = state.playlists[state.currentPlaylist] || [];
+
         const trackIndex = playlist.findIndex(t => t.id === trackId);
         if (trackIndex === -1) return;
 
@@ -93,3 +95,14 @@ TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, ({ track }) => {
 
     usePlayerStore.setState({ currentTrack: track });
 });
+
+(async () => {
+    const result = await db.getAllAsync("SELECT * FROM songs");
+    
+    usePlayerStore.setState(state => ({
+        playlists: {
+            ...state.playlists,
+            HOME: result
+        }
+    }));
+})();
