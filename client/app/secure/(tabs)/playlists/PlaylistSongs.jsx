@@ -21,6 +21,7 @@ const limit = 50,
 const PlaylistSongs = () => {
     const [page, setPage] = useState(1);
     const scrollY = useRef(new Animated.Value(0)).current;
+    const flashListRef = useRef();
 
     const playlistId = useAppStatus(
         state => state.currentSelectedPlaylist?._id
@@ -37,16 +38,26 @@ const PlaylistSongs = () => {
         limit
     });
 
+    const scrollToMiddle = index => {
+        flashListRef.current?.scrollToIndex({
+            index,
+            viewPosition: 0.3
+        });
+    };
+
     return (
         <View style={styles.container}>
             <Header
                 title={playlistName}
                 total={total}
                 scrollY={scrollY}
+                scrollToMiddle={scrollToMiddle}
+                ID={playlistId}
                 containerStyles={{ height: HEADER_HEIGHT }}
             />
 
             <AnimatedFlashList
+                ref={flashListRef}
                 data={songs}
                 renderItem={({ item }) => (
                     <ListItem ID={playlistId} item={item} />

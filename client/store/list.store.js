@@ -2,7 +2,6 @@ import { create } from "zustand";
 import { storedPage, playlists } from "../services/storage.js";
 
 export const useGlobalSongs = create((set, get) => ({
-    allSongs:[],
     playlists: [...playlists] || [],
     allPages: [storedPage] || [],
     hasMore: true,
@@ -13,15 +12,6 @@ export const useGlobalSongs = create((set, get) => ({
         })),
 
     updateHasMore: value => set(() => ({ hasMore: value })),
-
-    updateAllSongs: newSongs =>
-        set(state => {
-            const existingIds = new Set(state.allSongs.map(song => song._id));
-            const updated = newSongs.filter(song => !existingIds.has(song._id));
-            return {
-                allSongs: [...state.allSongs, ...updated]
-            };
-        }),
 
     updatePlaylists: newLists =>
         set(state => {

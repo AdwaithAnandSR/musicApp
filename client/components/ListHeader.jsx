@@ -32,7 +32,7 @@ const Header = ({
     const handleShortPress = () => {
         const index = usePlayerStore
             .getState()
-            .playlists[ID].findIndex(
+            .playlists[ID]?.findIndex(
                 item => item.id === usePlayerStore.getState().currentTrackId
             );
         if (index != -1) scrollToMiddle(index);
