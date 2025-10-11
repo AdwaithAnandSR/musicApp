@@ -5,13 +5,20 @@ export const useAppStatus = create(set => ({
     isAuthenticated: isAuth || false,
     currentSelectedPlaylist: {},
     isTimerSelecting: false,
+    popUpOption: {
+        y: -1,
+        songId: null,
+        playId: null
+    },
 
     setIsAuthenticated: val => set(() => ({ isAuthenticated: val })),
     setCurrentSelectedPlaylist: playlist =>
         set({ currentSelectedPlaylist: playlist }),
 
     toggleTimerSelect: () =>
-        set(state => ({ isTimerSelecting: !state.isTimerSelecting }))
+        set(state => ({ isTimerSelecting: !state.isTimerSelecting })),
+
+    setPopUpOption: (y, songId, playId) => set({ popUpOption:  { y, songId, playId } })
 }));
 
 export const useMultiSelect = create((set, get) => ({

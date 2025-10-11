@@ -15,8 +15,9 @@ const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const Home = () => {
     const LIMIT = 50,
         HEADER_HEIGHT = 250;
-    const scrollY = useRef(new Animated.Value(0)).current;
     const [page, setPage] = useState(1);
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const flashListRef = useRef();
 
     const { loading, hasMore } = useGetAllSongs({ limit: LIMIT, page });
 
@@ -28,17 +29,27 @@ const Home = () => {
         </Text>
     );
 
+    const scrollToMiddle = index => {
+        flashListRef.current?.scrollToIndex({
+            index,
+            viewPosition: 0.3
+        });
+    };
+
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
             <Header
                 title="Musics"
                 scrollY={scrollY}
+                scrollToMiddle={scrollToMiddle}
+                ID={"HOME"}
                 containerStyles={{
                     height: HEADER_HEIGHT
                 }}
             />
 
             <AnimatedFlashList
+                ref={flashListRef}
                 data={allSongs}
                 renderItem={({ item }) => <ListItem ID="HOME" item={item} />}
                 showsVerticalScrollIndicator={false}

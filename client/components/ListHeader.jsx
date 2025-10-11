@@ -8,11 +8,19 @@ import {
 } from "react-native";
 
 import { useMultiSelect } from "../store/appState.store.js";
+import { usePlayerStore } from "../store/player.store.js";
 
 const HEADER_HEIGHT = 250;
 const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 80;
 
-const Header = ({ title, containerStyles, total, scrollY }) => {
+const Header = ({
+    title,
+    containerStyles,
+    total,
+    scrollY,
+    scrollToMiddle,
+    ID
+}) => {
     const translateY = scrollY?.interpolate({
         inputRange: [0, MIN_HEADER_HEIGHT],
         outputRange: [0, -MIN_HEADER_HEIGHT],
@@ -21,6 +29,17 @@ const Header = ({ title, containerStyles, total, scrollY }) => {
 
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
 
+    const handleShortPress = () => {
+        const index = usePlayerStore
+            .getState()
+            .playlists[ID].findIndex(
+                item => item.id === usePlayerStore.getState().currentTrackId
+            );
+        if (index != -1) scrollToMiddle(index);
+    };
+    
+    const handleLongPress = ()=> scrollToMiddle(0);
+    
     return (
         <Animated.View
             style={[
@@ -32,7 +51,12 @@ const Header = ({ title, containerStyles, total, scrollY }) => {
                 }
             ]}
         >
-            <TouchableOpacity activeOpacity={0.3} style={styles.textCont}>
+            <TouchableOpacity
+                activeOpacity={0.3}
+                style={styles.textCont}
+                onPress={handleShortPress}
+                onLongPress={handleLongPress}
+            >
                 <Animated.Text style={[styles.headerText]}>
                     {title}
                 </Animated.Text>

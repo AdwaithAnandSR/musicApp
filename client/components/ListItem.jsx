@@ -1,4 +1,4 @@
-import React from "react";
+import { useRef } from "react";
 import {
     View,
     Text,
@@ -9,16 +9,24 @@ import {
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { State } from "react-native-track-player";
+import { InteractionManager } from "react-native";
 
-import { useMultiSelect, useStatus } from "../store/appState.store.js";
+import {
+    useMultiSelect,
+    useStatus,
+    useAppStatus
+} from "../store/appState.store.js";
 import { usePlayerStore } from "../store/player.store.js";
+
 import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { playTrack, setPlaylist } = usePlayerStore.getState();
-const { height: vh, width: vw } = Dimensions.get("window");
+const { width: vw, height: vh } = Dimensions.get("window");
 
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+
+const setPopUpOption = useAppStatus.getState().setPopUpOption;
 
 const ListItem = ({ item, ID, text = "" }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
@@ -30,19 +38,34 @@ const ListItem = ({ item, ID, text = "" }) => {
             state.currentPlaybackState !== State.Stopped &&
             state.currentTrackId === item.id
     );
-    
 
     const isSelected = useMultiSelect(state =>
         state.selectedSongs.some(song => song.id === item.id)
     );
 
     if (!item?.url) return null;
-    
+
     const handleShortPress = async () => {
+        if (ID != "HOME" && ID != "SEARCH") setPopUpOption(-1, null, null);
+
         if (!isSelecting) {
             resetShowLyrics();
-            await setPlaylist(ID, item.id);
-            setTimeout(async () => await playTrack(item.id), 50);
+
+            // setPlaylist(ID).then(() => playTrack(item.id));
+            InteractionManager.runAfterInteractions(() => {
+                setPlaylist(ID).then(() => {
+                    playTrack(item.id);
+                });
+            });
+        } else {
+            updateSelected(item);
+        }
+    };
+
+    const handleLongPress = async ({ nativeEvent }) => {
+        if (ID != "HOME" && ID != "SEARCH") {
+            const y = nativeEvent.pageY - nativeEvent.locationY;
+            setPopUpOption(y, item.id, ID);
         } else {
             updateSelected(item);
         }
@@ -52,12 +75,19 @@ const ListItem = ({ item, ID, text = "" }) => {
         <TouchableOpacity
             activeOpacity={0.6}
             onPress={handleShortPress}
-            onLongPress={() => updateSelected(item)}
+            onLongPress={handleLongPress}
             style={styles.container}
         >
             {isSelected && (
                 <View style={styles.checkBoxContainer}>
-                    <Text style={{ color: "rgb(246,7,135)" }}>✓</Text>
+                    <Text
+                        style={{
+                            color: "rgb(246,7,135)",
+                            fontWeight: "bold"
+                        }}
+                    >
+                        ✓
+                    </Text>
                 </View>
             )}
 
@@ -69,8 +99,6 @@ const ListItem = ({ item, ID, text = "" }) => {
                             : require("../assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}
-                    contentFit="cover"
-                    transition={1000}
                     style={{ width: "100%", height: "100%" }}
                 />
             </View>
@@ -89,8 +117,7 @@ const ListItem = ({ item, ID, text = "" }) => {
                     style={{
                         width: 40,
                         height: 40,
-                        marginLeft: -10,
-                        color: "rgb(246,7,135)"
+                        marginLeft: -10
                     }}
                 />
             )}
@@ -100,27 +127,38 @@ const ListItem = ({ item, ID, text = "" }) => {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: "#050505",
+        backgroundColor: "#030303",
         height: 80,
-        alignItems: "center",
+        flex: 1,
+        paddingHorizontal: vw * 0.02,
         flexDirection: "row",
-        gap: vw * 0.03,
-        paddingHorizontal: vw * 0.02
+        alignItems: "center",
+        gap: vw * 0.03
     },
+
     checkBoxContainer: {
         marginLeft: 10
     },
     imageContainer: {
         width: vw * 0.12,
         height: vw * 0.12,
-        borderRadius: vh * 0.5,
+        borderRadius: vw * 0.06,
         overflow: "hidden",
         backgroundColor: "#232323"
     },
     title: {
         color: "white",
-        width: vw * 0.85,
-        fontWeight: "bold"
+        fontWeight: "bold",
+        flexShrink: 1
+    },
+    popUpContainer: {
+        width: 200,
+        height: 400,
+        backgroundColor: "green",
+        position: "relative",
+        right: 60,
+        top: 0,
+        zIndex: 9999
     }
 });
 

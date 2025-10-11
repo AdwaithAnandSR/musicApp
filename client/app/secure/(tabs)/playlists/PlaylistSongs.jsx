@@ -6,13 +6,17 @@ import { FlashList } from "@shopify/flash-list";
 import useGetPlaylistSongs from "../../../../hooks/useGetPlaylistSongs.js";
 import { usePlayerStore } from "../../../../store/player.store.js";
 import { useAppStatus } from "../../../../store/appState.store.js";
+
 import ListItem from "../../../../components/ListItem.jsx";
+import PopUpOptions from "../../../../components/PopUpOptions.jsx";
 import Header from "../../../../components/ListHeader.jsx";
 
+const setPopUpOption = useAppStatus.getState().setPopUpOption;
+
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+
 const limit = 50,
     HEADER_HEIGHT = 250;
-    
 
 const PlaylistSongs = () => {
     const [page, setPage] = useState(1);
@@ -33,7 +37,6 @@ const PlaylistSongs = () => {
         limit
     });
 
-    
     return (
         <View style={styles.container}>
             <Header
@@ -66,9 +69,16 @@ const PlaylistSongs = () => {
                 }}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: true }
+                    {
+                        useNativeDriver: true,
+                        listener: event => {
+                            setPopUpOption(-1, null, null);
+                        }
+                    }
                 )}
             />
+
+            <PopUpOptions />
         </View>
     );
 };
