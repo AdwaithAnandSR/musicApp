@@ -42,6 +42,20 @@ export const usePlayerStore = create((set, get) => ({
         }
     },
 
+    removeFromPlaylist: (songId, playlistId) => {
+        set(state => {
+            const playlist = state.playlists[playlistId];
+            if (!playlist) return state;
+
+            return {
+                playlists: {
+                    ...state.playlists,
+                    [playlistId]: playlist.filter(item => item.id !== songId)
+                }
+            };
+        });
+    },
+
     replacePlaylist: async (playlist, tracks) => {
         set(state => ({
             playlists: {
@@ -51,7 +65,7 @@ export const usePlayerStore = create((set, get) => ({
         }));
     },
 
-    setPlaylist: async (playlist, trackId) => {
+    setPlaylist: async (playlist) => {
         const state = get();
         const queue = await TrackPlayer.getQueue();
 
@@ -96,13 +110,3 @@ TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, ({ track }) => {
     usePlayerStore.setState({ currentTrack: track });
 });
 
-(async () => {
-    const result = await db.getAllAsync("SELECT * FROM songs");
-    
-    usePlayerStore.setState(state => ({
-        playlists: {
-            ...state.playlists,
-            HOME: result
-        }
-    }));
-})();

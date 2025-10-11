@@ -2,18 +2,16 @@ import { useRef, useContext, createContext, useEffect, useState } from "react";
 import { SQLiteProvider, useSQLiteContext } from "expo-sqlite";
 
 import { useGlobalSongs } from "../store/list.store.js";
-import { useAppStatus } from "../store/appState.store.js";
-import { userId } from "../services/storage.js";
+import { usePlayerStore } from "../store/player.store.js";
+
 
 import fetchUser from "../controllers/auth/checkIsAuth.js";
 
 const SqlContext = createContext();
+const addToPlaylist = usePlayerStore.getState().addToPlaylist
 
 export const SqlControllerProvider = ({ children }) => {
     const db = useSQLiteContext();
-    const updateAllSongs = useGlobalSongs(state => state.updateAllSongs);
-    const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
-
     if (!db) return console.error("db not initialised");
 
     const init = async () => {
@@ -41,7 +39,7 @@ export const SqlControllerProvider = ({ children }) => {
                 };
             });
 
-            updateAllSongs(formatted);
+            addToPlaylist("HOME", formatted);
         } catch (error) {
             console.error(error);
         }

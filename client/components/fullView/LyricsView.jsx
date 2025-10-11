@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
-import { useProgress } from 'react-native-track-player'
+import { useProgress } from "react-native-track-player";
 
 import SyncedRenderItem from "../../components/fullView/LyricRenderItem.jsx";
 
@@ -26,12 +26,18 @@ const LyricsView = ({ track }) => {
     const setShowSyncedLyrc = useStatus(state => state.setShowSyncedLyrc);
     const currentLyricIndex = useStatus(state => state.currentLyricIndex);
     const setCurrentLyricIndex = useStatus(state => state.setCurrentLyricIndex);
-    const { position: currentTime} = useProgress();
+    const { position: currentTime } = useProgress();
 
     const lyricsRef = useRef();
-
+    
     useEffect(() => {
-        if (!track?.lyrics || !showSyncedLyric) return;
+        // Check if lyrics is an array and not empty
+        if (
+            !Array.isArray(track?.lyrics) ||
+            !showSyncedLyric ||
+            track.lyrics.length === 0
+        )
+            return;
 
         const index = track.lyrics.findIndex(item => {
             return (
@@ -40,7 +46,7 @@ const LyricsView = ({ track }) => {
         });
 
         setCurrentLyricIndex(index);
-    }, [currentTime]);
+    }, [currentTime, track, showSyncedLyric]);
 
     useEffect(() => {
         if (!showSyncedLyric) return;
