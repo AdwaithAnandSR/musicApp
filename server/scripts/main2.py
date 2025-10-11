@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 API_BASE = "http://localhost:5000"
 
-LIMIT = 10000
+LIMIT = 3000
 lang = "ml"
 payload = {"limit": LIMIT, "page": 1}
 
