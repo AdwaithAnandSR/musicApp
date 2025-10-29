@@ -97,6 +97,27 @@ router.post("/addSubtitleToLyrics", async (req, res) => {
     res.json({ success: true });
 });
 
+
+router.post("/transferAsset", async (req, res) => {
+    try {
+        const { id, url, cover } = req.body;
+
+        if (!id || !url || !cover) {
+            return res.status(400).json({ success: false, message: "id, url, and cover are required" });
+        }
+
+        await musicModel.findByIdAndUpdate(id, {
+            $set: { url, cover }
+        });
+
+        res.json({ success: true, message: "Asset transferred successfully" });
+    } catch (error) {
+        console.error("Error transferring asset:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+
 export default router;
 
 (async () => {
