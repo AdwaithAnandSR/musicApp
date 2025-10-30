@@ -118,6 +118,33 @@ router.post("/transferAsset", async (req, res) => {
 });
 
 
+router.get("/findByCloudName", async (req, res) => {
+    try {
+        const cloudName = "dxyqilfpq";
+
+        // Regex pattern to match URLs containing the cloud name
+        const regex = new RegExp(`res\\.cloudinary\\.com\\/${cloudName}\\/`, "i");
+
+        // Find songs where either url or cover belongs to this cloud name
+        const songs = await musicModel.find({
+            $or: [
+                { url: { $regex: regex } },
+                { cover: { $regex: regex } }
+            ]
+        });
+
+        if (!songs.length) {
+            return res.status(404).json({ success: false, message: "No songs found for this Cloudinary account" });
+        }
+
+        res.json({ success: true, count: songs.length, songs });
+    } catch (error) {
+        console.error("Error finding songs by cloud name:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+});
+
+
 export default router;
 
 (async () => {
