@@ -102,7 +102,7 @@ router.post("/transferAsset", async (req, res) => {
     try {
         const { id, url, cover } = req.body;
 
-        if (!id || !url || !cover) {
+        if (!id || !url) {
             return res.status(400).json({ success: false, message: "id, url, and cover are required" });
         }
 
