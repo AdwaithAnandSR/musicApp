@@ -120,7 +120,7 @@ router.post("/transferAsset", async (req, res) => {
 
 router.get("/findByCloudName", async (req, res) => {
     try {
-        const cloudName = "dmjysfk2r";
+        const cloudName = "dxyqilfpq";
 
         // Regex pattern to match URLs containing the cloud name
         const regex = new RegExp(`res\\.cloudinary\\.com\\/${cloudName}\\/`, "i");
