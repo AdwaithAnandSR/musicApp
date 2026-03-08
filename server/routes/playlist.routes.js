@@ -13,7 +13,7 @@ import { cleanupPlaylists } from "../handlers/playlists/cleanup.playlist.js"
 // playlist
 router.post("/create", create);
 
-router.get("/get", getPlaylists);
+router.post("/get", getPlaylists);
 
 router.post("/delete", deletePlaylist);
 
