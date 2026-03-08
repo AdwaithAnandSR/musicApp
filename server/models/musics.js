@@ -42,4 +42,26 @@ const musicSchema = mongoose.Schema({
 
 musicSchema.index({ createdAt: -1 });
 
+// Compound text index for full-text search across title, artist, and lyrics.
+// Weights control how strongly each field influences MongoDB's textScore:
+//   title       → highest (10) — primary search field
+//   artist      → medium  (5)  — searching by artist name
+//   lyricsAsText → lowest (1)  — fallback lyric search
+// MongoDB only allows ONE text index per collection.
+musicSchema.index(
+    {
+        title: "text",
+        artist: "text",
+        lyricsAsText: "text"
+    },
+    {
+        weights: {
+            title: 10,
+            artist: 5,
+            lyricsAsText: 1
+        },
+        name: "music_text_search"
+    }
+);
+
 export default mongoose.model("music", musicSchema);

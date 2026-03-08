@@ -4,54 +4,45 @@
         "slug": "music",
         "version": "2.4.0",
         "orientation": "portrait",
-        "icon": "./assets/images/icon.png",
+        "icon": "./src/assets/images/icon.png",
         "scheme": "music",
         "userInterfaceStyle": "dark",
-        "newArchEnabled": true,
         "ios": {
             "supportsTablet": true,
             "bundleIdentifier": "com.adwaithananddev.music"
         },
         "android": {
             "adaptiveIcon": {
-                "foregroundImage": "./assets/images/icon.png",
+                "foregroundImage": "./src/assets/images/icon.png",
                 "backgroundColor": "#000000"
             },
             "package": "com.adwaithananddev.music",
-            "permissions": [
-                "INTERNET",
-                "MODIFY_AUDIO_SETTINGS",
-                "READ_EXTERNAL_STORAGE",
-                "RECORD_AUDIO",
-                "SYSTEM_ALERT_WINDOW",
-                "VIBRATE",
-                "WRITE_EXTERNAL_STORAGE",
-                "FOREGROUND_SERVICE",
-                "WAKE_LOCK"
-            ]
+            "permissions": ["INTERNET", "FOREGROUND_SERVICE"]
         },
         "web": {
             "bundler": "metro",
             "output": "static",
-            "favicon": "./assets/images/icon.png"
+            "favicon": "./src//assets/images/icon.png"
         },
         "plugins": [
             "expo-router",
             [
                 "expo-splash-screen",
                 {
-                    "image": "./assets/images/icon.png",
+                    "image": "./src/assets/images/icon.png",
                     "imageWidth": 200,
                     "resizeMode": "contain",
                     "backgroundColor": "#000000"
                 }
             ],
-            "expo-secure-store",
-            "expo-sqlite",
-            "expo-audio",
             "expo-font",
-            "expo-web-browser",
-            "./plugins/icon.plugin.js"
+            "expo-asset",
+            [
+                "expo-audio",
+                {
+                    "enableBackgroundPlayback": true
+                }
+            ]
         ],
         "experiments": {
             "typedRoutes": true

@@ -26,27 +26,32 @@ router.post("/addSong", addSong);
 
 router.post("/getGlobalSongs", async (req, res) => {
     try {
-        const { limit, allPages, userId } = req.body;
+        const { limit, seenPages, userId } = req.body; // renamed allPages → seenPages
 
-        let isAuth = false;
+        let isAuth = true;
+        // if (userId) {
+        //     const user = await userModel.findOne({ userId });
+        //     if (user) isAuth = user.isAuthenticated;
+        // }
 
-        if (userId) {
-            const user = await userModel.findOne({ userId });
-            if (user) isAuth = user.isAuthenticated;
-        }
+        if (!isAuth) return res.status(401).json({ isAuth: false });
 
         const count = await musicModel.countDocuments({});
         const totalPages = Math.ceil(count / limit);
-        console.log("Total documents:", count, " pages: ", totalPages);
 
-        const possiblePages = Array.from(
+        const availablePages = Array.from(
             { length: totalPages },
             (_, i) => i + 1
-        );
-        const availablePages = possiblePages.filter(p => !allPages.includes(p));
+        ).filter(p => !seenPages.includes(p));
 
-        if (availablePages.length === 0)
-            return res.status(400).json({ error: "No available pages left." });
+        if (availablePages.length === 0) {
+            return res.status(200).json({
+                musics: [],
+                hasMore: false,
+                nextSeenPages: seenPages, // nothing new to add
+                isAuth
+            });
+        }
 
         const page =
             availablePages[Math.floor(Math.random() * availablePages.length)];
@@ -56,52 +61,129 @@ router.post("/getGlobalSongs", async (req, res) => {
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit);
-        // .allowDiskUse(true);
 
         return res.status(200).json({
             musics,
-            availablePages: availablePages.length--,
-            page,
+            hasMore: availablePages.length > 1, // >1 because current page is being consumed
+            nextSeenPages: [...seenPages, page], // client echoes this back next call
             isAuth
         });
     } catch (error) {
-        console.error("error while fetching songs: ", error);
+        console.error("error while fetching songs:", error);
         return res.status(500).json({ error: "Internal server error" });
     }
 });
 
 router.post("/searchSong", async (req, res) => {
-    const { text } = req.body;
+    let { text, page = 1, limit = 25 } = req.body;
+
     try {
-        if (text?.split(" ")?.length == 2) {
-            if (text[1] === "|") text[1] = "";
+        page = Math.max(1, parseInt(page) || 1);
+        limit = Math.min(50, parseInt(limit) || 25);
+
+        text = text?.trim();
+
+        if (!text || text.length < 2) {
+            return res.json({
+                musics: [],
+                nextPage: null,
+                hasMore: false
+            });
         }
 
-        const songs = await musicModel
-            .find({ title: { $regex: text, $options: "i" } })
-            .limit(50)
-            .lean(); // faster, returns plain JS objects
-        const prioritized = songs.sort((a, b) => {
-            const getPriority = title => {
-                const lowerTitle = title.toLowerCase();
-                const lowerText = text.toLowerCase();
+        const skip = (page - 1) * limit;
 
-                if (lowerTitle.startsWith(lowerText + " ")) return 1; // Exact first word match
-                if (lowerTitle.split(" ")[0].includes(lowerText)) return 2; // Partial first word match
-                if (lowerTitle.includes(lowerText)) return 3; // Anywhere match
-                return 4; // Should not happen with regex, but safe fallback
-            };
+        const results = await musicModel.aggregate([
+            {
+                $search: {
+                    index: "text",
+                    compound: {
+                        should: [
+                            {
+                                phrase: {
+                                    query: text,
+                                    path: "title",
+                                    score: {
+                                        boost: { value: 15 }
+                                    }
+                                }
+                            },
 
-            return getPriority(a.title) - getPriority(b.title);
+                            {
+                                autocomplete: {
+                                    query: text,
+                                    path: "title",
+                                    fuzzy: {
+                                        maxEdits: 1
+                                    },
+                                    score: {
+                                        boost: { value: 8 }
+                                    }
+                                }
+                            },
+
+                            {
+                                autocomplete: {
+                                    query: text,
+                                    path: "artist",
+                                    fuzzy: {
+                                        maxEdits: 1
+                                    },
+                                    score: {
+                                        boost: { value: 5 }
+                                    }
+                                }
+                            },
+
+                            {
+                                text: {
+                                    query: text,
+                                    path: "lyricsAsText",
+                                    score: {
+                                        boost: { value: 1 }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+
+            {
+                $addFields: {
+                    score: { $meta: "searchScore" }
+                }
+            },
+
+            {
+                $sort: { score: -1 }
+            },
+
+            {
+                $skip: skip
+            },
+
+            {
+                $limit: limit + 1
+            }
+        ]);
+
+        const hasMore = results.length > limit;
+
+        if (hasMore) results.pop();
+
+        const nextPage = hasMore ? page + 1 : null;
+
+        res.json({
+            musics: results,
+            hasMore,
+            nextPage
         });
-
-        if (text?.split(" ")?.length == 2)
-            return res.json({ songs: prioritized.slice(0, 10) });
-
-        res.json({ songs: prioritized });
     } catch (error) {
         console.error("Search error:", error);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.status(500).json({
+            error: "Internal Server Error"
+        });
     }
 });
 
