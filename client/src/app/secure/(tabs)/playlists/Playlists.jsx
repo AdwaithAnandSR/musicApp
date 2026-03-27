@@ -60,9 +60,10 @@ const Playlists = () => {
                     paddingTop: HEADER_HEIGHT,
                     paddingBottom: 150
                 }}
-                onEndReached={() => {
-                    if (hasNextPage) fetchNextPage();
-                }}
+                
+onEndReached={() => {
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+}}
                 onEndReachedThreshold={0.5}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
