@@ -15,7 +15,7 @@ console.log(
     `current storage size (mmkv): ${Number(size / 1024).toFixed(2)} mb`
 );
 
-if (size > 20000) {
+if (size > 20 * 1024 * 1024){
     storage.delete("HOME");
     storage.trim();
 }
