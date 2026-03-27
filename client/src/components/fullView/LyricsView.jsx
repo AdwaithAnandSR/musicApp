@@ -47,14 +47,15 @@ const LyricsView = ({ track = {} }) => {
         setCurrentLyricIndex(index);
     }, [currentTime, track, showSyncedLyric]);
 
-    useEffect(() => {
-        if (!showSyncedLyric) return;
-        lyricsRef.current?.scrollToIndex({
-            index: currentLyricIndex,
-            animated: true,
-            viewPosition: 0.1
-        });
-    }, [currentLyricIndex]);
+    
+useEffect(() => {
+    if (!showSyncedLyric || currentLyricIndex < 0) return;
+    lyricsRef.current?.scrollToIndex({
+        index: currentLyricIndex,
+        animated: true,
+        viewPosition: 0.1
+    });
+}, [currentLyricIndex]);
 
 
 useEffect(() => {
