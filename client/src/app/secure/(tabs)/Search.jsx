@@ -36,7 +36,7 @@ const Search = () => {
             }),
         initialPageParam: 1,
         getNextPageParam: lastPage => lastPage.nextPage ?? undefined,
-        enabled: debouncedText.length > 1,
+        enabled: debouncedText.length >= 3,
         staleTime: 0,
         gcTime: 0
     });
@@ -91,7 +91,7 @@ const Search = () => {
                 ListEmptyComponent={
                     isLoading ? (
                         <Loader size={"large"} />
-                    ) : debouncedText.length ? (
+                    ) : debouncedText.length >= 3 ? (
                         <Text style={styles.statusText}>No Songs Found!</Text>
                     ) : null
                 }
