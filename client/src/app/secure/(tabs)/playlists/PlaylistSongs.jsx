@@ -93,7 +93,8 @@ const PlaylistSongs = () => {
                     isFetchingNextPage ? (
                         <Loader size={"large"} />
                     ) : songs.length > 8 ? (
-                        <Text style={styles.loader}>• ${playlistName} •</Text>
+                        
+<Text style={styles.loader}>{`• ${playlistName} •`}</Text>
                     ) : null
                 }
                 ListEmptyComponent={
