@@ -11,7 +11,7 @@ const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
 
         if (res.status === 200) {
             queryClient.setQueryData(["playlists"], prev => {
-                if (!prev) prev;
+                if (!prev) return prev;
 
                 return {
                     ...prev,
