@@ -15,7 +15,7 @@ const PopUpOptions = () => {
     const options = useAppStatus(state => state.popUpOption);
     if (!options.songId || options.y === -1 || !options.playId) return null;
     
-    Haptics.selectionAsync();
+    
     
     return (
         <View style={[styles.container, { top: options.y }]}>
