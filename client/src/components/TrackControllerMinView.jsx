@@ -59,7 +59,7 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                         height: IMG_SIZE,
                         borderRadius: IMG_RADIUS
                     }}
-                    contentFit="cover"
+                    resizeMode="cover"
                     transition={1000}
                 />
                 {isPlaying && (
