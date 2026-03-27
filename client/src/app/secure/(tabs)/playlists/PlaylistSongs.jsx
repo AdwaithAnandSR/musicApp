@@ -43,11 +43,9 @@ const PlaylistSongs = () => {
             getNextPageParam: lastPage => lastPage.nextPage
         });
 
-    setPlaylistController(playlistId, {
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage
-    });
+useEffect(() => {
+    setPlaylistController(playlistId, { fetchNextPage, hasNextPage, isFetchingNextPage });
+}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const songs =
         data?.pages.flatMap(page =>
