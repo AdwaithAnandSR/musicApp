@@ -16,7 +16,12 @@ const handleCreatePlaylist = async (name, desc, setMessage) => {
 
                 return {
                     ...prev,
-                    pages: [...prev.pages, res.data.playlist]
+                    pages: 
+prev.pages.map((page, i) =>
+    i === 0
+        ? { ...page, playlists: [res.data.playlist, ...page.playlists] }
+        : page
+)
                 };
             });
             setMessage("Playlist created 🎉");
