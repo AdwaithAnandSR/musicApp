@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -37,11 +37,9 @@ const Home = () => {
             lastPage.hasMore ? lastPage.nextSeenPages : undefined
     });
 
-    setPlaylistController("HOME", {
-        fetchNextPage,
-        hasNextPage,
-        isFetchingNextPage
-    });
+useEffect(() => {
+    setPlaylistController("HOME", { fetchNextPage, hasNextPage, isFetchingNextPage });
+}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const allSongs = [
         ...new Map(
