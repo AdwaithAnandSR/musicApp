@@ -23,15 +23,19 @@ const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
             });
             Toast.show("Playlist Deleted", "success");
         }
-    } catch (error) {
-        if (error.response.data.message === "PLAYLIST_NOT_FOUND") {
-            deletePlaylist(id);
-            Toast.show("Playlist already deleted!", "error");
-        } else if (error.response.data.message === "INTERNAL_ERROR")
-            Toast.show("INTERNAL_ERROR", "error");
-        else Toast.show(`${error.message}`, "error");
-        console.log(error);
+    
+} catch (error) {
+    const msg = error?.response?.data?.message;
+    if (msg === "PLAYLIST_NOT_FOUND") {
+        deletePlaylist(id);
+        Toast.show("Playlist already deleted!", "error");
+    } else if (msg === "INTERNAL_ERROR") {
+        Toast.show("INTERNAL_ERROR", "error");
+    } else {
+        Toast.show(error.message, "error");
     }
+}
+
 };
 
 export default handleDeletePlaylist;
