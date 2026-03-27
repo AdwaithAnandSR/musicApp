@@ -24,8 +24,9 @@ export const auth = async (req, res) => {
             user: newUser
         });
     } catch (error) {
-        console.error(error);
-    }
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+}
 };
 
 export const allUsers = async (req, res) => {
@@ -34,8 +35,9 @@ export const allUsers = async (req, res) => {
 
         res.send(users);
     } catch (error) {
-        console.error(error);
-    }
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+}
 };
 
 export const authenticate = async (req, res) => {
@@ -58,8 +60,9 @@ export const authenticate = async (req, res) => {
 
         res.send(user);
     } catch (error) {
-        console.error(error);
-    }
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+}
 };
 
 export const nickname = async (req, res) => {
@@ -79,7 +82,8 @@ export const nickname = async (req, res) => {
 
         res.send(user);
     } catch (error) {
-        console.error(error);
-    }
+    console.error(error);
+    return res.status(500).json({ message: "Internal server error" });
+}
 };
 
