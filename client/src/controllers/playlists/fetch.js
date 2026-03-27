@@ -13,10 +13,7 @@ export const fetchPlaylists = async ({ pageParam = 1 }) => {
         });
 
         if (res.data.playlists && pageParam === 1) {
-            storage.set(
-                "playlists",
-                JSON.stringify(res.data.playlists?.slice(10))
-            );
+            storage.set("playlists", JSON.stringify(res.data.playlists?.slice(0, 10)));
         }
 
         return res.data ?? { playlists: [], nextPage: null, hasMore: false };
