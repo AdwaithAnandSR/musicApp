@@ -140,9 +140,22 @@ export const usePlayer = create((set, get) => ({
     },
 
     next: () => {
-        const { currentTrackIndex } = get();
-        get().playByIndex(currentTrackIndex + 1);
+        const { currentTrackIndex, queue, repeatMode } = get();
 
+if (repeatMode === "one") {
+        get().playByIndex(currentTrackIndex);
+        return;
+    }
+    
+    const nextIndex = currentTrackIndex + 1;
+    
+if (nextIndex >= queue.length && repeatMode === "queue")           {
+        get().playByIndex(0);
+        return;
+}
+    
+get().playByIndex(nextIndex);
+     
         const state = get();
         const controller = state.playlistControllers[state.currentPlaylistId];
 
