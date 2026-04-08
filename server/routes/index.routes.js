@@ -28,17 +28,6 @@ router.post("/getGlobalSongs", async (req, res) => {
     try {
         const { limit, seenPages, userId } = req.body;
 
-        let isAuth = false;
-        if (userId) {
-            const user = await userModel.findOne({ userId });
-            if (user) isAuth = user.isAuthenticated;
-        }
-
-        if (!isAuth)
-            return res
-                .status(401)
-                .json({ isAuth: false, message: "Not autherized" });
-
         const count = await musicModel.countDocuments({});
         const totalPages = Math.ceil(count / limit);
 
@@ -51,8 +40,7 @@ router.post("/getGlobalSongs", async (req, res) => {
             return res.status(200).json({
                 musics: [],
                 hasMore: false,
-                nextSeenPages: seenPages, // nothing new to add
-                isAuth
+                nextSeenPages: seenPages // nothing new to add
             });
         }
 
@@ -68,8 +56,7 @@ router.post("/getGlobalSongs", async (req, res) => {
         return res.status(200).json({
             musics,
             hasMore: availablePages.length > 1, // >1 because current page is being consumed
-            nextSeenPages: [...seenPages, page], // client echoes this back next call
-            isAuth
+            nextSeenPages: [...seenPages, page] // client echoes this back next call
         });
     } catch (error) {
         console.error("error while fetching songs:", error);

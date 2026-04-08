@@ -4,11 +4,11 @@ import {
     Text,
     StyleSheet,
     Dimensions,
-    TouchableOpacity,
-    Image
+    TouchableOpacity
 } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 
 import { useMultiSelect, useAppStatus } from "@store/appState.store.js";
@@ -51,8 +51,7 @@ const ListItem = ({ item }) => {
         <TouchableOpacity
             onPress={handleRoute}
             onLongPress={handleLongPress}
-            style={styles.container}
-        >
+            style={styles.container}>
             <View style={styles.ImgNameCont}>
                 <View style={styles.imageContainer}>
                     <Image
@@ -61,9 +60,12 @@ const ListItem = ({ item }) => {
                                 ? { uri: item.cover }
                                 : require("@assets/images/DefaultImage.jpeg")
                         }
-                        defaultSource={require("@assets/images/DefaultImage.jpeg")}
-                        style={{ width: "100%", height: "100%" }}
+                        placeholder={{
+                            blurhash: "L10U~q%M00t7%MRj00of00RjRjRj"
+                        }}
                         contentFit="cover"
+                        transition={1000}
+                        style={{ width: "100%", height: "100%" }}
                     />
                 </View>
                 <Text style={styles.name}>{item?.name}</Text>
@@ -77,8 +79,7 @@ const ListItem = ({ item }) => {
                             reset
                         })
                     }
-                    style={styles.btn}
-                >
+                    style={styles.btn}>
                     <Entypo name="plus" size={15} color="white" />
                     <Text style={styles.text}>Add</Text>
                 </TouchableOpacity>

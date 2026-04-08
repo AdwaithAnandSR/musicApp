@@ -37,9 +37,13 @@ const Home = () => {
             lastPage.hasMore ? lastPage.nextSeenPages : undefined
     });
 
-useEffect(() => {
-    setPlaylistController("HOME", { fetchNextPage, hasNextPage, isFetchingNextPage });
-}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    useEffect(() => {
+        setPlaylistController("HOME", {
+            fetchNextPage,
+            hasNextPage,
+            isFetchingNextPage
+        });
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const allSongs = [
         ...new Map(
@@ -80,7 +84,6 @@ useEffect(() => {
                 onEndReachedThreshold={0.5}
                 initialNumToRender={7}
                 estimatedItemSize={80}
-                removeClippedSubviews={true}
                 onEndReached={() => {
                     if (!isFetchingNextPage && hasNextPage) fetchNextPage();
                 }}

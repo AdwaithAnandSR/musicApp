@@ -5,11 +5,11 @@ import {
     StyleSheet,
     Dimensions,
     TouchableOpacity,
-    Image
 } from "react-native";
 import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -36,7 +36,7 @@ const TrackControllerFullView = () => {
     const track = usePlayer(state => state.currentTrack);
 
     useEffect(() => {
-        if (!track) {
+        if (!track._id) {
             router.back();
         } else if (track?.cover) {
             getColors(track.cover, {
@@ -45,7 +45,7 @@ const TrackControllerFullView = () => {
                 key: track._id
             }).then(setColors);
         }
-    }, [track]);
+    }, [track._id]);
 
     if (!track) return null;
 
@@ -59,8 +59,7 @@ const TrackControllerFullView = () => {
                 style={{
                     minHeight: vh * 0.08,
                     justifyContent: "center"
-                }}
-            >
+                }}>
                 <Text numberOfLines={2} style={styles.title}>
                     {track?.title}
                 </Text>
@@ -72,8 +71,7 @@ const TrackControllerFullView = () => {
                 style={[
                     styles.imageContainer,
                     { shadowColor: colors?.lightVibrant || "#32ffd4" }
-                ]}
-            >
+                ]}>
                 <Image
                     source={
                         track?.cover

@@ -9,11 +9,13 @@ const PORT = process.env.PORT || 5000;
 
 import mongoConfig from "./config/mongodb.config.js";
 import indexRoutes from "./routes/index.routes.js";
-import usersRoutes from "./routes/users.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import playlistRoutes from "./routes/playlist.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import lyrics from "./routes/lyrics.js";
+
+import { requireAuth, requireAdmin } from "./moddileware/auth.js";
 
 app.use(express.json());
 app.use(
@@ -27,12 +29,14 @@ app.use(
     })
 );
 
+app.use("/auth", authRoutes);
+app.use(requireAuth);
 app.use("/", indexRoutes);
 app.use("/lyrics", lyrics);
 app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
+app.use(requireAdmin);
 app.use("/admin", adminRoutes);
-app.use("/users", usersRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

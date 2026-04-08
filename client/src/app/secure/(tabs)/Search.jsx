@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TextInput, Dimensions } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -6,6 +6,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import Loader from "@components/Loader";
 import ListItem from "@components/ListItem.jsx";
 import searchSongs from "@controllers/search.controller.js";
+import queryClient from "@services/queryClient";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -36,9 +37,7 @@ const Search = () => {
             }),
         initialPageParam: 1,
         getNextPageParam: lastPage => lastPage.nextPage ?? undefined,
-        enabled: debouncedText.length >= 3,
-        staleTime: 0,
-        gcTime: 0
+        enabled: debouncedText.length >= 3
     });
 
     const songs =
@@ -49,6 +48,12 @@ const Search = () => {
                 ...rest
             }))
         ) ?? [];
+
+    useEffect(() => {
+        return () => {
+            if (typingTimeout.current) clearTimeout(typingTimeout.current);
+        };
+    }, []);
 
     const handleChangeText = txt => {
         setText(txt);
@@ -73,6 +78,9 @@ const Search = () => {
             />
 
             <FlashList
+                key={debouncedText}
+                keyExtractor={item => item.id}
+                estimatedItemSize={80}
                 data={songs}
                 renderItem={({ item }) => (
                     <ListItem

@@ -4,11 +4,11 @@ import {
     Text,
     Dimensions,
     TouchableOpacity,
-    StyleSheet,
-    Image
+    StyleSheet
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { InteractionManager } from "react-native";
+import { Image } from "expo-image";
 
 import {
     useMultiSelect,
@@ -20,9 +20,6 @@ import { usePlayer } from "../store/player.js";
 import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { width: vw, height: vh } = Dimensions.get("window");
-
-const blurhash =
-    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
 
 const setPopUpOption = useAppStatus.getState().setPopUpOption;
 
@@ -70,16 +67,14 @@ const ListItem = ({ item, ID, text = "" }) => {
             activeOpacity={0.6}
             onPress={handleShortPress}
             onLongPress={handleLongPress}
-            style={styles.container}
-        >
+            style={styles.container}>
             {isSelected && (
                 <View style={styles.checkBoxContainer}>
                     <Text
                         style={{
                             color: "rgb(246,7,135)",
                             fontWeight: "bold"
-                        }}
-                    >
+                        }}>
                         ✓
                     </Text>
                 </View>
@@ -87,12 +82,14 @@ const ListItem = ({ item, ID, text = "" }) => {
 
             <View style={styles.imageContainer}>
                 <Image
+                    placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
+                    contentFit="cover"
+                    transition={1000}
                     source={
                         item.artwork
                             ? { uri: item.artwork }
-                            : require("../assets/images/images.jpeg")
+                            : require("@assets/images/images.jpeg")
                     }
-                    placeholder={{ blurhash }}
                     style={{ width: "100%", height: "100%" }}
                 />
             </View>

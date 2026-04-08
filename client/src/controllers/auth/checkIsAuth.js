@@ -1,26 +1,40 @@
 import Constants from "expo-constants";
-import axios from "axios";
+import axios from "@services/axios";
+import {
+    getToken,
+    removeToken,
+    removeUser,
+    setIsAuth
+} from "@services/storage.js";
 
-import { storage } from "../../services/storage.js"
+const checkIsAuth = async setIsAuthenticated => {
+    const token = getToken();
 
-let api = Constants.expoConfig.extra.clientApi;
-// api = "http://localhost:5000";
+    if (!token) {
+        setIsAuthenticated(false);
+        return false;
+    }
 
-const fetchUser = async (id, setIsAuthenticated) => {
     try {
-        const res = await axios.post(`${api}/users/auth`, { userId: id });
+        const res = await axios.get(`/auth/me`);
 
-        if (res.data?.success){
-            const isAuth = res.data?.user?.isAuthenticated
-            console.log(isAuth);
-            storage.set("isAuthenticated", isAuth);
-            setIsAuthenticated(isAuth)
+        if (res.data?.success) {
+            setIsAuthenticated(true);
+            setIsAuth(true);
+            return true;
         }
 
-        // console.log(res.data);
-    } catch (error) {
-        console.error(error);
+        setIsAuthenticated(false);
+        setIsAuth(false);
+
+        throw new Error("invalid response");
+    } catch {
+        removeToken();
+        removeUser();
+        setIsAuthenticated(false);
+        setIsAuth(false);
+        return false;
     }
 };
 
-export default fetchUser
+export default checkIsAuth;
