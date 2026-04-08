@@ -4,10 +4,10 @@ import {
     StyleSheet,
     TouchableOpacity,
     Dimensions,
-    Image,
     View
 } from "react-native";
 import LottieView from "lottie-react-native";
+import { Image } from "expo-image";
 
 import handleSwipe from "@controllers/handleMinViewSwipes.js";
 import { usePlayer } from "@store/player";
@@ -38,16 +38,14 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                 })
             }
             onPressOut={e => handleSwipe(e, swipeStartPos)}
-            style={[styles.container, { bottom: tabBarHeight }]}
-        >
+            style={[styles.container, { bottom: tabBarHeight }]}>
             <TouchableOpacity
                 style={{
                     alignItems: "center",
                     justifyContent: "center"
                 }}
                 onPress={playPause}
-                activeOpacity={0.85}
-            >
+                activeOpacity={0.85}>
                 <Image
                     source={
                         track?.cover
@@ -59,7 +57,8 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                         height: IMG_SIZE,
                         borderRadius: IMG_RADIUS
                     }}
-                    resizeMode="cover"
+                    placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
+                    contentFit="cover"
                     transition={1000}
                 />
                 {isPlaying && (
@@ -93,7 +92,7 @@ const styles = StyleSheet.create({
         zIndex: 99999999,
         marginBottom: 5,
         backgroundColor: "#51847c",
-        paddingHorizontal: 8,
+        paddingHorizontal: 8
     },
     anim: {
         width: 35,
@@ -105,9 +104,9 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: vw * 0.04,
         fontWeight: "bold",
-        fontFamily: 'Sans',
+        fontFamily: "Sans",
         fontSize: vw * 0.0385,
-        color: "#fff",
+        color: "#fff"
     }
 });
 

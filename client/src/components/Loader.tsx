@@ -274,7 +274,7 @@ interface MorphingLoaderProps {
 
 export function MorphingLoader({
     size = "small",
-    color,
+    color = "#c2edd8",
     animating = true,
     holdDuration = 800,
     morphDuration = 600,
@@ -285,9 +285,6 @@ export function MorphingLoader({
         cy = px / 2,
         r = px * 0.4;
 
-    const uniwindStyles = {
-        color: "fedbcc"
-    };
     const pairs = useMemo(() => buildPairs(cx, cy, r), [px]);
 
     const morphT = useSharedValue(0);
@@ -389,7 +386,7 @@ export function MorphingLoader({
                 <Svg width={px} height={px} viewBox={`0 0 ${px} ${px}`}>
                     <AnimatedPath
                         animatedProps={animatedPathProps}
-                        fill={color ?? uniwindStyles.color}
+                        fill={color}
                     />
                 </Svg>
             </Animated.View>

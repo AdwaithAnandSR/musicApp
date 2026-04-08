@@ -1,67 +1,71 @@
 {
-    "expo": {
-        "name": "Music",
-        "slug": "music",
-        "version": "2.4.0",
-        "orientation": "portrait",
-        "icon": "./src/assets/images/icon.png",
-        "scheme": "music",
-        "userInterfaceStyle": "dark",
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.adwaithananddev.music"
-        },
-        "android": {
-            "adaptiveIcon": {
-                "foregroundImage": "./src/assets/images/icon.png",
-                "backgroundColor": "#000000"
-            },
-            "package": "com.adwaithananddev.music",
-            "permissions": ["INTERNET", "FOREGROUND_SERVICE"]
-        },
-        "web": {
-            "bundler": "metro",
-            "output": "static",
-            "favicon": "./src//assets/images/icon.png"
-        },
-        "plugins": [
-            "expo-router",
-            [
-                "expo-splash-screen",
-                {
-                    "image": "./src/assets/images/icon.png",
-                    "imageWidth": 200,
-                    "resizeMode": "contain",
-                    "backgroundColor": "#000000"
-                }
-            ],
-            "expo-font",
-            "expo-asset",
-            [
-                "expo-audio",
-                {
-                    "enableBackgroundPlayback": true
-                }
-            ]
-        ],
-        "experiments": {
-            "typedRoutes": true
-        },
-        "extra": {
-            "clientApi": "https://vivid-music.vercel.app",
-            "router": {
-                "origin": false
-            },
-            "eas": {
-                "projectId": "324699e8-88f7-4bd9-abee-3232ea9a5ca4"
-            }
-        },
-        "owner": "adwaithananddev",
-        "runtimeVersion": {
-            "policy": "appVersion"
-        },
-        "updates": {
-            "url": "https://u.expo.dev/324699e8-88f7-4bd9-abee-3232ea9a5ca4"
+  "expo": {
+    "name": "Music",
+    "slug": "music",
+    "version": "2.4.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/images/icon.png",
+    "scheme": "music",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.adwaithananddev.music"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.adwaithananddev.music",
+      "permissions": [
+        "INTERNET",
+        "FOREGROUND_SERVICE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./src//assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/images/icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000"
         }
+      ],
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-image"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "clientApi": "https://vivid-music.vercel.app",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "324699e8-88f7-4bd9-abee-3232ea9a5ca4"
+      }
+    },
+    "owner": "adwaithananddev",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/324699e8-88f7-4bd9-abee-3232ea9a5ca4"
     }
+  }
 }

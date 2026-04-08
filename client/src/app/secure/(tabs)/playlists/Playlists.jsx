@@ -47,8 +47,7 @@ const Playlists = () => {
                                 color: "white",
                                 textAlign: "center",
                                 marginTop: 10
-                            }}
-                        >
+                            }}>
                             no playlists.
                         </Text>
                     )
@@ -60,10 +59,9 @@ const Playlists = () => {
                     paddingTop: HEADER_HEIGHT,
                     paddingBottom: 150
                 }}
-                
-onEndReached={() => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-}}
+                onEndReached={() => {
+                    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+                }}
                 onEndReachedThreshold={0.5}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
