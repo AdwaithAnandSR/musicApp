@@ -19,7 +19,11 @@
       "package": "com.adwaithananddev.music",
       "permissions": [
         "INTERNET",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -52,20 +56,16 @@
       "typedRoutes": true
     },
     "extra": {
-      "clientApi": "https://vivid-music.vercel.app",
       "router": {
         "origin": false
       },
       "eas": {
-        "projectId": "324699e8-88f7-4bd9-abee-3232ea9a5ca4"
+        "projectId": "8d9ab622-be69-4453-bac4-9de0e95969d4"
       }
     },
-    "owner": "adwaithananddev",
+    "owner": "adwaithanandsr",
     "runtimeVersion": {
       "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/324699e8-88f7-4bd9-abee-3232ea9a5ca4"
     }
   }
 }
