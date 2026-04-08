@@ -17,7 +17,7 @@ const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
                     ...prev,
                     pages: prev.pages.map(page => ({
                         ...page,
-                        playlists: page.musics.filter(pl => pl._id !== id)
+                        playlists: page?.playlists?.filter(pl => pl._id !== id)
                     }))
                 };
             });
