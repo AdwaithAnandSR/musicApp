@@ -26,15 +26,18 @@ router.post("/addSong", addSong);
 
 router.post("/getGlobalSongs", async (req, res) => {
     try {
-        const { limit, seenPages, userId } = req.body; // renamed allPages → seenPages
+        const { limit, seenPages, userId } = req.body;
 
-        let isAuth = true;
-        // if (userId) {
-        //     const user = await userModel.findOne({ userId });
-        //     if (user) isAuth = user.isAuthenticated;
-        // }
+        let isAuth = false;
+        if (userId) {
+            const user = await userModel.findOne({ userId });
+            if (user) isAuth = user.isAuthenticated;
+        }
 
-        if (!isAuth) return res.status(401).json({ isAuth: false });
+        if (!isAuth)
+            return res
+                .status(401)
+                .json({ isAuth: false, message: "Not autherized" });
 
         const count = await musicModel.countDocuments({});
         const totalPages = Math.ceil(count / limit);
