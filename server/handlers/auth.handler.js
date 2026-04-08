@@ -30,7 +30,7 @@ export const register = async (req, res) => {
                 .json({ success: false, message: "Username already taken" });
 
         const hashed = await bcrypt.hash(password, 12);
-        await User.create({
+        const userDoc = await User.create({
             username: username.toLowerCase().trim(),
             password: hashed
         });
@@ -91,7 +91,8 @@ export const login = async (req, res) => {
             user: {
                 id: user._id,
                 username: user.username,
-                role: user.role
+                role: user.role,
+                isVerified: user.isVerified
             }
         });
     } catch (error) {

@@ -1,39 +1,20 @@
 import Constants from "expo-constants";
 import axios from "@services/axios";
-import {
-    getToken,
-    removeToken,
-    removeUser,
-    setIsAuth
-} from "@services/storage.js";
 
-const checkIsAuth = async setIsAuthenticated => {
-    const token = getToken();
+import { useAppStatus } from "@store/appState.store";
 
-    if (!token) {
-        setIsAuthenticated(false);
-        return false;
-    }
-
+const checkIsAuth = async () => {
+    const updateUser = useAppStatus.getState().updateUser;
+    const removeUser = useAppStatus.getState().removeUser;
     try {
         const res = await axios.get(`/auth/me`);
+        if (res.data?.success && res.data.user)
+            return updateUser(res.data.user);
 
-        if (res.data?.success) {
-            setIsAuthenticated(true);
-            setIsAuth(true);
-            return true;
-        }
-
-        setIsAuthenticated(false);
-        setIsAuth(false);
-
-        throw new Error("invalid response");
-    } catch {
-        removeToken();
         removeUser();
-        setIsAuthenticated(false);
-        setIsAuth(false);
-        return false;
+        throw new Error("invalid response");
+    } catch(e) {
+        removeUser();
     }
 };
 
