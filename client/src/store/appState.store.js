@@ -1,17 +1,27 @@
 import { create } from "zustand";
-import { getIsAuth } from "@services/storage";
+import { getUser, setUser, removeUser } from "@services/storage";
 
 // Note: isAuthenticated intentionally starts as false.
 // index.jsx validates the stored token against /users/me on every launch,
 // which is required to detect single-device invalidation.
 export const useAppStatus = create(set => ({
-    isAuthenticated: getIsAuth() ?? false,
+    user: getUser() ?? {},
     currentSelectedPlaylist: {},
     isTimerSelecting: false,
     popUpOption: {
         y: -1,
         songId: null,
         playId: null
+    },
+
+    updateUser: user => {
+        setUser(user);
+        set({ user });
+    },
+
+    removeUser: () => {
+        removeUser();
+        set({ user: {} });
     },
 
     setIsAuthenticated: val => set(() => ({ isAuthenticated: val })),

@@ -1,9 +1,9 @@
 import axios from "axios";
 import Constants from "expo-constants";
-import { getToken } from "./storage.js";
+import { getToken, removeToken } from "./storage.js";
+import { useAppStatus } from "@store/appState.store";
 
-const BASE_URL =
-    process.env.EXPO_PUBLIC_API || "http://localhost:5000";
+const BASE_URL = process.env.EXPO_PUBLIC_API || "http://localhost:5000";
 
 const api = axios.create({
     baseURL: BASE_URL,
@@ -11,7 +11,7 @@ const api = axios.create({
     headers: { "Content-Type": "application/json" }
 });
 
-// Automatically attach the stored JWT to every request
+// Attach JWT
 api.interceptors.request.use(
     config => {
         const token = getToken();
@@ -19,6 +19,17 @@ api.interceptors.request.use(
         return config;
     },
     error => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response && error.response.status === 401) {
+            removeToken();
+            useAppStatus.getState().removeUser();
+        }
+        return Promise.reject(error);
+    }
 );
 
 export default api;

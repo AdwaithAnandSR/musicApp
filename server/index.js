@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 
 import http from "http";
 import express from "express";
@@ -13,6 +13,7 @@ import authRoutes from "./routes/auth.routes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import playlistRoutes from "./routes/playlist.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import userRoutes from "./routes/user.routes.js";
 import lyrics from "./routes/lyrics.js";
 
 import { requireAuth, requireAdmin } from "./moddileware/auth.js";
@@ -24,7 +25,7 @@ app.use(
             "exp://127.0.0.1:8081",
             "http://10.32.129.27:4321",
             "exp://100.104.246.3:8081",
-            "*",
+            "*"
         ]
     })
 );
@@ -37,6 +38,7 @@ app.use("/dashboard", dashboardRoutes);
 app.use("/playlist", playlistRoutes);
 app.use(requireAdmin);
 app.use("/admin", adminRoutes);
+app.use("/users", userRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);

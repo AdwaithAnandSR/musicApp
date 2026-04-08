@@ -1,6 +1,9 @@
 import Constants from "expo-constants";
 import axios from "@services/axios";
-import { setToken, setUser } from "@services/storage.js";
+import { setToken } from "@services/storage.js";
+import { useAppStatus } from "@store/appState.store";
+
+const setUser = useAppStatus.getState().updateUser;
 
 /**
  * @param {object} params
@@ -10,13 +13,7 @@ import { setToken, setUser } from "@services/storage.js";
  * @param {Function} params.setAuthError
  * @param {Function} params.setLoading
  */
-const login = async ({
-    username,
-    password,
-    setIsAuthenticated,
-    setAuthError,
-    setLoading
-}) => {
+const login = async ({ username, password, setAuthError, setLoading }) => {
     try {
         setLoading(true);
         setAuthError("");
@@ -25,14 +22,13 @@ const login = async ({
             username,
             password
         });
-        
+
         if (res.data.success) {
+            console.log(res.data.user, setUser)
             setToken(res.data.token);
             setUser(res.data.user);
-            setIsAuthenticated(true);
         }
     } catch (error) {
-        
         const msg =
             error.response?.data?.message || "Login failed. Please try again.";
         setAuthError(msg);

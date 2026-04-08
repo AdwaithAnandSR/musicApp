@@ -22,7 +22,10 @@ const register = async ({
 
         const res = await axios.post(`/auth/register`, { username, password });
 
-        if (res.data.success) onSuccess();
+        if (res.data.success) {
+            onSuccess();
+            
+        }
     } catch (error) {
         const msg =
             error.response?.data?.message ||
