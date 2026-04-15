@@ -33,14 +33,15 @@ app.use(
 
 app.use("/temp", temp);
 app.use("/auth", authRoutes);
-app.use(requireAuth);
-app.use("/", indexRoutes);
-app.use("/lyrics", lyrics);
-app.use("/dashboard", dashboardRoutes);
-app.use("/playlist", playlistRoutes);
-app.use(requireAdmin);
-app.use("/admin", adminRoutes);
-app.use("/users", userRoutes);
+
+app.use("/", requireAuth, indexRoutes);
+app.use("/lyrics", requireAuth, lyrics);
+app.use("/dashboard", requireAuth, dashboardRoutes);
+app.use("/playlist", requireAuth, playlistRoutes);
+
+app.use("/admin", requireAuth, requireAdmin, adminRoutes);
+app.use("/users", requireAuth, requireAdmin, userRoutes);
+
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
