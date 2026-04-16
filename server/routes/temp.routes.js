@@ -5,6 +5,10 @@ import musicModel from "../models/musics.js";
 
 const router = express.Router();
 
+router.get('/', (req, res)=>{
+    res.send("temporory route")
+})
+
 router.post("/addSong", async (req, res) => {
     try {
         const { title, artist, url, cover, duration, ytId, lang } = req.body;
