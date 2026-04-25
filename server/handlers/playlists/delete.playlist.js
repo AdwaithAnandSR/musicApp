@@ -1,4 +1,5 @@
 import playlistModel from "../../models/playlist.js";
+import PlaylistSong from "../../models/playlistSong.js"
 
 const deletePlaylist = async (req, res) => {
     try {
@@ -6,6 +7,8 @@ const deletePlaylist = async (req, res) => {
 
         const playlist = await playlistModel.findByIdAndDelete(id);
 
+        await PlaylistSong.deleteMany({ playlistId: id });
+        
         if (playlist)
             return res.json({
                 message: "SUCCESSFULLY_DELETED",
