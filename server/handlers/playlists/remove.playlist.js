@@ -12,17 +12,15 @@ const removeSong = async (req, res) => {
             .json({ message: "Playlist ID and SongId is required" });
 
     try {
-        const result = await playlistModel.updateOne(
-            { _id: playlistId },
-            { $pull: { songs: songId } }
-        );
+        const result = await PlaylistSong.deleteOne({
+    playlistId,
+    songId
+});
 
-        if (result.matchedCount === 0) {
-            res.json({ message: "playlist not found" });
-        } else if (result.modifiedCount === 0) {
-            res.json({ message: "song not found" });
+        if (result.deletedCount === 0) {
+            res.json({ message: "No matching document found" });
         } else {
-            res.json({ message: "Song removed successfully" });
+            res.json({ message: "successfully removed the song." });
         }
     } catch (err) {
         console.error(err);
