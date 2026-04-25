@@ -28,6 +28,8 @@ router.post("/getGlobalSongs", async (req, res) => {
     try {
         const { limit, seenPages, userId } = req.body;
 
+console.log(req.body)
+
         const count = await musicModel.countDocuments({});
         const totalPages = Math.ceil(count / limit);
 
