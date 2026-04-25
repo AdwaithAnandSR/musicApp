@@ -24,46 +24,37 @@ router.post("/findSong", findSong);
 
 router.post("/addSong", addSong);
 
-router.post("/getGlobalSongs", async (req, res) => {
-    try {
-        const { limit, seenPages, userId } = req.body;
+router.get("/getGlobalSongs", async (req, res) => {
+  try {
+    const startAt = parseFloat(req.query.startAt);
+    const cursor  = parseFloat(req.query.cursor ?? startAt);
+    const limit   = parseInt(req.query.limit ?? 10);
 
-console.log(req.body)
+    let songs = await musicModel
+      .find({ stableRandom: { $gte: cursor } })
+      .sort({ stableRandom: 1 })
+      .limit(limit)
+      .lean();
 
-        const count = await musicModel.countDocuments({});
-        const totalPages = Math.ceil(count / limit);
-
-        const availablePages = Array.from(
-            { length: totalPages },
-            (_, i) => i + 1
-        ).filter(p => !seenPages.includes(p));
-
-        if (availablePages.length === 0) {
-            return res.status(200).json({
-                musics: [],
-                hasMore: false,
-                nextSeenPages: seenPages // nothing new to add
-            });
-        }
-
-        const page =
-            availablePages[Math.floor(Math.random() * availablePages.length)];
-
-        const musics = await musicModel
-            .find({})
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(limit);
-
-        return res.status(200).json({
-            musics,
-            hasMore: availablePages.length > 1, // >1 because current page is being consumed
-            nextSeenPages: [...seenPages, page] // client echoes this back next call
-        });
-    } catch (error) {
-        console.error("error while fetching songs:", error);
-        return res.status(500).json({ error: "Internal server error" });
+    // Wrap around if not enough results
+    if (songs.length < limit) {
+      const more = await musicModel
+        .find({ stableRandom: { $gte: startAt, $lt: cursor } })
+        .sort({ stableRandom: 1 })
+        .limit(limit - songs.length)
+        .lean();
+      songs = [...songs, ...more];
     }
+
+    const last = songs[songs.length - 1];
+    const nextCursor = last?.stableRandom ?? null;
+    const hasMore = songs.length === limit && nextCursor !== startAt;
+
+    return res.json({ musics: songs, hasMore, nextCursor });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 });
 
 router.post("/searchSong", async (req, res) => {
