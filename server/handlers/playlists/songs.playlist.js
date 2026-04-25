@@ -1,58 +1,105 @@
-import playlistModel from "../../models/playlist.js";
+import Music from "../../models/musics.js";
+import PlaylistSong from "../../models/playlistSong.js";
+
 import mongoose from "mongoose";
 
-const getSongs = async (req, res) => {
-    const { playlistId, page = 1, limit = 10 } = req.body;
+export const getSongs = async (req, res) => {
+try {
+const { playlistId, cursor, limit = 50, random, seed } = req.query;
 
-    const pageNumber = parseInt(page);
-    const limitNumber = parseInt(limit);
+const isRandom = random === "true";  
+    const parsedLimit = Number(limit);  
+    const playlistObjectId = new mongoose.Types.ObjectId(playlistId);  
 
-    const skip = (pageNumber - 1) * limitNumber;
+    let mappings = [];  
 
-    if (!playlistId) {
-        return res.status(400).json({ error: "Playlist ID is required" });
-    }
+    // =========================  
+    // 🔀 RANDOM MODE (SIMPLIFIED)  
+    // =========================  
+    if (isRandom) {  
+        const randomSeed = Number(seed);  
+        if (isNaN(randomSeed)) {  
+            return res.status(400).json({ error: "Invalid seed" });  
+        }  
 
-    try {
-        const playlist = await playlistModel.aggregate([
-            {
-                $match: { _id: new mongoose.Types.ObjectId(playlistId) }
-            },
-            {
-                $project: {
-                    totalSongs: { $size: "$songs" },
-                    songs: { $slice: ["$songs", skip, limitNumber] }
-                }
-            },
-            {
-                $lookup: {
-                    from: "musics",
-                    localField: "songs",
-                    foreignField: "_id",
-                    as: "songs"
-                }
-            }
-        ]);
+        let query = { playlistId: playlistObjectId };  
 
-        if (!playlist.length) {
-            return res.status(404).json({ error: "Playlist not found" });
-        }
+        if (cursor) {  
+            query.stableRandom = { $gt: Number(cursor) };  
+        } else {  
+            query.stableRandom = { $gte: randomSeed };  
+        }  
 
-        const totalSongs = playlist[0].totalSongs;
-        const musics = playlist[0].songs;
+        // first fetch  
+        mappings = await PlaylistSong.find(query)  
+            .sort({ stableRandom: 1 })  
+            .limit(parsedLimit);  
 
-        const hasMore = skip + musics.length < totalSongs;
-        const nextPage = hasMore ? page + 1 : null;
 
-        res.json({
-            musics,
-            hasMore,
-            nextPage
-        });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Server error" });
-    }
+        // 🔁 AUTO WRAP (no flags needed)  
+        if (mappings.length < parsedLimit) {  
+            const wrapQuery = cursor  
+                ? { stableRandom: { $lte: Number(cursor) } }  
+                : { stableRandom: { $lt: randomSeed } };  
+
+            const extra = await PlaylistSong.find({  
+                playlistId: playlistObjectId,  
+                ...wrapQuery  
+            })  
+                .sort({ stableRandom: 1 })  
+                .limit(parsedLimit - mappings.length);  
+
+            mappings = [...mappings, ...extra];  
+        }  
+    }  
+
+    // =========================  
+    // 📜 NORMAL MODE  
+    // =========================  
+    else {  
+        let query = { playlistId: playlistObjectId };  
+
+        if (cursor) {  
+            query.order = { $lt: Number(cursor) };  
+        }  
+
+        mappings = await PlaylistSong.find(query)  
+            .sort({ order: -1 })  
+            .limit(parsedLimit);  
+    }  
+
+    // =========================  
+    // 🎵 FETCH SONGS  
+    // =========================  
+    const songIds = mappings.map(m => m.songId);  
+
+    const songsRaw = await Music.find({  
+        _id: { $in: songIds }  
+    }).select("_id title cover artist duration url createdAt");  
+
+    // preserve order  
+    const map = new Map(songsRaw.map(s => [s._id.toString(), s]));  
+    const songs = songIds.map(id => map.get(id.toString())).filter(Boolean);  
+
+    // =========================  
+    // 🎯 NEXT CURSOR  
+    // =========================  
+    const nextCursor =  
+        mappings.length === parsedLimit  
+            ? isRandom  
+                ? mappings[mappings.length - 1].stableRandom  
+                : mappings[mappings.length - 1].order  
+            : null;  
+
+    res.json({  
+        musics: songs,  
+        nextCursor  
+    });  
+} catch (err) {  
+    console.error("getSongs error:", err);  
+    res.status(500).json({ error: "Internal server error" });  
+}
+
 };
 
 export default getSongs;
