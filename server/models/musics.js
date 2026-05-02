@@ -34,6 +34,7 @@ const musicSchema = mongoose.Schema({
         default: false
     },
     lyricsAsText: [{ type: String }],
+    stableRandom: Number,
     createdAt: {
         type: Date,
         default: Date.now
