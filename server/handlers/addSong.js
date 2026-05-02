@@ -10,7 +10,8 @@ const addSong = async (req, res) => {
             title,
             ytId: id,
             artist,
-            duration
+            duration,
+            stableRandom: Math.random()
         });
         res.json({success: true})
     } catch (error) {
