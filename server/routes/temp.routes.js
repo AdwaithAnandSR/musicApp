@@ -38,7 +38,8 @@ router.post("/addSong", async (req, res) => {
             cover: cover || null,
             duration: duration != null ? Number(duration) : undefined,
             ytId: ytId || null,
-            lang: lang || null
+            lang: lang || null,
+            stableRandom: Math.random()
         });
 
         await song.save();
