@@ -71,138 +71,258 @@ router.post("/searchSong", async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        // ── Detect "Artist – Title" style queries ──────────────────────────
-        // Handles: "drake - gods plan", "Drake – God's Plan", "Drake — God's Plan"
+        // ── Detect field queries ──────────────────────────
+        const artistMatch = text.match(/^artist:\s*(.+)$/i);
+        const titleMatch  = text.match(/^title:\s*(.+)$/i);
+        const lyricsMatch = text.match(/^lyrics:\s*(.+)$/i);
+
+        const artistQuery = artistMatch?.[1]?.trim();
+        const titleQuery  = titleMatch?.[1]?.trim();
+        const lyricsQuery = lyricsMatch?.[1]?.trim();
+
+        // ── Detect "Artist - Title" ───────────────────────
         const splitMatch = text.match(/^(.+?)\s*[-–—]\s*(.+)$/);
-        const artistQuery = splitMatch?.[1]?.trim();
-        const titleQuery  = splitMatch?.[2]?.trim();
+        const splitArtist = splitMatch?.[1]?.trim();
+        const splitTitle  = splitMatch?.[2]?.trim();
 
-        // ── Build compound clauses ─────────────────────────────────────────
-        const shouldClauses = [];
+        let searchStage;
 
-        if (artistQuery && titleQuery) {
-            // High-confidence "Artist – Title" query: both sides must phrase-match
+        // =================================================
+        // 🎤 ARTIST SEARCH
+        // =================================================
+        if (artistQuery) {
+            searchStage = {
+                $search: {
+                    index: "text",
+                    compound: {
+                        should: [
+                            {
+                                phrase: {
+                                    query: artistQuery,
+                                    path: "artist",
+                                    score: { boost: { value: 25 } }
+                                }
+                            },
+                            {
+                                text: {
+                                    query: artistQuery,
+                                    path: "artist",
+                                    fuzzy: { maxEdits: 1, prefixLength: 2 },
+                                    score: { boost: { value: 10 } }
+                                }
+                            },
+                            {
+                                autocomplete: {
+                                    query: artistQuery,
+                                    path: "artist",
+                                    fuzzy: { maxEdits: 1 },
+                                    score: { boost: { value: 6 } }
+                                }
+                            }
+                        ],
+                        minimumShouldMatch: 1
+                    }
+                }
+            };
+        }
+
+        // =================================================
+        // 🎵 TITLE SEARCH
+        // =================================================
+        else if (titleQuery) {
+            searchStage = {
+                $search: {
+                    index: "text",
+                    compound: {
+                        should: [
+                            {
+                                phrase: {
+                                    query: titleQuery,
+                                    path: "title",
+                                    score: { boost: { value: 25 } }
+                                }
+                            },
+                            {
+                                text: {
+                                    query: titleQuery,
+                                    path: "title",
+                                    fuzzy: { maxEdits: 1, prefixLength: 2 },
+                                    score: { boost: { value: 10 } }
+                                }
+                            },
+                            {
+                                autocomplete: {
+                                    query: titleQuery,
+                                    path: "title",
+                                    fuzzy: { maxEdits: 1 },
+                                    score: { boost: { value: 6 } }
+                                }
+                            }
+                        ],
+                        minimumShouldMatch: 1
+                    }
+                }
+            };
+        }
+
+        // =================================================
+        // 📝 LYRICS SEARCH
+        // =================================================
+        else if (lyricsQuery) {
+            searchStage = {
+                $search: {
+                    index: "text",
+                    compound: {
+                        should: [
+                            {
+                                phrase: {
+                                    query: lyricsQuery,
+                                    path: "lyricsAsText",
+                                    score: { boost: { value: 20 } }
+                                }
+                            },
+                            {
+                                phrase: {
+                                    query: lyricsQuery,
+                                    path: "lyrics.line",
+                                    score: { boost: { value: 18 } }
+                                }
+                            },
+                            {
+                                text: {
+                                    query: lyricsQuery,
+                                    path: ["lyricsAsText", "lyrics.line"],
+                                    fuzzy: { maxEdits: 1 },
+                                    score: { boost: { value: 8 } }
+                                }
+                            }
+                        ],
+                        minimumShouldMatch: 1
+                    }
+                }
+            };
+        }
+
+        // =================================================
+        // 🌍 NORMAL SEARCH
+        // =================================================
+        else {
+            const shouldClauses = [];
+
+            // Artist - Title boost
+            if (splitArtist && splitTitle) {
+                shouldClauses.push(
+                    {
+                        phrase: {
+                            query: splitTitle,
+                            path: "title",
+                            score: { boost: { value: 20 } }
+                        }
+                    },
+                    {
+                        phrase: {
+                            query: splitArtist,
+                            path: "artist",
+                            score: { boost: { value: 20 } }
+                        }
+                    }
+                );
+            }
+
             shouldClauses.push(
                 {
                     phrase: {
-                        query: titleQuery,
+                        query: text,
                         path: "title",
-                        score: { boost: { value: 20 } }
+                        score: { boost: { value: 15 } }
                     }
                 },
                 {
                     phrase: {
-                        query: artistQuery,
+                        query: text,
                         path: "artist",
-                        score: { boost: { value: 20 } }
+                        score: { boost: { value: 12 } }
+                    }
+                },
+                {
+                    text: {
+                        query: text,
+                        path: "title",
+                        fuzzy: { maxEdits: 1, prefixLength: 2 },
+                        score: { boost: { value: 10 } }
+                    }
+                },
+                {
+                    text: {
+                        query: text,
+                        path: "artist",
+                        fuzzy: { maxEdits: 1, prefixLength: 2 },
+                        score: { boost: { value: 7 } }
+                    }
+                },
+                {
+                    autocomplete: {
+                        query: text,
+                        path: "title",
+                        fuzzy: { maxEdits: 1 },
+                        score: { boost: { value: 6 } }
+                    }
+                },
+                {
+                    autocomplete: {
+                        query: text,
+                        path: "artist",
+                        fuzzy: { maxEdits: 1 },
+                        score: { boost: { value: 4 } }
+                    }
+                },
+                {
+                    text: {
+                        query: text,
+                        path: "lyricsAsText",
+                        score: { boost: { value: 2 } }
+                    }
+                },
+                {
+                    text: {
+                        query: text,
+                        path: "lyrics.line",
+                        score: { boost: { value: 1 } }
                     }
                 }
             );
-        }
 
-        // Always include the full raw query too (catches "Coldplay Yellow" style)
-        shouldClauses.push(
-            // 1. Exact phrase in title — highest confidence
-            {
-                phrase: {
-                    query: text,
-                    path: "title",
-                    score: { boost: { value: 15 } }
-                }
-            },
-
-            // 2. Exact phrase in artist
-            {
-                phrase: {
-                    query: text,
-                    path: "artist",
-                    score: { boost: { value: 12 } }
-                }
-            },
-
-            // 3. Word-level fuzzy on title (handles typos like "Bohimian Rapsody")
-            {
-                text: {
-                    query: text,
-                    path: "title",
-                    fuzzy: { maxEdits: 1, prefixLength: 2 },
-                    score: { boost: { value: 10 } }
-                }
-            },
-
-            // 4. Word-level fuzzy on artist
-            {
-                text: {
-                    query: text,
-                    path: "artist",
-                    fuzzy: { maxEdits: 1, prefixLength: 2 },
-                    score: { boost: { value: 7 } }
-                }
-            },
-
-            // 5. Autocomplete on title (prefix: handles mid-typing "Bohemia...")
-            {
-                autocomplete: {
-                    query: text,
-                    path: "title",
-                    fuzzy: { maxEdits: 1 },
-                    score: { boost: { value: 6 } }
-                }
-            },
-
-            // 6. Autocomplete on artist
-            {
-                autocomplete: {
-                    query: text,
-                    path: "artist",
-                    fuzzy: { maxEdits: 1 },
-                    score: { boost: { value: 4 } }
-                }
-            },
-
-            // 7. Lyrics — lowest, only pulls in if nothing else matches
-            {
-                text: {
-                    query: text,
-                    path: "lyricsAsText",
-                    score: { boost: { value: 1 } }
-                }
-            }
-        );
-
-        const results = await musicModel.aggregate([
-            {
+            searchStage = {
                 $search: {
                     index: "text",
                     compound: {
                         should: shouldClauses,
-                        // Require at least one clause to match — kills junk results
                         minimumShouldMatch: 1
                     }
                 }
-            },
+            };
+        }
 
+        // =================================================
+        // 🚀 EXECUTE
+        // =================================================
+        const results = await musicModel.aggregate([
+            searchStage,
             {
                 $addFields: {
                     score: { $meta: "searchScore" }
                 }
             },
-
-            // ── Score threshold — drop results below ~10% of a strong match ──
-            // Tune this number based on your data; start conservative
             {
                 $match: { score: { $gte: 1.5 } }
             },
-
             { $sort: { score: -1 } },
             { $skip: skip },
             { $limit: limit + 1 },
-
-            // Strip heavy fields from the response
             {
                 $project: {
-                    lyricsAsText: 0,
-                    lyrics: 0
+                    lyrics: 0,
+                    lyricsAsText: 0
                 }
             }
         ]);
@@ -215,6 +335,7 @@ router.post("/searchSong", async (req, res) => {
             hasMore,
             nextPage: hasMore ? page + 1 : null
         });
+
     } catch (error) {
         console.error("Search error:", error);
         res.status(500).json({ error: "Internal Server Error" });
