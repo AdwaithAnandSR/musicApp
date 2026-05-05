@@ -75,7 +75,7 @@ const isRandom = random === "true";
 
     const songsRaw = await Music.find({  
         _id: { $in: songIds }  
-    }).select("_id title cover artist duration url createdAt");  
+    }).select("_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText");  
 
     // preserve order  
     const map = new Map(songsRaw.map(s => [s._id.toString(), s]));  
