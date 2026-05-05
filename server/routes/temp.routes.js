@@ -9,6 +9,16 @@ router.get('/', (req, res)=>{
     res.send("temporory route")
 })
 
+router.post('/deleteSong', (req, res)=>{
+   try{
+      await musicModel.deleteOne({ _id: req.body.songId })
+      res.json({ success: true })
+   } catch(e){
+      console.error(r)
+      res.json({ success: false })
+   }
+})
+
 router.post("/addSong", async (req, res) => {
     try {
         const { title, artist, url, cover, duration, ytId, lang } = req.body;
