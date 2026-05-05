@@ -9,14 +9,58 @@ router.get('/', (req, res)=>{
     res.send("temporory route")
 })
 
-router.post('/deleteSong', async (req, res)=>{
-   try{
-      await musicModel.deleteOne({ _id: req.body.songId })
-      res.json({ success: true })
-   } catch(e){
-      console.error(e)
-      res.json({ success: false })
-   }
+// GET all songs
+router.get('/songs', async (req, res) => {
+  try {
+    
+const songs = await musicModel.find({
+  url: { $regex: "firebase|googleapis" }
+})
+
+    res.json({
+      success: true,
+      count: songs.length,
+      data: songs
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ success: false })
+  }
+})
+
+
+
+// UPDATE song + cover
+router.post('/updateSong', async (req, res) => {
+  try {
+    const { songId, url, cover } = req.body
+
+    if (!songId) {
+      return res.status(400).json({ success: false, message: "songId required" })
+    }
+
+    const updatedSong = await musicModel.findByIdAndUpdate(
+      songId,
+      {
+        ...(url && { url }),
+        ...(cover && { cover })
+      },
+      { new: true }
+    )
+
+    if (!updatedSong) {
+      return res.status(404).json({ success: false, message: "Song not found" })
+    }
+
+    res.json({
+      success: true,
+      data: updatedSong
+    })
+
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ success: false })
+  }
 })
 
 router.post("/addSong", async (req, res) => {
