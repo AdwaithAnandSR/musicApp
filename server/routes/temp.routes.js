@@ -9,7 +9,7 @@ router.get('/', (req, res)=>{
     res.send("temporory route")
 })
 
-router.post('/deleteSong', (req, res)=>{
+router.post('/deleteSong', async (req, res)=>{
    try{
       await musicModel.deleteOne({ _id: req.body.songId })
       res.json({ success: true })
