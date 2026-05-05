@@ -318,14 +318,8 @@ router.post("/searchSong", async (req, res) => {
             },
             { $sort: { score: -1 } },
             { $skip: skip },
-            { $limit: limit + 1 },
-            {
-                $project: {
-                    lyrics: 0,
-                    lyricsAsText: 0
-                }
-            }
-        ]);
+            { $limit: limit + 1 }
+        ])
 
         const hasMore = results.length > limit;
         if (hasMore) results.pop();
