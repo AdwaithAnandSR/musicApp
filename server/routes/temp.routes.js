@@ -14,7 +14,7 @@ router.post('/deleteSong', async (req, res)=>{
       await musicModel.deleteOne({ _id: req.body.songId })
       res.json({ success: true })
    } catch(e){
-      console.error(r)
+      console.error(e)
       res.json({ success: false })
    }
 })
