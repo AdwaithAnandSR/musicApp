@@ -33,7 +33,7 @@ const songs = await musicModel.find({
 // UPDATE song + cover
 router.post('/updateSong', async (req, res) => {
   try {
-    const { songId, url, cover } = req.body
+    const { songId, url, cover, title, ytId } = req.body
 
     if (!songId) {
       return res.status(400).json({ success: false, message: "songId required" })
@@ -43,7 +43,9 @@ router.post('/updateSong', async (req, res) => {
       songId,
       {
         ...(url && { url }),
-        ...(cover && { cover })
+        ...(cover && { cover }),
+        ...(title && { title }),
+        ...(ytId && { ytId })
       },
       { new: true }
     )
