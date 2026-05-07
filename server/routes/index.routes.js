@@ -28,7 +28,7 @@ router.get("/getGlobalSongs", async (req, res) => {
   try {
     const startAt = parseFloat(req.query.startAt);
     const cursor  = parseFloat(req.query.cursor ?? startAt);
-    const limit   = parseInt(req.query.limit ?? 10);
+    const limit   = 50
 
     let songs = await musicModel
       .find({ stableRandom: { $gte: cursor } })
