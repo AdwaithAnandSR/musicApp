@@ -9,21 +9,6 @@ import formateTitle from "../utils/clearTitle.js";
 
 const router = express.Router();
 
-router.post("/checkSongExistsByYtId", async (req, res) => {
-    const { id, title = "" } = req.body;
-
-    const exists = await musicModel.findOne({ ytId: id });
-    const exists2 = await musicModel.findOne({ title });
-    const exists3 = await musicModel.findOne({ title: formateTitle(title) });
-
-    if (exists || exists2 || exists3) res.json({ exists: true });
-    else res.json({ exists: false });
-});
-
-router.post("/findSong", findSong);
-
-router.post("/addSong", addSong);
-
 router.get("/getGlobalSongs", async (req, res) => {
   try {
     const startAt = parseFloat(req.query.startAt);
