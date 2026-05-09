@@ -1,4 +1,4 @@
-import playlistModel from "../../models/playlist.js";
+import PlaylistSong from "../../models/playlistSong.js";
 import musicModel from "../../models/musics.js";
 
 import mongoose from "mongoose";
