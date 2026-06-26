@@ -8,49 +8,61 @@ try {
 const { playlistId, cursor, limit = 50, random, seed } = req.query;
 
 const isRandom = random === "true";  
+const isSpecialPlaylist = playlistId === "6a3e689cfba948ae55682fe3";
+const useNewestOrder = isSpecialPlaylist || isRandom;
     const parsedLimit = Number(limit);  
     const playlistObjectId = new mongoose.Types.ObjectId(playlistId);  
 
     let mappings = [];  
 
     // =========================  
-    // 🔀 RANDOM MODE (SIMPLIFIED)  
+    // 🔀 RANDOM MODE (SIMPLIFIED) / SPECIAL PLAYLIST (NEWEST ORDER)
     // =========================  
-    if (isRandom) {  
+    if (useNewestOrder) {  
         const randomSeed = Number(seed);  
-        if (isNaN(randomSeed)) {  
+        if (!isSpecialPlaylist && isNaN(randomSeed)) {  
             return res.status(400).json({ error: "Invalid seed" });  
         }  
 
         let query = { playlistId: playlistObjectId };  
 
-        if (cursor) {  
-            query.stableRandom = { $gt: Number(cursor) };  
-        } else {  
-            query.stableRandom = { $gte: randomSeed };  
-        }  
+        if (isRandom) {
+            if (cursor) {  
+                query.stableRandom = { $gt: Number(cursor) };  
+            } else {  
+                query.stableRandom = { $gte: randomSeed };  
+            }  
 
-        // first fetch  
-        mappings = await PlaylistSong.find(query)  
-            .sort({ stableRandom: 1 })  
-            .limit(parsedLimit);  
-
-
-        // 🔁 AUTO WRAP (no flags needed)  
-        if (mappings.length < parsedLimit) {  
-            const wrapQuery = cursor  
-                ? { stableRandom: { $lte: Number(cursor) } }  
-                : { stableRandom: { $lt: randomSeed } };  
-
-            const extra = await PlaylistSong.find({  
-                playlistId: playlistObjectId,  
-                ...wrapQuery  
-            })  
+            // first fetch  
+            mappings = await PlaylistSong.find(query)  
                 .sort({ stableRandom: 1 })  
-                .limit(parsedLimit - mappings.length);  
+                .limit(parsedLimit);  
 
-            mappings = [...mappings, ...extra];  
-        }  
+            // 🔁 AUTO WRAP (no flags needed)  
+            if (mappings.length < parsedLimit) {  
+                const wrapQuery = cursor  
+                    ? { stableRandom: { $lte: Number(cursor) } }  
+                    : { stableRandom: { $lt: randomSeed } };  
+
+                const extra = await PlaylistSong.find({  
+                    playlistId: playlistObjectId,  
+                    ...wrapQuery  
+                })  
+                    .sort({ stableRandom: 1 })  
+                    .limit(parsedLimit - mappings.length);  
+
+                mappings = [...mappings, ...extra];  
+            }
+        } else {
+            // Special playlist: newest songs first (reverse insertion order)
+            if (cursor) {
+                query.order = { $gt: Number(cursor) };
+            }
+
+            mappings = await PlaylistSong.find(query)
+                .sort({ order: -1 })
+                .limit(parsedLimit);
+        }
     }  
 
     // =========================  
