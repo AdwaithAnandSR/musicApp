@@ -6,6 +6,7 @@ const getPlaylists = async (req, res) => {
 
         const playlists = await playlistModel
             .find({}, { songs: 0 })
+            .sort({ createdAt: 1 })
             .skip((page - 1) * limit)
             .limit(limit);
 
