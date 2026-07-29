@@ -44,11 +44,34 @@ function getSpawnOptions() {
 const BASE_YTDLP_FLAGS = [
   '--no-cookies',
   '--no-cookies-from-browser',
-  '--js-runtimes', 'node',
-  '--extractor-args', 'youtube:player_client=android'
+  '--extractor-args', 'youtube:player_client=mweb,android,web'
 ];
 
 const { parseUrls } = require('./urlUtils');
+
+/**
+ * Helper to fetch single YouTube video metadata via official oEmbed API
+ */
+async function fetchOembedMetadata(ytId) {
+  try {
+    const videoUrl = `https://www.youtube.com/watch?v=${ytId}`;
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(videoUrl)}&format=json`;
+    const resp = await axios.get(oembedUrl, { timeout: 8000 });
+    if (resp.status === 200 && resp.data) {
+      return {
+        ytId,
+        title: resp.data.title || `Song ${ytId}`,
+        url: videoUrl,
+        duration: 0,
+        channel: resp.data.author_name || 'Unknown Artist',
+        thumbnail: resp.data.thumbnail_url || `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`
+      };
+    }
+  } catch (err) {
+    // oembed fallback failed
+  }
+  return null;
+}
 
 /**
  * Extracts metadata for YouTube URL(s) (video, playlist, or channel)
@@ -62,7 +85,21 @@ async function extractMetadata(youtubeInput) {
     return Promise.reject(new Error('A valid YouTube URL or array of YouTube URLs is required.'));
   }
 
-  return new Promise((resolve, reject) => {
+  // Collect direct YouTube video IDs if present for oEmbed fallback
+  const directYtIds = [];
+  for (const u of urls) {
+    const matches = u.match(/(?:v=|\/|vi=)([a-zA-Z0-9_-]{11})/g);
+    if (matches) {
+      for (const m of matches) {
+        const id = m.replace(/^(?:v=|\/|vi=)/, '');
+        if (id && id.length === 11 && !directYtIds.includes(id)) {
+          directYtIds.push(id);
+        }
+      }
+    }
+  }
+
+  return new Promise(async (resolve, reject) => {
     const args = [
       ...BASE_YTDLP_FLAGS,
       '--flat-playlist',
@@ -83,11 +120,7 @@ async function extractMetadata(youtubeInput) {
       stderrData += data.toString();
     });
 
-    child.on('close', (code) => {
-      if (code !== 0 && !stdoutData.trim()) {
-        return reject(new Error(`yt-dlp metadata extraction failed: ${stderrData.trim() || 'Unknown error'}`));
-      }
-
+    child.on('close', async (code) => {
       const items = [];
       const lines = stdoutData.split('\n').filter(line => line.trim().length > 0);
       const seenYtIds = new Set();
@@ -95,15 +128,11 @@ async function extractMetadata(youtubeInput) {
       for (const line of lines) {
         try {
           const parsed = JSON.parse(line);
-          // Extract YouTube ID
           const ytId = parsed.id || (parsed.url && parsed.url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)?.[1]);
           if (!ytId) continue;
-
-          // Deduplicate within the extracted list if the same video appears multiple times
           if (seenYtIds.has(ytId)) continue;
           seenYtIds.add(ytId);
 
-          // Thumbnail selection
           let thumbnail = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
           if (parsed.thumbnails && parsed.thumbnails.length > 0) {
             thumbnail = parsed.thumbnails[parsed.thumbnails.length - 1].url || thumbnail;
@@ -122,15 +151,39 @@ async function extractMetadata(youtubeInput) {
         }
       }
 
-      if (items.length === 0) {
-        return reject(new Error('No valid YouTube tracks or items found in the provided URL(s).'));
+      if (items.length > 0) {
+        return resolve(items);
       }
 
-      resolve(items);
+      // Fallback: If yt-dlp failed or yielded 0 items, try oEmbed for direct video IDs
+      if (directYtIds.length > 0) {
+        const fallbackItems = [];
+        for (const ytId of directYtIds) {
+          const oitem = await fetchOembedMetadata(ytId);
+          if (oitem) fallbackItems.push(oitem);
+        }
+        if (fallbackItems.length > 0) {
+          return resolve(fallbackItems);
+        }
+      }
+
+      const detailedErr = stderrData.trim() || `yt-dlp exited with code ${code} and produced no JSON output.`;
+      reject(new Error(`Metadata extraction failed: ${detailedErr}`));
     });
 
-    child.on('error', (err) => {
-      reject(new Error(`Failed to execute yt-dlp: ${err.message}`));
+    child.on('error', async (err) => {
+      // If spawn failed (e.g. yt-dlp not found), try oEmbed fallback for direct video IDs
+      if (directYtIds.length > 0) {
+        const fallbackItems = [];
+        for (const ytId of directYtIds) {
+          const oitem = await fetchOembedMetadata(ytId);
+          if (oitem) fallbackItems.push(oitem);
+        }
+        if (fallbackItems.length > 0) {
+          return resolve(fallbackItems);
+        }
+      }
+      reject(new Error(`Failed to execute yt-dlp process: ${err.message}`));
     });
   });
 }
@@ -173,13 +226,68 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
     if (onLog) onLog(`Warning: Failed to fetch cover thumbnail for ${ytId}: ${e.message}`);
   }
 
-  // 2. Download audio using yt-dlp
-  return new Promise((resolve, reject) => {
-    const videoUrl = `https://www.youtube.com/watch?v=${ytId}`;
-    const outputTemplate = path.join(songsDir, `${ytId}.%(ext)s`);
+  // 2. Helper to run yt-dlp with specific args
+  const runYtDlp = (argsList) => {
+    return new Promise((resolve, reject) => {
+      const child = spawn(getYtDlpCmd(), argsList, getSpawnOptions());
+      let stderrBuf = '';
+      let stdoutBuf = '';
 
-    const args = [
-      ...BASE_YTDLP_FLAGS,
+      child.stdout.on('data', (data) => {
+        const msg = data.toString().trim();
+        stdoutBuf += msg + '\n';
+        if (msg && onLog) onLog(`[yt-dlp ${ytId}] ${msg}`);
+      });
+
+      child.stderr.on('data', (data) => {
+        const msg = data.toString().trim();
+        stderrBuf += msg + '\n';
+        if (msg && onLog) onLog(`[yt-dlp stderr ${ytId}] ${msg}`);
+      });
+
+      child.on('close', (code) => {
+        if (code === 0 && fs.existsSync(targetMp3Path)) {
+          resolve({
+            songPath: `downloads/songs/${mp3Filename}`,
+            coverPath: fs.existsSync(targetCoverPath) ? `downloads/covers/${coverFilename}` : null
+          });
+        } else {
+          reject(new Error(`yt-dlp exit code ${code}. Stderr: ${stderrBuf.trim() || stdoutBuf.trim() || 'No output'}`));
+        }
+      });
+
+      child.on('error', (err) => {
+        reject(new Error(`yt-dlp process spawn error: ${err.message}`));
+      });
+    });
+  };
+
+  const videoUrl = `https://www.youtube.com/watch?v=${ytId}`;
+  const outputTemplate = path.join(songsDir, `${ytId}.%(ext)s`);
+
+  // Attempt 1: Standard client args
+  const primaryArgs = [
+    ...BASE_YTDLP_FLAGS,
+    '-x',
+    '--audio-format', 'mp3',
+    '--audio-quality', '0',
+    '--no-playlist',
+    '-o', outputTemplate,
+    videoUrl
+  ];
+
+  if (onLog) onLog(`Executing yt-dlp audio extraction for ${ytId}...`);
+
+  try {
+    return await runYtDlp(primaryArgs);
+  } catch (primaryErr) {
+    if (onLog) onLog(`Primary yt-dlp attempt failed for ${ytId}: ${primaryErr.message}. Retrying with fallback options...`, 'warning');
+    
+    // Attempt 2: Fallback without extractor args and with no-check-certificates
+    const fallbackArgs = [
+      '--no-cookies',
+      '--no-cookies-from-browser',
+      '--no-check-certificates',
       '-x',
       '--audio-format', 'mp3',
       '--audio-quality', '0',
@@ -188,38 +296,12 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
       videoUrl
     ];
 
-    if (onLog) onLog(`Executing yt-dlp for ${ytId}...`);
-
-    const child = spawn(getYtDlpCmd(), args, getSpawnOptions());
-    let stderrBuf = '';
-
-    child.stdout.on('data', (data) => {
-      const msg = data.toString().trim();
-      if (msg && onLog) onLog(`[yt-dlp ${ytId}] ${msg}`);
-    });
-
-    child.stderr.on('data', (data) => {
-      const msg = data.toString().trim();
-      stderrBuf += msg + '\n';
-      if (msg && onLog) onLog(`[yt-dlp stderr ${ytId}] ${msg}`);
-    });
-
-    child.on('close', (code) => {
-      if (code === 0 && fs.existsSync(targetMp3Path)) {
-        if (onLog) onLog(`Successfully downloaded audio for ${ytId}`);
-        resolve({
-          songPath: `downloads/songs/${mp3Filename}`,
-          coverPath: fs.existsSync(targetCoverPath) ? `downloads/covers/${coverFilename}` : null
-        });
-      } else {
-        reject(new Error(`yt-dlp audio download failed for ${ytId} (exit code ${code}): ${stderrBuf.trim() || 'File not found'}`));
-      }
-    });
-
-    child.on('error', (err) => {
-      reject(new Error(`yt-dlp process error for ${ytId}: ${err.message}`));
-    });
-  });
+    try {
+      return await runYtDlp(fallbackArgs);
+    } catch (fallbackErr) {
+      throw new Error(`Audio download failed for ${ytId}. Primary error: ${primaryErr.message}. Fallback error: ${fallbackErr.message}`);
+    }
+  }
 }
 
 module.exports = {

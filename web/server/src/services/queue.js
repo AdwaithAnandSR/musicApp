@@ -38,7 +38,8 @@ class JobManager {
       skippedCount: j.skippedCount,
       failedCount: j.failedCount,
       createdAt: j.createdAt,
-      error: j.error
+      error: j.error,
+      logs: j.logs || []
     }));
   }
 
