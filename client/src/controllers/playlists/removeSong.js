@@ -3,17 +3,15 @@ import Toast from "@services/Toast.js";
 import { useAppStatus } from "@store/appState.store.js";
 import queryClient from "@services/queryClient";
 
-const setPopUpOption = useAppStatus.getState().setPopUpOption;
-
 const removeSong = async dets => {
     try {
         const { songId, playId: playlistId } = dets;
 
-        setPopUpOption(-1, null, null);
+        useAppStatus.getState().setPopUpOption(-1, null, null);
 
         Toast.show("Removing song from playlist...", "pending");
 
-        const res = await axios.post(`playlist/remove`, {
+        const res = await axios.post(`/playlist/remove`, {
             songId,
             playlistId
         });
@@ -46,3 +44,4 @@ const removeSong = async dets => {
 };
 
 export default removeSong;
+

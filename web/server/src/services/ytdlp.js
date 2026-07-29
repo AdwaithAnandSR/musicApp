@@ -3,27 +3,61 @@ const path = require('path');
 const fs = require('fs');
 const axios = require('axios');
 
+const { execSync, spawnSync } = require('child_process');
+
 /**
- * Resolve absolute path to yt-dlp executable if available, or fallback to 'yt-dlp'
+ * Multi-tiered resolver for yt-dlp executable or fallback launcher
+ * Returns { cmd: string, prefixArgs: Array<string> }
  */
-function getYtDlpCmd() {
+function getYtDlpCommandInfo() {
   if (process.env.YTDLP_PATH && fs.existsSync(process.env.YTDLP_PATH)) {
-    return process.env.YTDLP_PATH;
+    return { cmd: process.env.YTDLP_PATH, prefixArgs: [] };
   }
+
+  const binDir = path.resolve(__dirname, '../../bin');
+  const localBin = path.join(binDir, 'yt-dlp');
+
   const possiblePaths = [
-    path.resolve(__dirname, '../../bin/yt-dlp'),
+    localBin,
     path.resolve(process.cwd(), 'bin/yt-dlp'),
     '/usr/local/bin/yt-dlp',
     '/usr/bin/yt-dlp',
     '/data/data/com.termux/files/usr/bin/yt-dlp',
     path.join(process.env.HOME || '/root', '.local/bin/yt-dlp')
   ];
+
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) {
-      return p;
+      return { cmd: p, prefixArgs: [] };
     }
   }
-  return 'yt-dlp';
+
+  // 1. Try `which yt-dlp` shell lookup
+  try {
+    const whichPath = execSync('which yt-dlp 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (whichPath && fs.existsSync(whichPath)) {
+      return { cmd: whichPath, prefixArgs: [] };
+    }
+  } catch (e) {}
+
+  // 2. Try python3 module `python3 -m yt_dlp`
+  try {
+    const pyRes = spawnSync('python3', ['-m', 'yt_dlp', '--version']);
+    if (pyRes.status === 0) {
+      return { cmd: 'python3', prefixArgs: ['-m', 'yt_dlp'] };
+    }
+  } catch (e) {}
+
+  // 3. Auto-download static binary to server/bin/yt-dlp
+  try {
+    if (!fs.existsSync(binDir)) fs.mkdirSync(binDir, { recursive: true });
+    execSync(`curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "${localBin}" && chmod +x "${localBin}"`, { timeout: 30000 });
+    if (fs.existsSync(localBin)) {
+      return { cmd: localBin, prefixArgs: [] };
+    }
+  } catch (e) {}
+
+  return { cmd: 'yt-dlp', prefixArgs: [] };
 }
 
 function getSpawnOptions() {
@@ -38,14 +72,45 @@ function getSpawnOptions() {
   };
 }
 
+function getFfmpegLocation() {
+  if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) {
+    return process.env.FFMPEG_PATH;
+  }
+  const possiblePaths = [
+    path.resolve(__dirname, '../../bin/ffmpeg'),
+    path.resolve(process.cwd(), 'bin/ffmpeg'),
+    '/usr/bin/ffmpeg',
+    '/usr/local/bin/ffmpeg',
+    '/data/data/com.termux/files/usr/bin/ffmpeg'
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  try {
+    const whichPath = execSync('which ffmpeg 2>/dev/null', { encoding: 'utf8' }).trim();
+    if (whichPath && fs.existsSync(whichPath)) {
+      return whichPath;
+    }
+  } catch (e) {}
+  return null;
+}
+
+const ffmpegLoc = getFfmpegLocation();
+
 /**
  * Common yt-dlp arguments required by project specification
  */
 const BASE_YTDLP_FLAGS = [
   '--no-cookies',
   '--no-cookies-from-browser',
-  '--extractor-args', 'youtube:player_client=mweb,android,web'
+  '--extractor-args', 'youtube:player_client=android'
 ];
+
+if (ffmpegLoc) {
+  BASE_YTDLP_FLAGS.push('--ffmpeg-location', ffmpegLoc);
+}
 
 const { parseUrls } = require('./urlUtils');
 
@@ -108,9 +173,15 @@ async function extractMetadata(youtubeInput) {
       ...urls
     ];
 
-    const child = spawn(getYtDlpCmd(), args, getSpawnOptions());
+    const { cmd, prefixArgs } = getYtDlpCommandInfo();
+    const finalArgs = [...prefixArgs, ...args];
+    const child = spawn(cmd, finalArgs, getSpawnOptions());
     let stdoutData = '';
     let stderrData = '';
+
+    const timeout = setTimeout(() => {
+      try { child.kill('SIGKILL'); } catch (e) {}
+    }, 90000);
 
     child.stdout.on('data', (data) => {
       stdoutData += data.toString();
@@ -121,6 +192,7 @@ async function extractMetadata(youtubeInput) {
     });
 
     child.on('close', async (code) => {
+      clearTimeout(timeout);
       const items = [];
       const lines = stdoutData.split('\n').filter(line => line.trim().length > 0);
       const seenYtIds = new Set();
@@ -135,13 +207,21 @@ async function extractMetadata(youtubeInput) {
 
           let thumbnail = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
           if (parsed.thumbnails && parsed.thumbnails.length > 0) {
-            thumbnail = parsed.thumbnails[parsed.thumbnails.length - 1].url || thumbnail;
+            const lastThumb = parsed.thumbnails[parsed.thumbnails.length - 1].url;
+            if (lastThumb) thumbnail = lastThumb;
+          }
+
+          let itemUrl = `https://www.youtube.com/watch?v=${ytId}`;
+          if (parsed.webpage_url && parsed.webpage_url.startsWith('http')) {
+            itemUrl = parsed.webpage_url;
+          } else if (parsed.url && parsed.url.startsWith('http')) {
+            itemUrl = parsed.url;
           }
 
           items.push({
             ytId,
             title: parsed.title || parsed.fulltitle || `Song ${ytId}`,
-            url: parsed.url || parsed.webpage_url || `https://www.youtube.com/watch?v=${ytId}`,
+            url: itemUrl,
             duration: parsed.duration || 0,
             channel: parsed.uploader || parsed.channel || parsed.uploader_id || 'Unknown Artist',
             thumbnail
@@ -172,6 +252,7 @@ async function extractMetadata(youtubeInput) {
     });
 
     child.on('error', async (err) => {
+      clearTimeout(timeout);
       // If spawn failed (e.g. yt-dlp not found), try oEmbed fallback for direct video IDs
       if (directYtIds.length > 0) {
         const fallbackItems = [];
@@ -191,7 +272,7 @@ async function extractMetadata(youtubeInput) {
 /**
  * Downloads audio as MP3 and saves cover thumbnail image locally
  */
-async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
+async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog, onRegisterChild) {
   const mp3Filename = `${ytId}.mp3`;
   const coverFilename = `${ytId}.jpg`;
   const targetMp3Path = path.join(songsDir, mp3Filename);
@@ -209,7 +290,8 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
     for (const tUrl of thumbUrls) {
       try {
         const resp = await axios.get(tUrl, { responseType: 'arraybuffer', timeout: 5000 });
-        if (resp.status === 200 && resp.data.length > 1000) {
+        // YouTube returns a 1097 byte camera icon for missing maxresdefault; require > 2000 bytes
+        if (resp.status === 200 && resp.data && resp.data.length > 2000) {
           thumbBuffer = resp.data;
           break;
         }
@@ -229,9 +311,17 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
   // 2. Helper to run yt-dlp with specific args
   const runYtDlp = (argsList) => {
     return new Promise((resolve, reject) => {
-      const child = spawn(getYtDlpCmd(), argsList, getSpawnOptions());
+      const { cmd, prefixArgs } = getYtDlpCommandInfo();
+      const finalArgs = [...prefixArgs, ...argsList];
+      const child = spawn(cmd, finalArgs, getSpawnOptions());
+      if (onRegisterChild) onRegisterChild(child);
+
       let stderrBuf = '';
       let stdoutBuf = '';
+
+      const timeout = setTimeout(() => {
+        try { child.kill('SIGKILL'); } catch (e) {}
+      }, 180000);
 
       child.stdout.on('data', (data) => {
         const msg = data.toString().trim();
@@ -246,6 +336,7 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
       });
 
       child.on('close', (code) => {
+        clearTimeout(timeout);
         if (code === 0 && fs.existsSync(targetMp3Path)) {
           resolve({
             songPath: `downloads/songs/${mp3Filename}`,
@@ -257,6 +348,7 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
       });
 
       child.on('error', (err) => {
+        clearTimeout(timeout);
         reject(new Error(`yt-dlp process spawn error: ${err.message}`));
       });
     });
@@ -287,6 +379,7 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
     const fallbackArgs = [
       '--no-cookies',
       '--no-cookies-from-browser',
+      '--extractor-args', 'youtube:player_client=android',
       '--no-check-certificates',
       '-x',
       '--audio-format', 'mp3',
@@ -295,6 +388,10 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
       '-o', outputTemplate,
       videoUrl
     ];
+
+    if (ffmpegLoc) {
+      fallbackArgs.splice(4, 0, '--ffmpeg-location', ffmpegLoc);
+    }
 
     try {
       return await runYtDlp(fallbackArgs);
@@ -305,6 +402,7 @@ async function downloadAudioAndCover(ytId, title, songsDir, coversDir, onLog) {
 }
 
 module.exports = {
+  getYtDlpCommandInfo,
   extractMetadata,
   downloadAudioAndCover
 };

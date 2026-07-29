@@ -38,7 +38,7 @@ function parseUrls(input) {
     }
   }
 
-  // Split by newlines, commas, or multiple spaces
+  // Split by newlines, commas, or whitespace
   const rawItems = str.split(/[\n\r,]+/);
   const result = [];
 
@@ -46,14 +46,11 @@ function parseUrls(input) {
     let cleaned = raw.trim().replace(/^['"]|['"]$/g, '');
     if (!cleaned) continue;
 
-    if (cleaned.includes(' ') && !cleaned.startsWith('http://') && !cleaned.startsWith('https://')) {
-      const spaceSplit = cleaned.split(/\s+/);
-      for (let s of spaceSplit) {
-        let sc = s.trim().replace(/^['"]|['"]$/g, '');
-        if (sc) result.push(sc);
-      }
-    } else {
-      result.push(cleaned);
+    // Split on whitespace if multiple URLs or tokens exist
+    const spaceTokens = cleaned.split(/\s+/);
+    for (let token of spaceTokens) {
+      let sc = token.trim().replace(/^['"]|['"]$/g, '');
+      if (sc) result.push(sc);
     }
   }
 

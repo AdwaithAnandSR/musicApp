@@ -1,78 +1,146 @@
 /* global setTimeout */
-import React from "react";
-import { Text, StyleSheet, Animated } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Text, StyleSheet, Dimensions } from "react-native";
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming
+} from "react-native-reanimated";
+import { StatusBar } from "expo-status-bar";
 
 let showToast;
 
 const ToastManager = () => {
-    const [message, setMessage] = React.useState("");
-    const [type, setType] = React.useState("");
-    const [visible, setVisible] = React.useState(false);
-    const opacity = React.useRef(new Animated.Value(0)).current;
+    const [message, setMessage] = useState("");
+    const [type, setType] = useState("");
+    const [visible, setVisible] = useState(false);
 
-    showToast = (text, type) => {
-        setType(type);
+    const translateY = useSharedValue(-120);
+
+    showToast = (text, toastType = "") => {
         setMessage(text);
+        setType(toastType);
         setVisible(true);
-        Animated.timing(opacity, {
-            toValue: 1,
-            duration: 200,
-            useNativeDriver: true
-        }).start(() => {
-            setTimeout(() => {
-                Animated.timing(opacity, {
-                    toValue: 0,
-                    duration: 200,
-                    useNativeDriver: true
-                }).start(() => setVisible(false));
-            }, 2000);
-        });
     };
+
+    useEffect(() => {
+        if (!visible) return;
+
+        translateY.value = withTiming(0, { duration: 350 });
+
+        const timer = setTimeout(() => {
+            translateY.value = withTiming(-120, { duration: 250 });
+
+            setTimeout(() => {
+                setVisible(false);
+            }, 250);
+        }, 2200);
+
+        return () => clearTimeout(timer);
+    }, [visible]);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: translateY.value }]
+    }));
 
     if (!visible) return null;
 
+    const textColor =
+        type === "success" || type === "green"
+            ? "#22c55e"
+            : type === "error" || type === "red"
+            ? "#ef4444"
+            : type === "pending" || type === "yellow"
+            ? "#eab308"
+            : "#ffffff";
+
+    let displayMessage = message;
+    let colorOverride = null;
+
+    if (typeof message === "string" && message.includes("=>")) {
+        const parts = message.split("=>");
+        colorOverride = parts[0];
+        displayMessage = parts[1] || parts[0];
+    }
+
+    const finalColor = colorOverride
+        ? colorOverride === "green"
+            ? "#22c55e"
+            : colorOverride === "red"
+            ? "#ef4444"
+            : colorOverride === "yellow"
+            ? "#eab308"
+            : "#ffffff"
+        : textColor;
+
+    let left = displayMessage;
+    let right = "";
+
+    if (typeof displayMessage === "string" && displayMessage.includes(" ")) {
+        const words = displayMessage.split(" ");
+        if (words.length > 2) {
+            left = words.slice(0, Math.ceil(words.length / 2)).join(" ");
+            right = words.slice(Math.ceil(words.length / 2)).join(" ");
+        }
+    }
+
     return (
-        <Animated.View style={[styles.container, { opacity }]}>
-            <Text
-                style={[
-                    styles.text,
-                    {
-                        color:
-                            type === "success"
-                                ? "#0bf86e"
-                                : type === "error"
-                                ? "#f80b4f"
-                                : type === "pending"
-                                ? "#f49d06"
-                                : "white"
-                    }
-                ]}
-                numberOfLines={1}
-            >
-                {message}
-            </Text>
-        </Animated.View>
+        <>
+            <StatusBar hidden={visible} animated />
+            <Animated.View style={[styles.container, animatedStyle]}>
+                <Text
+                    numberOfLines={1}
+                    style={[
+                        styles.text,
+                        { color: finalColor, textAlign: right ? "left" : "center" }
+                    ]}
+                >
+                    {left}
+                </Text>
+                {!!right && (
+                    <Text
+                        numberOfLines={1}
+                        style={[
+                            styles.text,
+                            { color: finalColor, textAlign: "right" }
+                        ]}
+                    >
+                        {right}
+                    </Text>
+                )}
+            </Animated.View>
+        </>
     );
 };
 
+const { width } = Dimensions.get("window");
+
 const styles = StyleSheet.create({
     container: {
-        justifyContent: "center",
-        alignItems: "center",
         position: "absolute",
-        alignSelf: "center",
-        bottom: "8%",
-        backgroundColor: "#171717",
-        minWidth: "50%",
-        maxWidth: "85%",
-        minHeight: "6%",
-        borderRadius: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 10
+        top: 0,
+        left: 0,
+        width: width,
+        zIndex: 99999,
+        backgroundColor: "#050505",
+        paddingTop: 44,
+        paddingBottom: 14,
+        paddingHorizontal: 24,
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.5,
+        shadowRadius: 8,
+        elevation: 10
     },
     text: {
+        fontSize: 18,
         fontWeight: "bold",
-        color: "white"
+        flex: 1
     }
 });
 

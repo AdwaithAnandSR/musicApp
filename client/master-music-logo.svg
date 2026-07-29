@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="luxuryEmber" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4A0E17" />
+      <stop offset="50%" stop-color="#B22222" />
+      <stop offset="100%" stop-color="#FF7F50" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="transparent"/>
+
+  <!-- Outer Soundwave Ring -->
+  <circle cx="512" cy="512" r="360" fill="none" stroke="url(#luxuryEmber)" stroke-width="50" stroke-dasharray="90 40" opacity="0.85" filter="url(#glow)"/>
+  
+  <!-- Inner Vinyl Ring -->
+  <circle cx="512" cy="512" r="220" fill="none" stroke="url(#luxuryEmber)" stroke-width="40" opacity="0.95"/>
+  
+  <!-- Central Play Node -->
+  <circle cx="512" cy="512" r="120" fill="url(#luxuryEmber)" filter="url(#glow)"/>
+  
+  <!-- Sharp Play Icon Cutout -->
+  <polygon points="480,450 480,574 580,512" fill="#FFFFFF" />
+</svg>

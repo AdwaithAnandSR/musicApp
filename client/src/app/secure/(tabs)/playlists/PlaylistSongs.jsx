@@ -19,14 +19,10 @@ import PopUpOptions from "@components/PopUpOptions.jsx";
 import Header from "@components/ListHeader.jsx";
 import Loader from "@components/Loader";
 
-const setPopUpOption = useAppStatus.getState().setPopUpOption;
-
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 const limit = 50,
     HEADER_HEIGHT = 250;
-
-const setPlaylistController = usePlayer.getState().setPlaylistController;
 
 const PlaylistSongs = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
@@ -37,15 +33,21 @@ const PlaylistSongs = () => {
         useInfiniteQuery({
             queryKey: [playlistId],
 
-            queryFn: ({ pageParam = 1 }) =>
+            queryFn: ({ pageParam = null }) =>
                 getPlaylistSongs({ limit, playlistId, pageParam }),
 
-            getNextPageParam: lastPage => lastPage.nextPage
+            getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
         });
 
-useEffect(() => {
-    setPlaylistController(playlistId, { fetchNextPage, hasNextPage, isFetchingNextPage });
-}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    useEffect(() => {
+        usePlayer
+            .getState()
+            .setPlaylistController(playlistId, {
+                fetchNextPage,
+                hasNextPage,
+                isFetchingNextPage
+            });
+    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const songs =
         data?.pages.flatMap(page =>
@@ -111,7 +113,7 @@ useEffect(() => {
                     {
                         useNativeDriver: true,
                         listener: () => {
-                            setPopUpOption(-1, null, null);
+                            useAppStatus.getState().setPopUpOption(-1, null, null);
                         }
                     }
                 )}

@@ -15,8 +15,6 @@ import queryClient from "@services/queryClient";
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
 
-const setPlaylistController = usePlayer.getState().setPlaylistController;
-
 const Home = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
     const flashListRef = useRef();
@@ -32,13 +30,15 @@ const Home = () => {
     } = useInfiniteQuery({
         queryKey: ["HOME"],
         queryFn: fetchSongs,
-        initialPageParam: [],
+        initialPageParam: { startAt: 0 },
         getNextPageParam: lastPage =>
-            lastPage.hasMore ? lastPage.nextSeenPages : undefined
+            lastPage?.hasMore && lastPage?.nextCursor != null
+                ? { startAt: 0, cursor: lastPage.nextCursor }
+                : undefined
     });
 
     useEffect(() => {
-        setPlaylistController("HOME", {
+        usePlayer.getState().setPlaylistController("HOME", {
             fetchNextPage,
             hasNextPage,
             isFetchingNextPage

@@ -1,20 +1,21 @@
 const fs = require('fs');
 const path = require('path');
 
-const METADATA_PATH = path.resolve(__dirname, '../../../downloads/metadata.json');
+const DEFAULT_DOWNLOADS_DIR = path.resolve(__dirname, '../../../downloads');
 
 /**
  * Ensures the downloads directory structure exists.
  */
-function initStorage(downloadsDir) {
-  const songsDir = path.join(downloadsDir, 'songs');
-  const coversDir = path.join(downloadsDir, 'covers');
+function initStorage(downloadsDir = DEFAULT_DOWNLOADS_DIR) {
+  const dir = downloadsDir || DEFAULT_DOWNLOADS_DIR;
+  const songsDir = path.join(dir, 'songs');
+  const coversDir = path.join(dir, 'covers');
 
-  if (!fs.existsSync(downloadsDir)) fs.mkdirSync(downloadsDir, { recursive: true });
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   if (!fs.existsSync(songsDir)) fs.mkdirSync(songsDir, { recursive: true });
   if (!fs.existsSync(coversDir)) fs.mkdirSync(coversDir, { recursive: true });
 
-  const metadataFile = path.join(downloadsDir, 'metadata.json');
+  const metadataFile = path.join(dir, 'metadata.json');
   if (!fs.existsSync(metadataFile)) {
     fs.writeFileSync(metadataFile, JSON.stringify([], null, 2), 'utf8');
   }
@@ -23,8 +24,9 @@ function initStorage(downloadsDir) {
 /**
  * Gets all metadata records.
  */
-function getMetadata(downloadsDir) {
-  const metadataFile = path.join(downloadsDir, 'metadata.json');
+function getMetadata(downloadsDir = DEFAULT_DOWNLOADS_DIR) {
+  const dir = downloadsDir || DEFAULT_DOWNLOADS_DIR;
+  const metadataFile = path.join(dir, 'metadata.json');
   try {
     if (!fs.existsSync(metadataFile)) return [];
     const content = fs.readFileSync(metadataFile, 'utf8');
@@ -38,9 +40,10 @@ function getMetadata(downloadsDir) {
 /**
  * Adds or updates a song record in metadata.json.
  */
-function saveSongMetadata(downloadsDir, songData) {
-  const metadataFile = path.join(downloadsDir, 'metadata.json');
-  const list = getMetadata(downloadsDir);
+function saveSongMetadata(downloadsDir = DEFAULT_DOWNLOADS_DIR, songData = {}) {
+  const dir = downloadsDir || DEFAULT_DOWNLOADS_DIR;
+  const metadataFile = path.join(dir, 'metadata.json');
+  const list = getMetadata(dir);
 
   const existingIndex = list.findIndex(item => item.ytId === songData.ytId);
   const updatedEntry = {

@@ -33,6 +33,7 @@ console.log("🔍 Playlist classification:", {
     });
 
     let songs = [];  
+    let mappings = [];
 
     // =========================  
     // 🎵 SPECIAL PLAYLIST (DIRECT MUSIC ACCESS - NEWEST FIRST)
@@ -85,7 +86,7 @@ console.log("🔍 Playlist classification:", {
         }  
 
         // first fetch  
-        let mappings = await PlaylistSong.find(query)  
+        mappings = await PlaylistSong.find(query)  
             .sort({ stableRandom: 1 })  
             .limit(parsedLimit);  
 
@@ -140,7 +141,7 @@ console.log("🔍 Playlist classification:", {
         // preserve order  
         const map = new Map(songsRaw.map(s => [s._id.toString(), s]));  
         songs = songIds.map(id => map.get(id.toString())).filter(Boolean);  
-
+        
         console.log("✅ Final songs after ordering:", {
           count: songs.length,
           mapSize: map.size,
@@ -161,7 +162,7 @@ console.log("🔍 Playlist classification:", {
             console.log("  Without cursor:", query);
         }
 
-        let mappings = await PlaylistSong.find(query)  
+        mappings = await PlaylistSong.find(query)  
             .sort({ order: -1 })  
             .limit(parsedLimit);
 
@@ -208,20 +209,30 @@ console.log("🔍 Playlist classification:", {
     // =========================  
     let nextCursor = null;
     
-    if (songs.length === parsedLimit) {
-        if (isSpecialPlaylist) {
-            // For special playlist, use createdAt as cursor (convert to timestamp)
+    if (isSpecialPlaylist) {
+        if (songs.length === parsedLimit) {
             nextCursor = songs[songs.length - 1].createdAt.getTime();
             console.log("📍 Special playlist cursor:", { nextCursor, lastSongCreatedAt: songs[songs.length - 1].createdAt });
-        } else {
-            console.log("📍 Pagination info:", {
-              nextCursor,
-              songsCount: songs.length,
-              parsedLimit,
-              hasMore: songs.length === parsedLimit
-            });
+        }
+    } else if (isRandom) {
+        if (mappings.length === parsedLimit) {
+            nextCursor = mappings[mappings.length - 1].stableRandom;
+            console.log("📍 Random playlist cursor:", { nextCursor });
+        }
+    } else {
+        if (mappings.length === parsedLimit) {
+            nextCursor = mappings[mappings.length - 1].order;
+            console.log("📍 Normal playlist cursor:", { nextCursor });
         }
     }
+
+    console.log("📍 Pagination info:", {
+        nextCursor,
+        songsCount: songs.length,
+        mappingsCount: mappings.length,
+        parsedLimit,
+        hasMore: nextCursor !== null
+    });
 
     res.json({  
         musics: songs,  

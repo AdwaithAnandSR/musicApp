@@ -21,8 +21,6 @@ import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { width: vw, height: vh } = Dimensions.get("window");
 
-const setPopUpOption = useAppStatus.getState().setPopUpOption;
-
 const ListItem = ({ item, ID, text = "" }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
     const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
@@ -43,7 +41,8 @@ const ListItem = ({ item, ID, text = "" }) => {
     if (!item?.url) return null;
 
     const handleShortPress = async () => {
-        if (ID != "HOME" && ID != "SEARCH") setPopUpOption(-1, null, null);
+        if (ID != "HOME" && ID != "SEARCH")
+            useAppStatus.getState().setPopUpOption(-1, null, null);
 
         if (!isSelecting) {
             resetShowLyrics();
@@ -56,7 +55,7 @@ const ListItem = ({ item, ID, text = "" }) => {
     const handleLongPress = async ({ nativeEvent }) => {
         if (ID != "HOME" && ID != "SEARCH") {
             const y = nativeEvent.pageY - nativeEvent.locationY;
-            setPopUpOption(y, item.id, ID);
+            useAppStatus.getState().setPopUpOption(y, item.id, ID);
         } else {
             updateSelected(item);
         }
