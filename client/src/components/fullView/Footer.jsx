@@ -10,13 +10,11 @@ import { usePlayer } from "@store/player";
 import { useAppStatus } from "@store/appState.store.js";
 import WheelPicker from "./WheelPicker.jsx";
 
-const toggleTimerSelect = useAppStatus.getState().toggleTimerSelect;
-const updateRepeatMode = usePlayer.getState().updateRepeatMode;
-
 const ICON_SIZE = 25;
 
 const RepeatButton = () => {
     const repeatMode = usePlayer(state => state.repeatMode);
+    const updateRepeatMode = usePlayer(state => state.updateRepeatMode);
 
     return (
         <>
@@ -49,7 +47,8 @@ const Footer = () => {
     return (
         <View style={styles.container}>
             <RepeatButton />
-            <TouchableOpacity onPress={() => toggleTimerSelect()}>
+            <TouchableOpacity
+                onPress={() => useAppStatus.getState().toggleTimerSelect()}>
                 <Feather name="clock" size={ICON_SIZE} color="white" />
             </TouchableOpacity>
             <TouchableOpacity>

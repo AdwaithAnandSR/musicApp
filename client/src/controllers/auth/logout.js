@@ -3,14 +3,15 @@ import { removeToken, removeUser } from "../../services/storage.js";
 
 const logout = async setIsAuthenticated => {
     try {
-        await api.post("/users/logout");
+        await api.post("/auth/logout");
     } catch {
         // Clear locally even if server call fails
     } finally {
         removeToken();
         removeUser();
-        setIsAuthenticated(false);
+        if (setIsAuthenticated) setIsAuthenticated(false);
     }
 };
 
 export default logout;
+

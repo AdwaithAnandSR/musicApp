@@ -7,7 +7,7 @@ const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
     try {
         Toast.show("Deleting playlist, please wait..", "pending");
 
-        const res = await axios.post(`playlist/delete`, { id });
+        const res = await axios.post(`/playlist/delete`, { id });
 
         if (res.status === 200) {
             queryClient.setQueryData(["playlists"], prev => {

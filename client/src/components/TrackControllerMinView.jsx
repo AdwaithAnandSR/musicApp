@@ -14,11 +14,11 @@ import { usePlayer } from "@store/player";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const playPause = usePlayer.getState().playPause;
 const IMG_SIZE = Math.max(40, vh * 0.06);
 const IMG_RADIUS = IMG_SIZE / 2;
 
 const TrackControllerMinView = ({ tabBarHeight }) => {
+    const playPause = usePlayer(state => state.playPause);
     const [swipeStartPos, setSwipeStartPos] = useState({});
     const [isVisible, setIsVisible] = useState(true);
 

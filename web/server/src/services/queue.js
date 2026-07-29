@@ -16,8 +16,23 @@ class JobManager {
     
     // Key: jobId -> Job state object
     this.jobs = new Map();
+    // Key: jobId -> Set of active child processes
+    this.activeProcesses = new Map();
+    // Server-wide concurrency limit: strictly 2 workers across all jobs
+    this.limitConcurrency = pLimit(2);
 
     initStorage(this.downloadsDir);
+  }
+
+  registerChildProcess(jobId, child) {
+    if (!this.activeProcesses.has(jobId)) {
+      this.activeProcesses.set(jobId, new Set());
+    }
+    const procSet = this.activeProcesses.get(jobId);
+    procSet.add(child);
+
+    child.on('close', () => procSet.delete(child));
+    child.on('error', () => procSet.delete(child));
   }
 
   getJob(jobId) {
@@ -184,11 +199,9 @@ class JobManager {
     job.status = 'PROCESSING';
     this.broadcast('JOB_STARTED', { jobId, summary: this.getJobSummary(job) });
 
-    // 3. Concurrency Queue (LIMIT EXACTLY 2 CONCURRENT WORKERS)
-    const limitConcurrency = pLimit(2);
-
+    // 3. Concurrency Queue (Strictly 2 concurrent workers across server)
     const downloadTasks = job.items.map(item => {
-      return limitConcurrency(async () => {
+      return this.limitConcurrency(async () => {
         if (job.cancelled) {
           this.updateItemStatus(jobId, item.ytId, 'FAILED', { error: 'Job cancelled by user' });
           return;
@@ -224,7 +237,8 @@ class JobManager {
             item.title,
             this.songsDir,
             this.coversDir,
-            (logMsg) => this.addLog(jobId, logMsg)
+            (logMsg) => this.addLog(jobId, logMsg),
+            (childProc) => this.registerChildProcess(jobId, childProc)
           );
         } catch (err) {
           job.failedCount++;
@@ -234,8 +248,8 @@ class JobManager {
           return;
         }
 
-        const absoluteSongPath = path.resolve(__dirname, '../../../', localPaths.songPath);
-        const absoluteCoverPath = localPaths.coverPath ? path.resolve(__dirname, '../../../', localPaths.coverPath) : null;
+        const absoluteSongPath = path.join(this.songsDir, `${item.ytId}.mp3`);
+        const absoluteCoverPath = localPaths.coverPath ? path.join(this.coversDir, `${item.ytId}.jpg`) : null;
 
         let cloudinarySongUrl = null;
         let cloudinaryCoverUrl = null;
@@ -268,7 +282,7 @@ class JobManager {
         this.addLog(jobId, `Registering "${item.title}" in VividMusic database via POST /addSong...`);
 
         try {
-          const dbResult = await addSongToDb({
+          await addSongToDb({
             title: item.title,
             artist: item.channel,
             url: cloudinarySongUrl,
@@ -301,6 +315,8 @@ class JobManager {
           channel: item.channel,
           duration: item.duration,
           url: item.url,
+          songPath: localPaths.songPath,
+          coverPath: localPaths.coverPath,
           cloudinarySongUrl,
           cloudinaryCoverUrl,
           downloadedAt: new Date().toISOString()
@@ -325,9 +341,23 @@ class JobManager {
 
   cancelJob(jobId) {
     const job = this.jobs.get(jobId);
-    if (job && job.status === 'PROCESSING') {
+    if (job && (job.status === 'PROCESSING' || job.status === 'EXTRACTING_METADATA')) {
       job.cancelled = true;
       job.status = 'CANCELLED';
+
+      // Terminate any running child processes for this job
+      if (this.activeProcesses.has(jobId)) {
+        const procSet = this.activeProcesses.get(jobId);
+        for (const proc of procSet) {
+          try {
+            proc.kill('SIGKILL');
+          } catch (e) {
+            // process already killed
+          }
+        }
+        procSet.clear();
+      }
+
       this.addLog(jobId, `Cancellation requested for job ${jobId}`, 'warning');
       this.broadcast('JOB_CANCELLED', { jobId });
       return true;

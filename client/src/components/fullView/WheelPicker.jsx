@@ -10,18 +10,13 @@ import { useAppStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player.js";
 
 const { width: vw, height: vh } = Dimensions.get("window");
-const setTimer = usePlayer.getState().setTimer;
-const toggleTimerSelect = useAppStatus.getState().toggleTimerSelect;
 
 const handleSetTimer = ms => {
     const now = new Date();
     const target = new Date(now.getTime() + ms);
 
-    const hours = target.getHours().toString().padStart(2, "0");
-    const minutes = target.getMinutes().toString().padStart(2, "0");
-
-    setTimer(target.getTime());
-    toggleTimerSelect();
+    usePlayer.getState().setTimer(target.getTime());
+    useAppStatus.getState().toggleTimerSelect();
 };
 
 const WheelPicker = () => {

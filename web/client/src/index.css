@@ -458,6 +458,18 @@ textarea.form-input {
   border: 1px solid rgba(160, 174, 192, 0.3);
 }
 
+.badge-extracting_metadata {
+  background: rgba(127, 0, 255, 0.15);
+  color: #b794f4;
+  border: 1px solid rgba(127, 0, 255, 0.3);
+}
+
+.badge-processing {
+  background: rgba(79, 172, 254, 0.15);
+  color: var(--accent-blue);
+  border: 1px solid rgba(79, 172, 254, 0.3);
+}
+
 .badge-checking_db {
   background: rgba(49, 130, 206, 0.15);
   color: var(--status-checking);
@@ -470,6 +482,18 @@ textarea.form-input {
   border: 1px solid rgba(221, 107, 32, 0.3);
 }
 
+.badge-uploading_cloudinary {
+  background: rgba(0, 242, 254, 0.15);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+}
+
+.badge-registering_db {
+  background: rgba(127, 0, 255, 0.15);
+  color: var(--accent-purple);
+  border: 1px solid rgba(127, 0, 255, 0.3);
+}
+
 .badge-skipped {
   background: rgba(214, 158, 46, 0.15);
   color: var(--status-skipped);
@@ -480,6 +504,12 @@ textarea.form-input {
   background: rgba(56, 161, 105, 0.15);
   color: var(--status-completed);
   border: 1px solid rgba(56, 161, 105, 0.3);
+}
+
+.badge-cancelled {
+  background: rgba(221, 107, 32, 0.15);
+  color: var(--status-downloading);
+  border: 1px solid rgba(221, 107, 32, 0.3);
 }
 
 .badge-failed {

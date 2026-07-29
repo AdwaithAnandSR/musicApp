@@ -55,38 +55,46 @@ export default function App() {
     }
   }, [logs, activeTab]);
 
-  // Connect to WebSocket
+  // Connect to WebSocket with reconnect logic
   useEffect(() => {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
-    
-    let socket;
-    try {
-      socket = new WebSocket(wsUrl);
+    let socket = null;
+    let reconnectTimeout = null;
 
-      socket.onopen = () => {
-        setWsConnected(true);
-      };
+    const connectWS = () => {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}`;
 
-      socket.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          handleWsEvent(data);
-        } catch (e) {
-          console.error('WS JSON parse error', e);
-        }
-      };
+      try {
+        socket = new WebSocket(wsUrl);
 
-      socket.onclose = () => {
+        socket.onopen = () => {
+          setWsConnected(true);
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleWsEvent(data);
+          } catch (e) {
+            console.error('WS JSON parse error', e);
+          }
+        };
+
+        socket.onclose = () => {
+          setWsConnected(false);
+          reconnectTimeout = setTimeout(connectWS, 3000);
+        };
+
+        socket.onerror = () => {
+          setWsConnected(false);
+        };
+      } catch (err) {
         setWsConnected(false);
-      };
+        reconnectTimeout = setTimeout(connectWS, 3000);
+      }
+    };
 
-      socket.onerror = () => {
-        setWsConnected(false);
-      };
-    } catch (err) {
-      setWsConnected(false);
-    }
+    connectWS();
 
     // Fetch initial status, history & metadata
     checkHealth();
@@ -94,6 +102,7 @@ export default function App() {
     fetchLocalMetadata();
 
     return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (socket) socket.close();
     };
   }, []);
@@ -127,6 +136,10 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setJobsHistory(data);
+        if (!currentJobId && data.length > 0) {
+          setCurrentJobId(data[0].id);
+          fetchJobDetails(data[0].id);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch jobs history', e);
@@ -166,6 +179,14 @@ export default function App() {
     switch (type) {
       case 'JOB_CREATED':
       case 'JOB_STARTED':
+        if (payload && payload.jobId) {
+          setCurrentJobId(payload.jobId);
+          fetchJobDetails(payload.jobId);
+          fetchJobsHistory();
+          fetchLocalMetadata();
+        }
+        break;
+
       case 'ITEM_STATUS_CHANGED':
       case 'JOB_FINISHED':
       case 'JOB_FAILED':
@@ -471,13 +492,13 @@ export default function App() {
             </div>
           </div>
 
-          {currentJob && currentJob.error && (
+          {jobDetails && jobDetails.error && (
             <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--status-failed)', borderRadius: '8px', padding: '16px', marginTop: '16px', color: '#f87171' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '0.95rem' }}>
-                <AlertTriangle size={18} /> Job Error Details ({currentJob.id})
+                <AlertTriangle size={18} /> Job Error Details ({jobDetails.id})
               </div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '4px', marginTop: '8px' }}>
-                {currentJob.error}
+                {jobDetails.error}
               </div>
               <div style={{ marginTop: '10px' }}>
                 <button className="chip" onClick={() => setActiveTab('logs')} style={{ background: 'rgba(239, 68, 68, 0.25)', borderColor: 'var(--status-failed)' }}>
