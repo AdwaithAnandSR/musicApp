@@ -1,21 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <!-- 
-    Transparent background. 
-    The script will automatically add the dark (#121212) background to the final PNGs.
+    Transparent background.
+    A plain, bold, perfectly geometric letter "M"
   -->
-  
-  <!-- Stylized "M" that looks like a music equalizer/waveform -->
-  <g fill="#FFFFFF">
-    <!-- Left bar of M -->
-    <rect x="232" y="256" width="120" height="512" rx="60" />
-    
-    <!-- Middle left diagonal of M -->
-    <path d="M352 256 L512 496 L512 656 L352 416 Z" />
-    
-    <!-- Middle right diagonal of M -->
-    <path d="M672 256 L512 496 L512 656 L672 416 Z" />
-    
-    <!-- Right bar of M -->
-    <rect x="672" y="256" width="120" height="512" rx="60" />
-  </g>
+  <path 
+    fill="#FFFFFF" 
+    d="
+      M 212 812 
+      L 212 212 
+      L 512 512 
+      L 812 212 
+      L 812 812 
+      L 662 812 
+      L 662 574 
+      L 512 724 
+      L 362 574 
+      L 362 812 
+      Z" 
+  />
 </svg>

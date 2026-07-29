@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import {
     View,
     Text,
@@ -137,4 +137,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ListItem;
+export default memo(ListItem);
