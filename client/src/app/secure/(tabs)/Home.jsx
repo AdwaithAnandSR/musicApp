@@ -47,16 +47,19 @@ const Home = () => {
         });
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-    const allSongs = [
-        ...new Map(
-            data?.pages
-                .flatMap(p => p.musics)
-                .map(({ _id, cover, ...rest }) => [
-                    _id,
-                    { id: _id, artwork: cover, ...rest }
-                ])
-        ).values()
-    ];
+    const allSongs =
+        data?.pages
+            ? [
+                  ...new Map(
+                      data.pages
+                          .flatMap(p => p.musics || [])
+                          .map(({ _id, cover, ...rest }) => [
+                              _id,
+                              { id: _id, artwork: cover, ...rest }
+                          ])
+                  ).values()
+              ]
+            : [];
 
     const handleRefresh = () => {
         queryClient.resetQueries({ queryKey: ["HOME"] });
@@ -82,7 +85,7 @@ const Home = () => {
                 data={allSongs}
                 renderItem={({ item }) => <ListItem ID="HOME" item={item} />}
                 showsVerticalScrollIndicator={false}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item.id || item._id}
                 onEndReachedThreshold={0.5}
                 initialNumToRender={7}
                 estimatedItemSize={80}

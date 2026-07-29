@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import {
     View,
     Text,
@@ -31,7 +31,7 @@ const ListItem = ({ item, ID, text = "" }) => {
     );
 
     const isCurrentPlaying = usePlayer(
-        state => state.currentTrackId === item.id
+        state => state.currentTrackId === (item.id || item._id)
     );
 
     const isSelected = useMultiSelect(state =>
@@ -47,7 +47,7 @@ const ListItem = ({ item, ID, text = "" }) => {
 
         if (!isSelecting) {
             resetShowLyrics();
-            changePlaylistAndPlay({ playlistId: ID, trackId: item.id });
+            changePlaylistAndPlay({ playlistId: ID, trackId: item.id || item._id });
         } else {
             updateSelected(item);
         }
@@ -60,7 +60,7 @@ const ListItem = ({ item, ID, text = "" }) => {
         }
 
         const y = nativeEvent.pageY - nativeEvent.locationY;
-        useAppStatus.getState().setPopUpOption(y, item.id, ID, item);
+        useAppStatus.getState().setPopUpOption(y, item.id || item._id, ID, item);
     };
 
     return (
@@ -87,8 +87,8 @@ const ListItem = ({ item, ID, text = "" }) => {
                     contentFit="cover"
                     transition={1000}
                     source={
-                        item.artwork
-                            ? { uri: item.artwork }
+                        item.artwork || item.cover
+                            ? { uri: item.artwork || item.cover }
                             : require("@assets/images/images.jpeg")
                     }
                     style={{ width: "100%", height: "100%" }}
@@ -154,4 +154,5 @@ const styles = StyleSheet.create({
     }
 });
 
-export default ListItem;
+export default memo(ListItem);
+

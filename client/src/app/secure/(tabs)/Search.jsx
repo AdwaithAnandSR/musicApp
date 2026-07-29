@@ -47,7 +47,7 @@ const Search = () => {
                 id: _id,
                 artwork: cover,
                 ...rest
-            }))
+            })) || []
         ) ?? [];
 
     useEffect(() => {
@@ -79,8 +79,7 @@ const Search = () => {
             />
 
             <FlashList
-                key={debouncedText}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item.id || item._id}
                 estimatedItemSize={80}
                 data={songs}
                 renderItem={({ item }) => (

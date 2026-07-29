@@ -51,11 +51,11 @@ const PlaylistSongs = () => {
 
     const songs =
         data?.pages.flatMap(page =>
-            page.musics.map(({ _id, cover, ...rest }) => ({
+            page.musics?.map(({ _id, cover, ...rest }) => ({
                 id: _id,
                 artwork: cover,
                 ...rest
-            }))
+            })) || []
         ) ?? [];
 
     const scrollToMiddle = index => {
@@ -85,7 +85,7 @@ const PlaylistSongs = () => {
                 )}
                 showsVerticalScrollIndicator={false}
                 onEndReachedThreshold={0.5}
-                keyExtractor={item => item.id}
+                keyExtractor={item => item.id || item._id}
                 onEndReached={() => {
                     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
                 }}
@@ -93,8 +93,7 @@ const PlaylistSongs = () => {
                     isFetchingNextPage ? (
                         <Loader size={"large"} />
                     ) : songs.length > 8 ? (
-                        
-<Text style={styles.loader}>{`• ${playlistName} •`}</Text>
+                        <Text style={styles.loader}>{`• ${playlistName} •`}</Text>
                     ) : null
                 }
                 ListEmptyComponent={
@@ -113,7 +112,9 @@ const PlaylistSongs = () => {
                     {
                         useNativeDriver: true,
                         listener: () => {
-                            useAppStatus.getState().setPopUpOption(-1, null, null);
+                            if (useAppStatus.getState().popUpOption.y !== -1) {
+                                useAppStatus.getState().setPopUpOption(-1, null, null);
+                            }
                         }
                     }
                 )}
