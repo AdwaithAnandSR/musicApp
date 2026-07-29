@@ -43,5 +43,48 @@ const removeSong = async dets => {
     }
 };
 
+export const removeSongsBatch = async ({ playlistId, songIds }) => {
+    try {
+        if (!playlistId || !songIds?.length) return;
+
+        useAppStatus.getState().setPopUpOption(-1, null, null);
+        Toast.show(`Removing ${songIds.length} song(s)...`, "pending");
+
+        const res = await axios.post(`/playlist/remove`, {
+            playlistId,
+            songIds
+        });
+
+        if (res.status === 200) {
+            Toast.show(
+                res?.data?.message || "Song(s) removed successfully",
+                "success"
+            );
+
+            const removeSet = new Set(songIds);
+            queryClient.setQueryData([playlistId], prev => {
+                if (!prev) return prev;
+
+                return {
+                    ...prev,
+                    pages: prev.pages.map(page => ({
+                        ...page,
+                        musics: page.musics.filter(
+                            song => !removeSet.has(song._id || song.id)
+                        )
+                    }))
+                };
+            });
+        }
+    } catch (error) {
+        Toast.show(
+            error?.response?.data?.message || "Failed to remove song(s)",
+            "error"
+        );
+        console.log(error);
+    }
+};
+
 export default removeSong;
+
 

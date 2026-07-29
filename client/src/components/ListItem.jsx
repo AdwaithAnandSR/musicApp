@@ -35,14 +35,15 @@ const ListItem = ({ item, ID, text = "" }) => {
     );
 
     const isSelected = useMultiSelect(state =>
-        state.selectedSongs.some(song => song.id === item.id)
+        state.selectedSongs.some(
+            song => (song.id || song._id) === (item.id || item._id)
+        )
     );
 
     if (!item?.url) return null;
 
     const handleShortPress = async () => {
-        if (ID != "HOME" && ID != "SEARCH")
-            useAppStatus.getState().setPopUpOption(-1, null, null);
+        useAppStatus.getState().setPopUpOption(-1, null, null);
 
         if (!isSelecting) {
             resetShowLyrics();
@@ -53,12 +54,13 @@ const ListItem = ({ item, ID, text = "" }) => {
     };
 
     const handleLongPress = async ({ nativeEvent }) => {
-        if (ID != "HOME" && ID != "SEARCH") {
-            const y = nativeEvent.pageY - nativeEvent.locationY;
-            useAppStatus.getState().setPopUpOption(y, item.id, ID);
-        } else {
+        if (isSelecting) {
             updateSelected(item);
+            return;
         }
+
+        const y = nativeEvent.pageY - nativeEvent.locationY;
+        useAppStatus.getState().setPopUpOption(y, item.id, ID, item);
     };
 
     return (
