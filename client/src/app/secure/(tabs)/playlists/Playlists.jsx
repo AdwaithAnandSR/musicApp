@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -10,20 +10,34 @@ import Loader from "@components/Loader";
 
 import { fetchPlaylists } from "@controllers/playlists/fetch";
 
+import queryClient from "@services/queryClient";
+
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
 
 const Playlists = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
 
-    const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-        useInfiniteQuery({
-            queryKey: ["playlists"],
-            queryFn: fetchPlaylists,
-            getNextPageParam: lastPage => lastPage.nextPage
-        });
+    const {
+        data,
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        refetch,
+        isFetching
+    } = useInfiniteQuery({
+        queryKey: ["playlists"],
+        queryFn: fetchPlaylists,
+        getNextPageParam: lastPage => lastPage.nextPage
+    });
 
     const playlists = data?.pages.flatMap(page => page.playlists) || [];
+
+    const handleRefresh = () => {
+        queryClient.resetQueries({ queryKey: ["playlists"] });
+        refetch();
+    };
 
     return (
         <View style={styles.container}>
@@ -67,6 +81,8 @@ const Playlists = () => {
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                     { useNativeDriver: true }
                 )}
+                refreshing={isFetching && !isFetchingNextPage && !isLoading}
+                onRefresh={handleRefresh}
             />
 
             <FloatingAdd />

@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import {
     StyleSheet,
     Text,
     View,
-    Animated,
-    ActivityIndicator
+    Animated
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
@@ -13,6 +12,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAppStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
 import { getPlaylistSongs } from "@controllers/playlists/fetch";
+import queryClient from "@services/queryClient";
 
 import ListItem from "@components/ListItem.jsx";
 import PopUpOptions from "@components/PopUpOptions.jsx";
@@ -29,15 +29,27 @@ const PlaylistSongs = () => {
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
 
-    const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
-        useInfiniteQuery({
-            queryKey: [playlistId],
+    const {
+        data,
+        isLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        refetch,
+        isFetching
+    } = useInfiniteQuery({
+        queryKey: [playlistId],
 
-            queryFn: ({ pageParam = null }) =>
-                getPlaylistSongs({ limit, playlistId, pageParam }),
+        queryFn: ({ pageParam = null }) =>
+            getPlaylistSongs({ limit, playlistId, pageParam }),
 
-            getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
-        });
+        getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
+    });
+
+    const handleRefresh = () => {
+        queryClient.resetQueries({ queryKey: [playlistId] });
+        refetch();
+    };
 
     useEffect(() => {
         usePlayer
@@ -47,7 +59,7 @@ const PlaylistSongs = () => {
                 hasNextPage,
                 isFetchingNextPage
             });
-    }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+    }, [playlistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const songs =
         data?.pages.flatMap(page =>
@@ -118,6 +130,8 @@ const PlaylistSongs = () => {
                         }
                     }
                 )}
+                refreshing={isFetching && !isFetchingNextPage && !isLoading}
+                onRefresh={handleRefresh}
             />
 
             <PopUpOptions />
