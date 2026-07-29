@@ -29,3 +29,24 @@ export const removeUser = async userId => {
     const res = await axios.post(`/users/delete`, { userId });
     return res.data;
 };
+
+/**
+ * Permanently delete a song from database (admin only).
+ * @param {string} songId
+ * @returns {Promise<object>} { success }
+ */
+export const deleteSongPermanent = async songId => {
+    const res = await axios.post("/admin/deleteSong", { id: songId });
+    return res.data;
+};
+
+/**
+ * Permanently delete multiple songs from database (admin only).
+ * @param {Array<string>} songIds
+ * @returns {Promise<object>} { success }
+ */
+export const deleteSongsPermanentBatch = async songIds => {
+    const res = await axios.post("/admin/deleteSong", { ids: songIds });
+    return res.data;
+};
+

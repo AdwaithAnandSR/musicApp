@@ -5,6 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 
 import Loader from "@components/Loader";
 import ListItem from "@components/ListItem.jsx";
+import PopUpOptions from "@components/PopUpOptions.jsx";
 import searchSongs from "@controllers/search.controller.js";
 import queryClient from "@services/queryClient";
 
@@ -104,6 +105,7 @@ const Search = () => {
                     ) : null
                 }
             />
+            <PopUpOptions />
         </View>
     );
 };

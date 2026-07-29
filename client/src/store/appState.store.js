@@ -29,18 +29,20 @@ export const useAppStatus = create(set => ({
         set({ currentSelectedPlaylist: playlist }),
     toggleTimerSelect: () =>
         set(state => ({ isTimerSelecting: !state.isTimerSelecting })),
-    setPopUpOption: (y, songId, playId) =>
-        set({ popUpOption: { y, songId, playId } })
+    setPopUpOption: (y, songId, playId, song = null) =>
+        set({ popUpOption: { y, songId, playId, song } })
 }));
 
 export const useMultiSelect = create((set, get) => ({
     selectedSongs: [],
     reset: () => set(() => ({ selectedSongs: [] })),
     updateSelectedSongs: item => {
+        if (!item) return;
+        const itemId = item.id || item._id;
         set(state => {
-            const exists = state.selectedSongs.some(i => i.id === item.id);
+            const exists = state.selectedSongs.some(i => (i.id || i._id) === itemId);
             const updated = exists
-                ? state.selectedSongs.filter(i => i.id !== item.id)
+                ? state.selectedSongs.filter(i => (i.id || i._id) !== itemId)
                 : [...state.selectedSongs, item];
             return { selectedSongs: updated };
         });

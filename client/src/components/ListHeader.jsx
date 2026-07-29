@@ -4,11 +4,16 @@ import {
     Text,
     StyleSheet,
     Animated,
-    View
+    View,
+    Alert
 } from "react-native";
 
-import { useMultiSelect } from "../store/appState.store.js";
+import { useMultiSelect, useAppStatus } from "../store/appState.store.js";
 import { usePlayer } from "../store/player.js";
+import { removeSongsBatch } from "../controllers/playlists/removeSong.js";
+import { deleteSongsPermanentBatch } from "../controllers/admin.js";
+import Toast from "../services/Toast.js";
+import queryClient from "../services/queryClient.js";
 
 const HEADER_HEIGHT = 250;
 const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 80;
@@ -28,6 +33,9 @@ const Header = ({
     });
 
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
+    const user = useAppStatus(state => state.user);
+    const isAdmin = user?.role === "admin";
+    const isPlaylist = ID !== "HOME" && ID !== "SEARCH" && !!ID;
 
     const handleShortPress = () => {
         const index = usePlayer.getState().currentTrackIndex;
@@ -35,6 +43,56 @@ const Header = ({
     };
 
     const handleLongPress = () => scrollToMiddle(0);
+
+    const handleBatchRemove = async () => {
+        const songIds = selectedSongs
+            .map(s => s.id || s._id)
+            .filter(Boolean);
+        if (!songIds.length) return;
+
+        useMultiSelect.getState().reset();
+        await removeSongsBatch({ playlistId: ID, songIds });
+    };
+
+    const handleBatchDelete = async () => {
+        const songIds = selectedSongs
+            .map(s => s.id || s._id)
+            .filter(Boolean);
+        if (!songIds.length) return;
+
+        Alert.alert(
+            `Delete ${songIds.length} Songs`,
+            `Are you sure you want to permanently delete ${songIds.length} selected song(s) from the database?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete All",
+                    style: "destructive",
+                    onPress: async () => {
+                        useMultiSelect.getState().reset();
+                        Toast.show(`Deleting ${songIds.length} song(s)...`, "pending");
+                        try {
+                            const res = await deleteSongsPermanentBatch(songIds);
+                            if (res?.success) {
+                                Toast.show(`${songIds.length} song(s) deleted permanently`, "success");
+                                if (isPlaylist) {
+                                    await removeSongsBatch({ playlistId: ID, songIds });
+                                }
+                                queryClient.invalidateQueries();
+                            } else {
+                                Toast.show("Failed to delete songs", "error");
+                            }
+                        } catch (err) {
+                            Toast.show(
+                                err?.response?.data?.message || "Failed to delete songs",
+                                "error"
+                            );
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     return (
         <Animated.View
@@ -59,14 +117,33 @@ const Header = ({
                 {total > -1 && <Text style={styles.headerText2}>{total}</Text>}
             </TouchableOpacity>
             {selectedSongs?.length > 0 && (
-                <TouchableOpacity
-                    onLongPress={() => useMultiSelect.getState().reset()}
-                    activeOpacity={0.3}
-                >
-                    <Text style={styles.selectedText}>
-                        Selected: {selectedSongs?.length}
-                    </Text>
-                </TouchableOpacity>
+                <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        onPress={() => useMultiSelect.getState().reset()}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={styles.selectedText}>
+                            Selected: {selectedSongs?.length} ✕
+                        </Text>
+                    </TouchableOpacity>
+
+                    <View style={styles.btnGroup}>
+                        {isPlaylist && (
+                            <TouchableOpacity
+                                style={[styles.badgeBtn, styles.removeBtn]}
+                                onPress={handleBatchRemove}>
+                                <Text style={styles.badgeBtnText}>Remove</Text>
+                            </TouchableOpacity>
+                        )}
+                        {isAdmin && (
+                            <TouchableOpacity
+                                style={[styles.badgeBtn, styles.deleteBtn]}
+                                onPress={handleBatchDelete}>
+                                <Text style={styles.badgeBtnText}>Delete</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
             )}
         </Animated.View>
     );
@@ -114,9 +191,41 @@ const styles = StyleSheet.create({
     selectedText: {
         color: "white",
         fontWeight: "bold",
-        fontSize: 20,
-        letterSpacing: -2,
-        paddingLeft: 13
+        fontSize: 18,
+        letterSpacing: -1,
+        paddingLeft: 10
+    },
+    actionRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingRight: 10,
+        marginTop: 4
+    },
+    btnGroup: {
+        flexDirection: "row",
+        gap: 8,
+        alignItems: "center"
+    },
+    badgeBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        borderRadius: 12,
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    removeBtn: {
+        backgroundColor: "#2a2a2a",
+        borderWidth: 1,
+        borderColor: "#444"
+    },
+    deleteBtn: {
+        backgroundColor: "#990000"
+    },
+    badgeBtnText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 13
     }
 });
 

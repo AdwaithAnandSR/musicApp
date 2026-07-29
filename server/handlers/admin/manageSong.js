@@ -1,10 +1,17 @@
 import musicModel from "../../models/musics.js";
+import PlaylistSong from "../../models/playlistSong.js";
 
 export const deleteSong = async (req, res) => {
     try {
-        const { id } = req.body;
+        const { id, ids } = req.body;
+        const targetIds = ids && ids.length ? ids : (id ? [id] : []);
 
-        await musicModel.findByIdAndDelete(id);
+        if (!targetIds.length) {
+            return res.status(400).json({ success: false, message: "No song ID provided" });
+        }
+
+        await musicModel.deleteMany({ _id: { $in: targetIds } });
+        await PlaylistSong.deleteMany({ songId: { $in: targetIds } });
 
         res.json({ success: true });
     } catch (error) {

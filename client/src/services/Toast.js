@@ -13,7 +13,7 @@ let showToast;
 const ToastManager = () => {
     const [message, setMessage] = useState("");
     const [type, setType] = useState("");
-    const [visible, setVisible] = useState(false);
+    const [visible, setVisible] = useState(true);
 
     const translateY = useSharedValue(-120);
 
@@ -49,10 +49,10 @@ const ToastManager = () => {
         type === "success" || type === "green"
             ? "#22c55e"
             : type === "error" || type === "red"
-            ? "#ef4444"
-            : type === "pending" || type === "yellow"
-            ? "#eab308"
-            : "#ffffff";
+              ? "#ef4444"
+              : type === "pending" || type === "yellow"
+                ? "#eab308"
+                : "#ffffff";
 
     let displayMessage = message;
     let colorOverride = null;
@@ -67,10 +67,10 @@ const ToastManager = () => {
         ? colorOverride === "green"
             ? "#22c55e"
             : colorOverride === "red"
-            ? "#ef4444"
-            : colorOverride === "yellow"
-            ? "#eab308"
-            : "#ffffff"
+              ? "#ef4444"
+              : colorOverride === "yellow"
+                ? "#eab308"
+                : "#ffffff"
         : textColor;
 
     let left = displayMessage;
@@ -78,9 +78,14 @@ const ToastManager = () => {
 
     if (typeof displayMessage === "string" && displayMessage.includes(" ")) {
         const words = displayMessage.split(" ");
-        if (words.length > 2) {
-            left = words.slice(0, Math.ceil(words.length / 2)).join(" ");
-            right = words.slice(Math.ceil(words.length / 2)).join(" ");
+        if (words.length > 1) {
+            left = words[0];
+            right = words[1];
+            if (words.length > 2) {
+                left = words.right = words
+                    .slice(Math.ceil(words.length / 2))
+                    .join(" ");
+            }
         }
     }
 
@@ -92,10 +97,13 @@ const ToastManager = () => {
                     numberOfLines={1}
                     style={[
                         styles.text,
-                        { color: finalColor, textAlign: right ? "left" : "center" }
+                        {
+                            color: finalColor,
+                            textAlign: right ? "left" : "center"
+                        }
                     ]}
                 >
-                    {left}
+                    {left?.split("+").join(" ")}
                 </Text>
                 {!!right && (
                     <Text
@@ -123,9 +131,9 @@ const styles = StyleSheet.create({
         width: width,
         zIndex: 99999,
         backgroundColor: "#050505",
-        paddingTop: 44,
-        paddingBottom: 14,
-        paddingHorizontal: 24,
+        paddingTop: 35,
+        paddingBottom: 10,
+        paddingHorizontal: 25,
         borderBottomLeftRadius: 20,
         borderBottomRightRadius: 20,
         flexDirection: "row",

@@ -12,6 +12,8 @@ import { storage } from "@services/storage";
 import { usePlayer } from "@store/player";
 import queryClient from "@services/queryClient";
 
+import PopUpOptions from "@components/PopUpOptions.jsx";
+
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
 
@@ -108,6 +110,7 @@ const Home = () => {
                 refreshing={isFetching && !isFetchingNextPage && !isLoading}
                 onRefresh={handleRefresh}
             />
+            <PopUpOptions />
         </View>
     );
 };
