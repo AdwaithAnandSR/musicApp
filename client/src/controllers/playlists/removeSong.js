@@ -1,6 +1,7 @@
 import axios from "@services/axios";
 import Toast from "@services/Toast.js";
 import { useAppStatus } from "@store/appState.store.js";
+import { usePlayer } from "@store/player.js";
 import queryClient from "@services/queryClient";
 
 const removeSong = async dets => {
@@ -21,6 +22,8 @@ const removeSong = async dets => {
                 res?.data?.message || "Song removed successfully",
                 "success"
             );
+
+            usePlayer.getState().removeFromQueue(songId);
 
             queryClient.setQueryData([playlistId], prev => {
                 if (!prev) return prev;
@@ -60,6 +63,8 @@ export const removeSongsBatch = async ({ playlistId, songIds }) => {
                 res?.data?.message || "Song(s) removed successfully",
                 "success"
             );
+
+            usePlayer.getState().removeFromQueue(songIds);
 
             const removeSet = new Set(songIds);
             queryClient.setQueryData([playlistId], prev => {

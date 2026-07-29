@@ -37,7 +37,7 @@ export const usePlayer = create((set, get) => ({
 
     playByTrackId: trackId => {
         const { queue } = get();
-        const index = queue.findIndex(t => t._id === trackId);
+        const index = queue.findIndex(t => (t._id || t.id) === trackId);
         if (index === -1) return false;
         get().playByIndex(index);
         return true;
@@ -126,13 +126,13 @@ export const usePlayer = create((set, get) => ({
         newPlayer.updateLockScreenMetadata({
             title: track.title,
             artist: track?.artist?.split(",")?.[0],
-            artworkUrl: track.cover
+            artworkUrl: track.cover || track.artwork
         });
 
         set({
             player: newPlayer,
             playbackListener: listener,
-            currentTrackId: track._id,
+            currentTrackId: track._id || track.id,
             currentTrackIndex: index,
             currentTrack: track,
             isStopped: false
@@ -142,20 +142,20 @@ export const usePlayer = create((set, get) => ({
     next: () => {
         const { currentTrackIndex, queue, repeatMode } = get();
 
-if (repeatMode === "one") {
-        get().playByIndex(currentTrackIndex);
-        return;
-    }
-    
-    const nextIndex = currentTrackIndex + 1;
-    
-if (nextIndex >= queue.length && repeatMode === "queue")           {
-        get().playByIndex(0);
-        return;
-}
-    
-get().playByIndex(nextIndex);
-     
+        if (repeatMode === "one") {
+            get().playByIndex(currentTrackIndex);
+            return;
+        }
+
+        const nextIndex = currentTrackIndex + 1;
+
+        if (nextIndex >= queue.length && repeatMode === "queue") {
+            get().playByIndex(0);
+            return;
+        }
+
+        get().playByIndex(nextIndex);
+
         const state = get();
         const controller = state.playlistControllers[state.currentPlaylistId];
 
@@ -201,12 +201,36 @@ get().playByIndex(nextIndex);
 
         const { queue } = get();
 
-        const existingIds = new Set(queue.map(t => t._id));
-        const newTracks = tracks.filter(t => !existingIds.has(t._id));
+        const existingIds = new Set(queue.map(t => t._id || t.id));
+        const newTracks = tracks.filter(t => !existingIds.has(t._id || t.id));
 
         set({
             queue: [...queue, ...newTracks]
         });
+    },
+
+    removeFromQueue: songIds => {
+        const ids = Array.isArray(songIds) ? songIds : [songIds];
+        const removeSet = new Set(ids);
+        const { queue, currentTrackId, currentTrackIndex } = get();
+        if (!queue.some(t => removeSet.has(t._id || t.id))) return;
+
+        const newQueue = queue.filter(t => !removeSet.has(t._id || t.id));
+
+        if (removeSet.has(currentTrackId)) {
+            if (newQueue.length > 0) {
+                const nextIdx = Math.min(currentTrackIndex, newQueue.length - 1);
+                set({ queue: newQueue });
+                get().playByIndex(nextIdx);
+            } else {
+                get().clearPlayer();
+            }
+        } else {
+            const newIndex = newQueue.findIndex(
+                t => (t._id || t.id) === currentTrackId
+            );
+            set({ queue: newQueue, currentTrackIndex: newIndex });
+        }
     },
 
     seekTo: ms => {
