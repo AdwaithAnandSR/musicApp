@@ -151,6 +151,9 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setJobDetails(data);
+        if (data && Array.isArray(data.logs) && data.logs.length > 0) {
+          setLogs(data.logs);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch job details', e);
@@ -176,7 +179,10 @@ export default function App() {
 
       case 'JOB_LOG':
         if (payload && payload.log) {
-          setLogs((prev) => [...prev, payload.log]);
+          setLogs((prev) => {
+            const exists = prev.some(l => l.timestamp === payload.log.timestamp && l.message === payload.log.message);
+            return exists ? prev : [...prev, payload.log];
+          });
         }
         break;
 
@@ -464,6 +470,22 @@ export default function App() {
               <div className="stat-value">{failedCount}</div>
             </div>
           </div>
+
+          {currentJob && currentJob.error && (
+            <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--status-failed)', borderRadius: '8px', padding: '16px', marginTop: '16px', color: '#f87171' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '0.95rem' }}>
+                <AlertTriangle size={18} /> Job Error Details ({currentJob.id})
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '4px', marginTop: '8px' }}>
+                {currentJob.error}
+              </div>
+              <div style={{ marginTop: '10px' }}>
+                <button className="chip" onClick={() => setActiveTab('logs')} style={{ background: 'rgba(239, 68, 68, 0.25)', borderColor: 'var(--status-failed)' }}>
+                  <Terminal size={14} /> View All Execution Logs
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -653,7 +675,9 @@ export default function App() {
 
           <div className="terminal-window">
             {logs.length === 0 ? (
-              <div style={{ color: 'var(--text-muted)' }}>Waiting for log stream...</div>
+              <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '24px' }}>
+                📡 No log messages yet. Submit a YouTube link above or select a job from <strong>Job History</strong> to view its live execution logs.
+              </div>
             ) : (
               logs.map((log, idx) => (
                 <div key={idx} className={`log-line ${log.level || 'info'}`}>
@@ -703,6 +727,11 @@ export default function App() {
                       </td>
                       <td>
                         <span className={`badge badge-${j.status.toLowerCase()}`}>{j.status}</span>
+                        {j.error && (
+                          <div style={{ fontSize: '0.75rem', color: '#f87171', marginTop: '4px', maxWidth: '240px', wordBreak: 'break-word' }}>
+                            ⚠️ {j.error}
+                          </div>
+                        )}
                       </td>
                       <td>
                         {j.completedCount} completed • {j.skippedCount} skipped • {j.failedCount} failed
@@ -715,6 +744,9 @@ export default function App() {
                           className="chip"
                           onClick={() => {
                             setCurrentJobId(j.id);
+                            if (j.logs && j.logs.length > 0) {
+                              setLogs(j.logs);
+                            }
                             fetchJobDetails(j.id);
                             setActiveTab('pipeline');
                           }}
