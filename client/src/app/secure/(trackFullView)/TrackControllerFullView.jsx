@@ -36,8 +36,10 @@ const TrackControllerFullView = () => {
     const track = usePlayer(state => state.currentTrack);
 
     useEffect(() => {
-        if (!track._id) {
-            router.back();
+        if (!track?._id) {
+            if (router.canGoBack()) {
+                router.back();
+            }
         } else if (track?.cover) {
             getColors(track.cover, {
                 fallback: "#228B22",
@@ -45,9 +47,9 @@ const TrackControllerFullView = () => {
                 key: track._id
             }).then(setColors);
         }
-    }, [track._id]);
+    }, [track?._id]);
 
-    if (!track) return null;
+    if (!track?._id) return null;
 
     return (
         <View style={[styles.container]}>

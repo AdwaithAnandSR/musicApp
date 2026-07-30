@@ -74,11 +74,11 @@ useEffect(() => {
                     showLyrics1 || showSyncedLyric
                         ? [
                               { end: -1, start: -1, line: "" },
-                              ...track.lyrics,
+                              ...(track?.lyrics || []),
                               { end: -1, start: -1, line: "" }
                           ]
                         : showLyrics2
-                          ? ["", ...track.lyricsAsText, ""]
+                          ? ["", ...(track?.lyricsAsText || []), ""]
                           : []
                 }
                 estimatedItemSize={100}
