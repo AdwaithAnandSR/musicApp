@@ -54,11 +54,6 @@ const ListItem = ({ item, ID, text = "" }) => {
     };
 
     const handleLongPress = async ({ nativeEvent }) => {
-        if (isSelecting) {
-            updateSelected(item);
-            return;
-        }
-
         const y = nativeEvent.pageY - nativeEvent.locationY;
         useAppStatus.getState().setPopUpOption(y, item.id || item._id, ID, item);
     };
