@@ -48,7 +48,8 @@ const styles = StyleSheet.create({
     title: {
         color: "white",
         width: vw * 0.7,
-        fontWeight: "bold"
+        fontWeight: "bold",
+        paddingRight: 8
     }
 });
 

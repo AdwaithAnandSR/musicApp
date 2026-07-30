@@ -20,49 +20,45 @@ const LyricsView = ({ track = {} }) => {
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
-    const setShowLyrics1 = useStatus(state => state.setShowLyrics1);
-    const setShowLyrics2 = useStatus(state => state.setShowLyrics2);
-    const setShowSyncedLyrc = useStatus(state => state.setShowSyncedLyrc);
     const currentLyricIndex = useStatus(state => state.currentLyricIndex);
     const setCurrentLyricIndex = useStatus(state => state.setCurrentLyricIndex);
+    const resetShowLyrics = useStatus(state => state.resetShowLyrics);
 
     let currentTime = usePlayer(state => state.position);
 
     const lyricsRef = useRef();
 
     useEffect(() => {
-        // Check if lyrics is an array and not empty
         if (
             !Array.isArray(track?.lyrics) ||
             !showSyncedLyric ||
             track?.lyrics?.length === 0
         ) return;
 
-        const index = track.lyrics.findIndex(item => {
-            return (
-                currentTime >= item.start - 0.8 && currentTime <= item.end - 0.8
-            );
+        const index = track.lyrics.findIndex((item, i) => {
+            const nextItem = track.lyrics[i + 1];
+            const startTime = (item.start ?? 0) - 0.5;
+            const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
+            return currentTime >= startTime && currentTime < endTime;
         });
 
         setCurrentLyricIndex(index);
     }, [currentTime, track, showSyncedLyric]);
 
-    
-useEffect(() => {
-    if (!showSyncedLyric || currentLyricIndex < 0) return;
-    lyricsRef.current?.scrollToIndex({
-        index: currentLyricIndex,
-        animated: true,
-        viewPosition: 0.1
-    });
-}, [currentLyricIndex]);
+    useEffect(() => {
+        if (!showSyncedLyric || currentLyricIndex < 0) return;
+        lyricsRef.current?.scrollToIndex({
+            index: currentLyricIndex + 1,
+            animated: true,
+            viewPosition: 0.3
+        });
+    }, [currentLyricIndex, showSyncedLyric]);
 
-
-useEffect(() => {
-    if (!track?._id) {
-        resetShowLyrics(); 
-    }
-}, [track?._id]);
+    useEffect(() => {
+        if (!track?._id) {
+            resetShowLyrics();
+        }
+    }, [track?._id, resetShowLyrics]);
 
     if (!showLyrics1 && !showLyrics2 && !showSyncedLyric) return;
 

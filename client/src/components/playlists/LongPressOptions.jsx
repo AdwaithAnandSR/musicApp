@@ -12,7 +12,10 @@ const LongPressOptions = ({ id, setShowOptions, deletePlaylist }) => {
             </TouchableOpacity>
 
             <TouchableOpacity
-                onPress={() => handleDelete({ id, deletePlaylist })}
+                onPress={() => {
+                    setShowOptions(false);
+                    handleDelete({ id, deletePlaylist });
+                }}
                 style={styles.btn}
             >
                 <Text style={[styles.text, {color: "#fd2249"}]}>Delete</Text>
