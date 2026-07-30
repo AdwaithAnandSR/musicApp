@@ -28,11 +28,19 @@ export const fetchPlaylists = async ({ pageParam = 1 }) => {
 export const getPlaylistSongs = async ({
     pageParam = null,
     limit = 50,
-    playlistId
+    playlistId,
+    random = false,
+    seed = null
 }) => {
     try {
         const params = { playlistId, limit };
         if (pageParam) params.cursor = pageParam;
+        if (random) {
+            params.random = true;
+            if (seed !== null && seed !== undefined) {
+                params.seed = seed;
+            }
+        }
 
         const { data } = await axios.get("/playlist/getSongs", { params });
 

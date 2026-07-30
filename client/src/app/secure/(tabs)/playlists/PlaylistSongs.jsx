@@ -8,6 +8,7 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 
 import { useAppStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -28,6 +29,10 @@ const PlaylistSongs = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
+
+    const [isRandom, setIsRandom] = useState(false);
+    const [seed, setSeed] = useState(() => Math.random());
+
     const currentSelectedPlaylist = useAppStatus(
         state => state.currentSelectedPlaylist
     );
@@ -48,6 +53,8 @@ const PlaylistSongs = () => {
         ? description.trim()
         : playlistName;
 
+    const queryKey = isRandom ? [playlistId, "random", seed] : [playlistId];
+
     const {
         data,
         isLoading,
@@ -57,16 +64,81 @@ const PlaylistSongs = () => {
         refetch,
         isFetching
     } = useInfiniteQuery({
-        queryKey: [playlistId],
+        queryKey,
 
         queryFn: ({ pageParam = null }) =>
-            getPlaylistSongs({ limit, playlistId, pageParam }),
+            getPlaylistSongs({
+                limit,
+                playlistId,
+                pageParam,
+                random: isRandom,
+                seed
+            }),
 
         getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
     });
 
+    const handleToggleRandom = () => {
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+        if (!isRandom) {
+            setSeed(Math.random());
+            setIsRandom(true);
+        } else {
+            setIsRandom(false);
+        }
+    };
+
+    const handleReshuffle = () => {
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
+        setSeed(Math.random());
+    };
+
+    const handlePlayShuffled = async () => {
+        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch (e) {}
+
+        const newSeed = Math.random();
+        setSeed(newSeed);
+        setIsRandom(true);
+
+        let targetTracks = [];
+
+        try {
+            const res = await getPlaylistSongs({
+                limit,
+                playlistId,
+                pageParam: null,
+                random: true,
+                seed: newSeed
+            });
+
+            targetTracks = res?.musics?.map(({ _id, cover, ...rest }) => ({
+                id: _id,
+                artwork: cover,
+                ...rest
+            })) || [];
+        } catch (err) {
+            console.log("Error in handlePlayShuffled fetch:", err);
+        }
+
+        // Fallback: If network failed or returned empty list, fall back to current visible songs list
+        if (!targetTracks.length && songs && songs.length > 0) {
+            targetTracks = [...songs].sort(() => Math.random() - 0.5);
+        }
+
+        if (targetTracks.length > 0) {
+            usePlayer.getState().changePlaylistAndPlay({
+                playlistId,
+                trackId: targetTracks[0].id || targetTracks[0]._id,
+                tracksOverride: targetTracks
+            });
+        }
+    };
+
     const handleRefresh = () => {
-        queryClient.resetQueries({ queryKey: [playlistId] });
+        if (isRandom) {
+            setSeed(Math.random());
+        }
+        queryClient.resetQueries({ queryKey });
         refetch();
     };
 
@@ -79,6 +151,12 @@ const PlaylistSongs = () => {
                 isFetchingNextPage
             });
     }, [playlistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+    useEffect(() => {
+        try {
+            flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        } catch (e) {}
+    }, [isRandom, seed]);
 
     const songs =
         data?.pages.flatMap(page =>
@@ -100,11 +178,14 @@ const PlaylistSongs = () => {
         <View style={styles.container}>
             <Header
                 title={playlistName}
-                // total={total}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
                 ID={playlistId}
                 containerStyles={{ height: HEADER_HEIGHT }}
+                isRandom={isRandom}
+                onToggleRandom={handleToggleRandom}
+                onReshuffle={handleReshuffle}
+                onPlayShuffled={handlePlayShuffled}
             />
 
             <AnimatedFlashList
