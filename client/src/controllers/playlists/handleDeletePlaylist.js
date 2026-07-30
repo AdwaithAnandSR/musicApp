@@ -27,7 +27,7 @@ const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
 } catch (error) {
     const msg = error?.response?.data?.message;
     if (msg === "PLAYLIST_NOT_FOUND") {
-        deletePlaylist(id);
+        if (typeof deletePlaylist === "function") deletePlaylist(id);
         Toast.show("Already Deleted", "error");
     } else if (msg === "INTERNAL_ERROR") {
         Toast.show("Internal+Error", "error");

@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 
 import handleDelete from "@controllers/playlists/handleDeletePlaylist.js";
 
-const LongPressOptions = ({ id, setShowOptions }) => {
+const LongPressOptions = ({ id, setShowOptions, deletePlaylist }) => {
 
     return (
         <View style={styles.container}>
