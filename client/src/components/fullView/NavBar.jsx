@@ -31,9 +31,10 @@ const MenuItem = ({ label, icon, onPress, onLongPress }) => (
 );
 
 const MenuOptions = ({ setShowMenu }) => {
-    const playlists = queryClient
-        .getQueryData(["playlists"])
-        ?.pages.flatMap(page => page.playlists);
+    const playlists =
+        queryClient
+            .getQueryData(["playlists"])
+            ?.pages.flatMap(page => page.playlists) || [];
 
     const track = usePlayer(state => state.currentTrack);
 
@@ -42,27 +43,49 @@ const MenuOptions = ({ setShowMenu }) => {
     return (
         <View style={styles.menu}>
             {showPlaylist ? (
-                <FlashList
-                    data={playlists}
-                    estimatedItemSize={50}
-                    renderItem={({ item }) => (
-                        <MenuItem
-                            key={item._id}
-                            label={item.name}
-                            onLongPress={() =>
-                                addSongsToPlaylist({
-                                    id: item._id,
-                                    selectedSongs: [track],
-                                    reset: () => setShowMenu(false)
-                                })
+                <View style={styles.playlistListWrapper}>
+                    <View style={styles.playlistHeader}>
+                        <TouchableOpacity
+                            onPress={() => setShowPlaylist(false)}
+                            style={styles.backBtn}
+                        >
+                            <Entypo name="chevron-left" size={18} color="#94a3b8" />
+                            <Text style={styles.headerTitle}>Add to Playlist</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.flashListContainer}>
+                        <FlashList
+                            data={playlists}
+                            showsVerticalScrollIndicator={false}
+                            estimatedItemSize={45}
+                            keyExtractor={(item, index) =>
+                                item?._id || item?.id || `${index}`
+                            }
+                            renderItem={({ item }) => (
+                                <MenuItem
+                                    key={item._id || item.id}
+                                    label={item.name}
+                                    onPress={() =>
+                                        addSongsToPlaylist({
+                                            id: item._id || item.id,
+                                            selectedSongs: [track],
+                                            reset: () => setShowMenu(false)
+                                        })
+                                    }
+                                />
+                            )}
+                            ListEmptyComponent={
+                                <Text style={styles.emptyText}>
+                                    No playlists found
+                                </Text>
                             }
                         />
-                    )}
-                />
+                    </View>
+                </View>
             ) : (
                 <MenuItem
-                    label="Playlist"
-                    icon={<Entypo name="plus" size={20} color="white" />}
+                    label="Add to Playlist"
+                    icon={<Entypo name="plus" size={18} color="white" />}
                     onPress={() => setShowPlaylist(true)}
                 />
             )}
@@ -80,7 +103,7 @@ const NavBar = () => {
                 <TouchableOpacity onPress={() => router.back()}>
                     <Entypo name="chevron-down" size={24} color="white" />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={e => setShowMenu(prev => !prev)}>
+                <TouchableOpacity onPress={() => setShowMenu(prev => !prev)}>
                     <Entypo
                         name="dots-three-vertical"
                         size={24}
@@ -106,54 +129,65 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: vw * 0.05
     },
-    left: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: vw * 0.05
-    },
-    options: {
-        paddingHorizontal: vw * 0.02,
-        paddingVertical: vh * 0.004,
-        borderWidth: 1,
-        borderRadius: 22,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 3,
-        maxWidth: 120,
-        overflow: "hidden",
-        borderColor: activeLyricColor
-    },
-    optionsText: {
-        color: activeLyricColor,
-        maxWidth: "90%",
-        fontSize: 11,
-        fontWeight: 600
-    },
     menu: {
-        backgroundColor: "#000000df",
-        borderColor: "#323232",
+        backgroundColor: "#000000ea",
+        borderColor: "#2a2a32",
         borderWidth: 1,
-        minWidth: vw * 0.4,
+        minWidth: vw * 0.45,
         maxWidth: vw * 0.7,
-        borderRadius: 23,
+        borderRadius: 18,
         position: "absolute",
         top: 70 - vh * 0.01,
         right: (vw * 0.3) / 2 - 20,
         zIndex: 999,
-        overflow: "hidden"
+        overflow: "hidden",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 12
+    },
+    playlistListWrapper: {
+        width: "100%"
+    },
+    playlistHeader: {
+        borderBottomWidth: 1,
+        borderBottomColor: "#ffffff15",
+        paddingVertical: 8,
+        paddingHorizontal: 10
+    },
+    backBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4
+    },
+    headerTitle: {
+        color: "#94a3b8",
+        fontSize: 12,
+        fontWeight: "600",
+        textTransform: "uppercase"
+    },
+    flashListContainer: {
+        height: 180,
+        width: "100%"
+    },
+    emptyText: {
+        color: "#64748b",
+        fontSize: 12,
+        textAlign: "center",
+        paddingVertical: 15
     },
     menuItem: {
         flexDirection: "row",
-        justifyContent: "center",
         alignItems: "center",
-        gap: vw * 0.01,
-        paddingVertical: vh * 0.01
+        gap: vw * 0.02,
+        paddingVertical: 10,
+        paddingHorizontal: 12
     },
     menuText: {
         color: "white",
         fontWeight: "bold",
-        textAlign: "center",
-        fontSize: vw * 0.04
+        fontSize: 14
     }
 });
 

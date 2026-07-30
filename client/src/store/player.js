@@ -238,6 +238,26 @@ export const usePlayer = create((set, get) => ({
         player?.seekTo(ms);
     },
 
+    playbackRate: 1.0,
+
+    setRate: (rate = 1.0) => {
+        const { player } = get();
+        if (player) {
+            try {
+                if (typeof player.setPlaybackRate === "function") {
+                    player.setPlaybackRate(rate);
+                } else if (typeof player.setRate === "function") {
+                    player.setRate(rate);
+                } else {
+                    player.playbackRate = rate;
+                }
+            } catch (err) {
+                console.log("Error setting rate:", err);
+            }
+        }
+        set({ playbackRate: rate });
+    },
+
     setTimer: async time => set({ timer: time }),
 
     updateRepeatMode: mode => set({ repeatMode: mode }),

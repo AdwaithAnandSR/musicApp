@@ -38,14 +38,16 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                 })
             }
             onPressOut={e => handleSwipe(e, swipeStartPos)}
-            style={[styles.container, { bottom: tabBarHeight }]}>
+            style={[styles.container, { bottom: tabBarHeight - 15 }]}
+        >
             <TouchableOpacity
                 style={{
                     alignItems: "center",
                     justifyContent: "center"
                 }}
                 onPress={playPause}
-                activeOpacity={0.85}>
+                activeOpacity={0.85}
+            >
                 <Image
                     source={
                         track?.cover
@@ -90,7 +92,7 @@ const styles = StyleSheet.create({
         borderRadius: vw,
         position: "absolute",
         zIndex: 99999999,
-        marginBottom: 5,
+
         backgroundColor: "#51847c",
         paddingHorizontal: 8
     },

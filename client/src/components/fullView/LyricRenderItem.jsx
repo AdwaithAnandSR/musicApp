@@ -1,19 +1,31 @@
-import { View, Text, StyleSheet } from "react-native";
+import { TouchableOpacity, Text, StyleSheet } from "react-native";
 
 import { useStatus } from "../../store/appState.store.js";
+import { usePlayer } from "../../store/player.js";
 
 const LyricRenderItem = ({ item, index }) => {
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
     const currentLyricIndex = useStatus(state => state.currentLyricIndex);
+    const seekTo = usePlayer(state => state.seekTo);
+
+    const handleSeek = () => {
+        if (typeof item?.start === "number") {
+            seekTo(item.start);
+        }
+    };
 
     return (
-        <View style={styles.container}>
+        <TouchableOpacity
+            style={styles.container}
+            onPress={handleSeek}
+            activeOpacity={0.7}
+        >
             <Text
                 style={[
                     styles.lyricText,
                     {
                         color:
-                            currentLyricIndex == index - 1 && showSyncedLyric
+                            currentLyricIndex === index - 1 && showSyncedLyric
                                 ? "rgb(246,7,135)"
                                 : "white"
                     }
@@ -21,7 +33,7 @@ const LyricRenderItem = ({ item, index }) => {
             >
                 {item.line}
             </Text>
-        </View>
+        </TouchableOpacity>
     );
 };
 

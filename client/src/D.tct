@@ -1,6 +1,3 @@
 @react-native-async-storage/async-storage
 @react-navigation/bottom-tabs
 @react-navigation/native
-expo-asset
-expo-font
-expo-linking

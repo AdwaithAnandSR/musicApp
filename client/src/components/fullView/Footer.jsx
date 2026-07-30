@@ -16,30 +16,42 @@ const RepeatButton = () => {
     const repeatMode = usePlayer(state => state.repeatMode);
     const updateRepeatMode = usePlayer(state => state.updateRepeatMode);
 
+    const handlePress = () => {
+        if (repeatMode === "queue") {
+            updateRepeatMode("one");
+        } else if (repeatMode === "one") {
+            updateRepeatMode("off");
+        } else {
+            updateRepeatMode("queue");
+        }
+    };
+
     return (
-        <>
-            {repeatMode == "queue" ? (
-                <TouchableOpacity onPress={() => updateRepeatMode("track")}>
-                    <Feather name="repeat" size={ICON_SIZE} color="white" />
-                </TouchableOpacity>
-            ) : repeatMode == "track" ? (
-                <TouchableOpacity onPress={() => updateRepeatMode("off")}>
-                    <MaterialIcons
-                        name="repeat-one"
-                        size={ICON_SIZE}
-                        color="white"
-                    />
-                </TouchableOpacity>
+        <TouchableOpacity
+            style={styles.repeatBtnContainer}
+            onPress={handlePress}
+            activeOpacity={0.7}
+        >
+            {repeatMode === "one" ? (
+                <MaterialIcons
+                    name="repeat-one"
+                    size={ICON_SIZE}
+                    color="#22c55e"
+                />
+            ) : repeatMode === "off" ? (
+                <MaterialCommunityIcons
+                    name="repeat-off"
+                    size={ICON_SIZE}
+                    color="#64748b"
+                />
             ) : (
-                <TouchableOpacity onPress={() => updateRepeatMode("queue")}>
-                    <MaterialCommunityIcons
-                        name="repeat-off"
-                        size={ICON_SIZE}
-                        color="white"
-                    />
-                </TouchableOpacity>
+                <Feather
+                    name="repeat"
+                    size={ICON_SIZE}
+                    color="#22c55e"
+                />
             )}
-        </>
+        </TouchableOpacity>
     );
 };
 
@@ -102,7 +114,7 @@ const Footer = () => {
         <View style={styles.container}>
             <RepeatButton />
             <TimerButton />
-            <TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtnContainer}>
                 <Feather name="heart" size={ICON_SIZE} color="white" />
             </TouchableOpacity>
             <WheelPicker />
@@ -114,14 +126,28 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         justifyContent: "space-around",
-        alignItems: "flex-start",
+        alignItems: "center",
         flexDirection: "row",
         paddingHorizontal: 50,
         gap: 50,
         marginTop: 25
     },
+    repeatBtnContainer: {
+        width: 32,
+        height: 32,
+        alignItems: "center",
+        justifyContent: "center"
+    },
     timerBtnContainer: {
+        width: 32,
+        height: 32,
         position: "relative",
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    iconBtnContainer: {
+        width: 32,
+        height: 32,
         alignItems: "center",
         justifyContent: "center"
     },
