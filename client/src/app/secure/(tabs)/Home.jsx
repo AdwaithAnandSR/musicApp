@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -8,7 +8,6 @@ import ListItem from "@components/ListItem.jsx";
 import Header from "@components/ListHeader.jsx";
 import Loader from "@components/Loader";
 
-import { storage } from "@services/storage";
 import { usePlayer } from "@store/player";
 import queryClient from "@services/queryClient";
 
@@ -18,7 +17,7 @@ const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
 
 const Home = () => {
-    const scrollY = useRef(new Animated.Value(0)).current;
+    const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
 
     const {

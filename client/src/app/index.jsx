@@ -5,13 +5,9 @@ import {
     TextInput,
     TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView
+    ActivityIndicator
 } from "react-native";
 
-import { useAppStatus } from "@store/appState.store.js";
 import login from "@controllers/auth/login.js";
 import register from "@controllers/auth/register.js";
 
@@ -25,8 +21,6 @@ const Auth = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-
-    const setIsAuthenticated = useAppStatus(state => state.setIsAuthenticated);
 
     const clearError = () => setError("");
 

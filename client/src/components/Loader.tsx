@@ -1,3 +1,4 @@
+/* eslint-disable react-compiler/react-compiler, react-hooks/immutability */
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import Animated, {
@@ -285,7 +286,7 @@ export function MorphingLoader({
         cy = px / 2,
         r = px * 0.4;
 
-    const pairs = useMemo(() => buildPairs(cx, cy, r), [px]);
+    const pairs = useMemo(() => buildPairs(cx, cy, r), [cx, cy, r]);
 
     const morphT = useSharedValue(0);
     const pairIdx = useSharedValue(0);
@@ -315,7 +316,7 @@ export function MorphingLoader({
                 }
             );
         }, holdDuration);
-    }, [holdDuration, morphDuration]);
+    }, [holdDuration, morphDuration, morphT, pairIdx]);
 
     useEffect(() => {
         if (!animating) {
@@ -364,7 +365,7 @@ export function MorphingLoader({
             cancelAnimation(morphT);
             cancelAnimation(rotation);
         };
-    }, [animating, holdDuration, morphDuration, advanceShape]);
+    }, [animating, holdDuration, morphDuration, advanceShape, morphT, pairIdx, rotation]);
 
     const animatedPathProps = useAnimatedProps(() => {
         "worklet";

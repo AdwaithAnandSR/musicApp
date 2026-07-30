@@ -1,3 +1,4 @@
+/* global setInterval, clearInterval */
 import React, { useState, useEffect } from "react";
 import {
     View,
@@ -47,13 +48,10 @@ const formatTimeLeft = ms => {
 const WheelPicker = () => {
     const isTimerSelecting = useAppStatus(state => state.isTimerSelecting);
     const timer = usePlayer(state => state.timer);
-    const [timeLeft, setTimeLeft] = useState(0);
+    const [timeLeft, setTimeLeft] = useState(() => (timer ? Math.max(0, timer - Date.now()) : 0));
 
     useEffect(() => {
-        if (!timer) {
-            setTimeLeft(0);
-            return;
-        }
+        if (!timer) return;
 
         const updateCountdown = () => {
             const remaining = Math.max(0, timer - Date.now());

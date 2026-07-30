@@ -4,9 +4,7 @@ import {
     Text,
     StyleSheet,
     Dimensions,
-    TouchableOpacity,
 } from "react-native";
-import { Entypo, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -24,8 +22,6 @@ import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
-
-const activeLyricColor = "rgb(246,7,135)";
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
@@ -47,7 +43,7 @@ const TrackControllerFullView = () => {
                 key: track._id
             }).then(setColors);
         }
-    }, [track?._id]);
+    }, [track?._id, track?.cover]);
 
     if (!track?._id) return null;
 

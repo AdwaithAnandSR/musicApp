@@ -1,4 +1,3 @@
-import { memo, useState, useEffect } from "react";
 import {
     TouchableOpacity,
     Text,
@@ -44,7 +43,7 @@ const Header = ({
 
     const handleShortPress = () => {
         const index = usePlayer.getState().currentTrackIndex;
-        if (index != -1) scrollToMiddle(index);
+        if (index !== -1) scrollToMiddle(index);
     };
 
     const handleLongPress = () => scrollToMiddle(0);

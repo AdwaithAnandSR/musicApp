@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 
 import { useAppStatus } from "@store/appState.store.js";
@@ -9,14 +9,13 @@ import checkIsAuth from "@controllers/auth/checkIsAuth";
 
 const Layout = () => {
     const isAuthenticated = useAppStatus(state => state.user?.isVerified);
-    const usr = useAppStatus(state => state.user);
 
     useEffect(() => {
         const verify = async () => {
-            const valid = await checkIsAuth();
+            await checkIsAuth();
         };
         verify();
-    }, [1]);
+    }, []);
 
     return (
         <QueryClientProvider client={queryClient}>

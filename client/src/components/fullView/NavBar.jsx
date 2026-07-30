@@ -4,10 +4,9 @@ import {
     TouchableOpacity,
     StyleSheet,
     Dimensions,
-    Text,
-    ScrollView
+    Text
 } from "react-native";
-import { Entypo, Feather } from "@expo/vector-icons";
+import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 
@@ -17,7 +16,6 @@ import queryClient from "@services/queryClient";
 import addSongsToPlaylist from "@controllers/playlists/addSongsToPlaylist.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
-const activeLyricColor = "rgb(246,7,135)";
 
 const MenuItem = ({ label, icon, onPress, onLongPress }) => (
     <TouchableOpacity

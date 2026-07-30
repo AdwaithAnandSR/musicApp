@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View } from "react-native";
 import { Stack } from "expo-router";
 import { setAudioModeAsync } from "expo-audio";

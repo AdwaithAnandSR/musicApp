@@ -1,10 +1,9 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useState } from "react";
 import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Dimensions,
-    View
+    Dimensions
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Image } from "expo-image";
@@ -20,13 +19,12 @@ const IMG_RADIUS = IMG_SIZE / 2;
 const TrackControllerMinView = ({ tabBarHeight }) => {
     const playPause = usePlayer(state => state.playPause);
     const [swipeStartPos, setSwipeStartPos] = useState({});
-    const [isVisible, setIsVisible] = useState(true);
 
     const track = usePlayer(state => state.currentTrack);
     const isStopped = usePlayer(state => state.isStopped);
     const isPlaying = usePlayer(state => state.isPlaying || state.isBuffering);
 
-    if (!track || !track.url || !isVisible || isStopped) return null;
+    if (!track || !track.url || isStopped) return null;
 
     return (
         <TouchableOpacity

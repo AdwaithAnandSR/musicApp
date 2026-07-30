@@ -1,10 +1,10 @@
 import { Text, Dimensions, StyleSheet } from "react-native";
 
-const { height: vh, width: vw } = Dimensions.get("window");
+const { width: vw } = Dimensions.get("window");
 
-const HighlightedText = ({ title, search, isCurrent }) => {
-    search = search.trim();
-    if (search == "")
+const HighlightedText = ({ title, search = "", isCurrent }) => {
+    const cleanSearch = (search || "").trim();
+    if (cleanSearch === "")
         return (
             <Text
                 numberOfLines={2}
@@ -17,7 +17,7 @@ const HighlightedText = ({ title, search, isCurrent }) => {
             </Text>
         );
 
-    const regex = new RegExp(`(${search})`, "gi");
+    const regex = new RegExp(`(${cleanSearch})`, "gi");
     const parts = title.split(regex);
 
     return (
@@ -29,7 +29,7 @@ const HighlightedText = ({ title, search, isCurrent }) => {
             ]}
         >
             {parts.map((part, index) =>
-                part.toLowerCase() === search.toLowerCase() ? (
+                part.toLowerCase() === cleanSearch.toLowerCase() ? (
                     <Text
                         key={index}
                         style={[styles.title, { color: "rgb(246,7,135)" }]}
