@@ -1,4 +1,3 @@
-/* global queueMicrotask */
 import { create } from "zustand";
 import { createAudioPlayer } from "expo-audio";
 
