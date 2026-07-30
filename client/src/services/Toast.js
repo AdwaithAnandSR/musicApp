@@ -76,16 +76,13 @@ const ToastManager = () => {
     let left = displayMessage;
     let right = "";
 
-    if (typeof displayMessage === "string" && displayMessage.includes(" ")) {
-        const words = displayMessage.split(" ");
-        if (words.length > 1) {
+    if (typeof displayMessage === "string" && displayMessage.trim().includes(" ")) {
+        const words = displayMessage.trim().split(/\s+/);
+        if (words.length >= 2) {
             left = words[0];
             right = words[1];
-            if (words.length > 2) {
-                left = words.right = words
-                    .slice(Math.ceil(words.length / 2))
-                    .join(" ");
-            }
+        } else if (words.length === 1) {
+            left = words[0];
         }
     }
 
@@ -99,7 +96,7 @@ const ToastManager = () => {
                         styles.text,
                         {
                             color: finalColor,
-                            textAlign: right ? "left" : "center"
+                            textAlign: "left"
                         }
                     ]}
                 >

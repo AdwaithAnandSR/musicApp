@@ -70,21 +70,21 @@ const Header = ({
                     style: "destructive",
                     onPress: async () => {
                         useMultiSelect.getState().reset();
-                        Toast.show(`Deleting ${songIds.length} song(s)...`, "pending");
+                        Toast.show("Deleting Songs", "pending");
                         try {
                             const res = await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
-                                Toast.show(`${songIds.length} song(s) deleted permanently`, "success");
+                                Toast.show("Songs Deleted", "success");
                                 if (isPlaylist) {
                                     await removeSongsBatch({ playlistId: ID, songIds });
                                 }
                                 queryClient.invalidateQueries();
                             } else {
-                                Toast.show("Failed to delete songs", "error");
+                                Toast.show("Delete Failed", "error");
                             }
                         } catch (err) {
                             Toast.show(
-                                err?.response?.data?.message || "Failed to delete songs",
+                                err?.response?.data?.message || "Delete Failed",
                                 "error"
                             );
                         }

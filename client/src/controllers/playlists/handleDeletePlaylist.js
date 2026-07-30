@@ -5,7 +5,7 @@ import queryClient from "@services/queryClient.js";
 
 const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
     try {
-        Toast.show("Deleting playlist, please wait..", "pending");
+        Toast.show("Deleting Playlist", "pending");
 
         const res = await axios.post(`/playlist/delete`, { id });
 
@@ -28,9 +28,9 @@ const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
     const msg = error?.response?.data?.message;
     if (msg === "PLAYLIST_NOT_FOUND") {
         deletePlaylist(id);
-        Toast.show("Playlist already deleted!", "error");
+        Toast.show("Already Deleted", "error");
     } else if (msg === "INTERNAL_ERROR") {
-        Toast.show("INTERNAL_ERROR", "error");
+        Toast.show("Internal+Error", "error");
     } else {
         Toast.show(error.message, "error");
     }

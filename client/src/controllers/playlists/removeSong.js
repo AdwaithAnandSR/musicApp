@@ -10,7 +10,7 @@ const removeSong = async dets => {
 
         useAppStatus.getState().setPopUpOption(-1, null, null);
 
-        Toast.show("Removing song from playlist...", "pending");
+        Toast.show("Removing Song", "pending");
 
         const res = await axios.post(`/playlist/remove`, {
             songId,
@@ -19,7 +19,7 @@ const removeSong = async dets => {
 
         if (res.status === 200) {
             Toast.show(
-                res?.data?.message || "Song removed successfully",
+                res?.data?.message || "Song Removed",
                 "success"
             );
 
@@ -39,7 +39,7 @@ const removeSong = async dets => {
         }
     } catch (error) {
         Toast.show(
-            error?.response?.data?.message || "Failed to remove song",
+            error?.response?.data?.message || "Remove Failed",
             "error"
         );
         console.log(error);
@@ -51,7 +51,7 @@ export const removeSongsBatch = async ({ playlistId, songIds }) => {
         if (!playlistId || !songIds?.length) return;
 
         useAppStatus.getState().setPopUpOption(-1, null, null);
-        Toast.show(`Removing ${songIds.length} song(s)...`, "pending");
+        Toast.show("Removing Songs", "pending");
 
         const res = await axios.post(`/playlist/remove`, {
             playlistId,
@@ -60,7 +60,7 @@ export const removeSongsBatch = async ({ playlistId, songIds }) => {
 
         if (res.status === 200) {
             Toast.show(
-                res?.data?.message || "Song(s) removed successfully",
+                res?.data?.message || "Songs Removed",
                 "success"
             );
 
@@ -83,7 +83,7 @@ export const removeSongsBatch = async ({ playlistId, songIds }) => {
         }
     } catch (error) {
         Toast.show(
-            error?.response?.data?.message || "Failed to remove song(s)",
+            error?.response?.data?.message || "Remove Failed",
             "error"
         );
         console.log(error);
