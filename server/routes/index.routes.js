@@ -11,29 +11,93 @@ const router = express.Router();
 
 router.get("/getGlobalSongs", async (req, res) => {
   try {
-    const startAt = parseFloat(req.query.startAt);
-    const cursor  = parseFloat(req.query.cursor ?? startAt);
-    const limit   = 50
+    const limit = 50;
 
-    let songs = await musicModel
-      .find({ stableRandom: { $gte: cursor } })
-      .sort({ stableRandom: 1 })
-      .limit(limit)
-      .lean();
+    let cursor;
+    let startAt;
+    let isInitial = false;
 
-    // Wrap around if not enough results
-    if (songs.length < limit) {
-      const more = await musicModel
-        .find({ stableRandom: { $gte: startAt, $lt: cursor } })
+    if (typeof req.query.cursor === "string" && req.query.cursor.includes(":")) {
+      const parts = req.query.cursor.split(":");
+      cursor = parseFloat(parts[0]);
+      startAt = parseFloat(parts[1]);
+    } else {
+      const parsedCursor = parseFloat(req.query.cursor);
+      const parsedStartAt = parseFloat(req.query.startAt);
+
+      if (
+        isNaN(parsedCursor) ||
+        parsedCursor === 0 ||
+        (parsedCursor === parsedStartAt && (parsedStartAt === 0 || isNaN(parsedStartAt)))
+      ) {
+        isInitial = true;
+        startAt = Math.random();
+        cursor = startAt;
+      } else {
+        cursor = parsedCursor;
+        startAt = isNaN(parsedStartAt) ? 0 : parsedStartAt;
+      }
+    }
+
+    let songs = [];
+    const isWrapped = cursor < startAt;
+
+    if (!isWrapped) {
+      const query = isInitial
+        ? { stableRandom: { $gte: cursor } }
+        : { stableRandom: { $gt: cursor } };
+
+      songs = await musicModel
+        .find(query)
         .sort({ stableRandom: 1 })
-        .limit(limit - songs.length)
+        .limit(limit)
         .lean();
-      songs = [...songs, ...more];
+
+      if (songs.length < limit) {
+        const remaining = limit - songs.length;
+        const more = await musicModel
+          .find({ stableRandom: { $gte: 0, $lt: startAt } })
+          .sort({ stableRandom: 1 })
+          .limit(remaining)
+          .lean();
+        songs = [...songs, ...more];
+      }
+    } else {
+      songs = await musicModel
+        .find({ stableRandom: { $gt: cursor, $lt: startAt } })
+        .sort({ stableRandom: 1 })
+        .limit(limit)
+        .lean();
+    }
+
+    if (songs.length === 0) {
+      return res.json({ musics: [], hasMore: false, nextCursor: null });
     }
 
     const last = songs[songs.length - 1];
-    const nextCursor = last?.stableRandom ?? null;
-    const hasMore = songs.length === limit && nextCursor !== startAt;
+    const lastRandom = last?.stableRandom;
+
+    let hasMore = true;
+    let nextCursor = null;
+
+    if (songs.length < limit) {
+      hasMore = false;
+      nextCursor = null;
+    } else if (lastRandom != null) {
+      if (lastRandom < startAt) {
+        const remainingCount = await musicModel.countDocuments({
+          stableRandom: { $gt: lastRandom, $lt: startAt }
+        });
+        if (remainingCount === 0) {
+          hasMore = false;
+          nextCursor = null;
+        } else {
+          nextCursor = `${lastRandom}:${startAt}`;
+        }
+      } else {
+        nextCursor = `${lastRandom}:${startAt}`;
+      }
+    }
 
     return res.json({ musics: songs, hasMore, nextCursor });
   } catch (err) {
@@ -41,6 +105,7 @@ router.get("/getGlobalSongs", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 router.post("/searchSong", async (req, res) => {
     let { text, page = 1, limit = 25 } = req.body;
