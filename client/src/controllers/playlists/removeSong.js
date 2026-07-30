@@ -10,6 +10,8 @@ const removeSong = async dets => {
 
         useAppStatus.getState().setPopUpOption(-1, null, null);
 
+        if (!playlistId || !/^[0-9a-fA-F]{24}$/.test(playlistId)) return;
+
         Toast.show("Removing Song", "pending");
 
         const res = await axios.post(`/playlist/remove`, {
@@ -48,7 +50,7 @@ const removeSong = async dets => {
 
 export const removeSongsBatch = async ({ playlistId, songIds }) => {
     try {
-        if (!playlistId || !songIds?.length) return;
+        if (!playlistId || !/^[0-9a-fA-F]{24}$/.test(playlistId) || !songIds?.length) return;
 
         useAppStatus.getState().setPopUpOption(-1, null, null);
         Toast.show("Removing Songs", "pending");

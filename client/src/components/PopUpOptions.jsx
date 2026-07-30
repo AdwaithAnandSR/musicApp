@@ -22,7 +22,12 @@ const PopUpOptions = () => {
 
     if (!options.songId || options.y === -1 || !options.playId) return null;
 
-    const isPlaylist = options.playId !== "HOME" && options.playId !== "SEARCH";
+    const isPlaylist =
+        typeof options.playId === "string" &&
+        options.playId !== "HOME" &&
+        options.playId !== "SEARCH" &&
+        !options.playId.startsWith("SEARCH-") &&
+        /^[0-9a-fA-F]{24}$/.test(options.playId);
     const count = selectedSongs.length;
     const isMultiSelecting = count > 0;
 

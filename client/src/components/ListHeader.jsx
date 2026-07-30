@@ -35,7 +35,12 @@ const Header = ({
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
     const user = useAppStatus(state => state.user);
     const isAdmin = user?.role === "admin";
-    const isPlaylist = ID !== "HOME" && ID !== "SEARCH" && !!ID;
+    const isPlaylist =
+        typeof ID === "string" &&
+        ID !== "HOME" &&
+        ID !== "SEARCH" &&
+        !ID.startsWith("SEARCH-") &&
+        /^[0-9a-fA-F]{24}$/.test(ID);
 
     const handleShortPress = () => {
         const index = usePlayer.getState().currentTrackIndex;
