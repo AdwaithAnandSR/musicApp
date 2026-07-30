@@ -42,8 +42,10 @@ const LyricsView = ({ track = {} }) => {
             return currentTime >= startTime && currentTime < endTime;
         });
 
-        setCurrentLyricIndex(index);
-    }, [currentTime, track, showSyncedLyric]);
+        if (index !== -1 && index !== currentLyricIndex) {
+            setCurrentLyricIndex(index);
+        }
+    }, [currentTime, track, showSyncedLyric, currentLyricIndex]);
 
     useEffect(() => {
         if (!showSyncedLyric || currentLyricIndex < 0) return;
