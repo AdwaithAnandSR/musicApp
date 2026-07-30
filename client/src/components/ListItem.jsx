@@ -1,4 +1,3 @@
-import { memo } from "react";
 import {
     View,
     Text,
@@ -46,7 +45,10 @@ const ListItem = ({ item, ID, text = "" }) => {
 
         if (!isSelecting) {
             resetShowLyrics();
-            changePlaylistAndPlay({ playlistId: ID, trackId: item.id || item._id });
+            changePlaylistAndPlay({
+                playlistId: ID,
+                trackId: item.id || item._id
+            });
         } else {
             updateSelected(item);
         }
@@ -54,7 +56,9 @@ const ListItem = ({ item, ID, text = "" }) => {
 
     const handleLongPress = async ({ nativeEvent }) => {
         const y = nativeEvent.pageY - nativeEvent.locationY;
-        useAppStatus.getState().setPopUpOption(y, item.id || item._id, ID, item);
+        useAppStatus
+            .getState()
+            .setPopUpOption(y, item.id || item._id, ID, item);
     };
 
     return (
@@ -62,14 +66,16 @@ const ListItem = ({ item, ID, text = "" }) => {
             activeOpacity={0.6}
             onPress={handleShortPress}
             onLongPress={handleLongPress}
-            style={styles.container}>
+            style={styles.container}
+        >
             {isSelected && (
                 <View style={styles.checkBoxContainer}>
                     <Text
                         style={{
                             color: "rgb(246,7,135)",
                             fontWeight: "bold"
-                        }}>
+                        }}
+                    >
                         ✓
                     </Text>
                 </View>
@@ -148,5 +154,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default memo(ListItem);
-
+export default ListItem;

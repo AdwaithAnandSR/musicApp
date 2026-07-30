@@ -1,4 +1,3 @@
-/* global setTimeout, clearTimeout */
 import React, { useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { FontAwesome5, AntDesign } from "@expo/vector-icons";

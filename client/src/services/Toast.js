@@ -1,4 +1,3 @@
-/* global setTimeout, clearTimeout */
 import React, { useState, useEffect } from "react";
 import { Text, StyleSheet, Dimensions } from "react-native";
 import Animated, {

@@ -1,4 +1,4 @@
-/* eslint-disable react-compiler/react-compiler, react-hooks/immutability */
+/* eslint-disable react-hooks/immutability */
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import { View, StyleSheet, StyleProp, ViewStyle } from "react-native";
 import Animated, {

@@ -1,10 +1,10 @@
-import axios from "axios";
+import { create } from "axios";
 import { getToken, removeToken } from "./storage.js";
 import { useAppStatus } from "@store/appState.store";
 
 const BASE_URL = process.env.EXPO_PUBLIC_API || "http://localhost:5000";
 
-const api = axios.create({
+const api = create({
     baseURL: BASE_URL,
     timeout: 10000,
     headers: { "Content-Type": "application/json" }
