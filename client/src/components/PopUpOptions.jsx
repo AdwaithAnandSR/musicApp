@@ -1,16 +1,15 @@
 import React from "react";
-import {
-    View,
-    Text,
-    TouchableOpacity,
-    StyleSheet,
-    Alert
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { useAppStatus, useMultiSelect } from "../store/appState.store.js";
-import removeSong, { removeSongsBatch } from "../controllers/playlists/removeSong.js";
-import { deleteSongPermanent, deleteSongsPermanentBatch } from "../controllers/admin.js";
+import removeSong, {
+    removeSongsBatch
+} from "../controllers/playlists/removeSong.js";
+import {
+    deleteSongPermanent,
+    deleteSongsPermanentBatch
+} from "../controllers/admin.js";
 import Toast from "../services/Toast.js";
 import queryClient from "../services/queryClient.js";
 
@@ -21,6 +20,8 @@ const PopUpOptions = () => {
     const isAdmin = user?.role === "admin";
 
     if (!options.songId || options.y === -1 || !options.playId) return null;
+
+    const isRecentlyList = options.playId === "6a3e689cfba948ae55682fe3"; // Recently Added Playlist ID
 
     const isPlaylist =
         typeof options.playId === "string" &&
@@ -33,7 +34,10 @@ const PopUpOptions = () => {
 
     const handleSelect = () => {
         useAppStatus.getState().setPopUpOption(-1, null, null);
-        const targetSong = options.song || { id: options.songId, _id: options.songId };
+        const targetSong = options.song || {
+            id: options.songId,
+            _id: options.songId
+        };
         useMultiSelect.getState().updateSelectedSongs(targetSong);
     };
 
@@ -70,11 +74,15 @@ const PopUpOptions = () => {
                         Toast.show("Deleting Songs", "pending");
 
                         try {
-                            const res = await deleteSongsPermanentBatch(songIds);
+                            const res =
+                                await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
                                 Toast.show("Songs Deleted", "success");
                                 if (isPlaylist) {
-                                    await removeSongsBatch({ playlistId: options.playId, songIds });
+                                    await removeSongsBatch({
+                                        playlistId: options.playId,
+                                        songIds
+                                    });
                                 }
                                 queryClient.invalidateQueries();
                             } else {
@@ -107,7 +115,9 @@ const PopUpOptions = () => {
                         Toast.show("Deleting Song", "pending");
 
                         try {
-                            const res = await deleteSongPermanent(options.songId);
+                            const res = await deleteSongPermanent(
+                                options.songId
+                            );
                             if (res?.success) {
                                 Toast.show("Song Deleted", "success");
                                 if (isPlaylist) {
@@ -133,49 +143,63 @@ const PopUpOptions = () => {
         <View style={[styles.container, { top: Math.max(10, options.y) }]}>
             {isMultiSelecting ? (
                 <>
-                    {isPlaylist && (
+                    {!isRecentlyList && isPlaylist && (
                         <TouchableOpacity
                             style={styles.item}
-                            onPress={handleBatchRemove}>
-                            <Text style={styles.itemText}>Remove Selected ({count})</Text>
+                            onPress={handleBatchRemove}
+                        >
+                            <Text style={styles.itemText}>
+                                Remove Selected ({count})
+                            </Text>
                         </TouchableOpacity>
                     )}
 
                     {isAdmin && (
                         <TouchableOpacity
                             style={styles.item}
-                            onPress={handleBatchDelete}>
+                            onPress={handleBatchDelete}
+                        >
                             <Text style={[styles.itemText, styles.deleteText]}>
                                 Delete Selected ({count})
                             </Text>
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity style={styles.item} onPress={handleClearSelection}>
+                    <TouchableOpacity
+                        style={styles.item}
+                        onPress={handleClearSelection}
+                    >
                         <Text style={styles.itemText}>Clear Selection</Text>
                     </TouchableOpacity>
                 </>
             ) : (
                 <>
-                    {isPlaylist && (
+                    {!isRecentlyList && isPlaylist && (
                         <TouchableOpacity
                             style={styles.item}
-                            onPress={() => removeSong(options)}>
-                            <Text style={styles.itemText}>Remove from Playlist</Text>
+                            onPress={() => removeSong(options)}
+                        >
+                            <Text style={styles.itemText}>
+                                Remove from Playlist
+                            </Text>
                         </TouchableOpacity>
                     )}
 
                     {isAdmin && (
                         <TouchableOpacity
                             style={styles.item}
-                            onPress={handleDeletePermanent}>
+                            onPress={handleDeletePermanent}
+                        >
                             <Text style={[styles.itemText, styles.deleteText]}>
                                 Delete Song (Permanent)
                             </Text>
                         </TouchableOpacity>
                     )}
 
-                    <TouchableOpacity style={styles.item} onPress={handleSelect}>
+                    <TouchableOpacity
+                        style={styles.item}
+                        onPress={handleSelect}
+                    >
                         <Text style={styles.itemText}>Select Songs</Text>
                     </TouchableOpacity>
                 </>

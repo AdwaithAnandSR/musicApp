@@ -75,8 +75,16 @@ export const usePlayer = create((set, get) => ({
         const listener = newPlayer.addListener(
             "playbackStatusUpdate",
             status => {
-                const duration = status.duration || 0;
+                const duration = status.duration || track.duration || 0;
                 const position = status.currentTime || 0;
+
+                if (status.isLoaded && duration > 0)
+                    newPlayer.updateLockScreenMetadata({
+                        title: track.title,
+                        artist: track?.artist?.split(",")?.[0],
+                        artworkUrl: track.cover || track.artwork,
+                        duration: duration * 60
+                    });
 
                 set({
                     isPlaying: status.playing,
@@ -219,7 +227,10 @@ export const usePlayer = create((set, get) => ({
 
         if (removeSet.has(currentTrackId)) {
             if (newQueue.length > 0) {
-                const nextIdx = Math.min(currentTrackIndex, newQueue.length - 1);
+                const nextIdx = Math.min(
+                    currentTrackIndex,
+                    newQueue.length - 1
+                );
                 set({ queue: newQueue });
                 get().playByIndex(nextIdx);
             } else {

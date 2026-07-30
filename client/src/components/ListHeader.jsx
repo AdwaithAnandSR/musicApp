@@ -41,17 +41,18 @@ const Header = ({
         !ID.startsWith("SEARCH-") &&
         /^[0-9a-fA-F]{24}$/.test(ID);
 
+    const isRecentlyAdded = ID === "6a3e689cfba948ae55682fe3"; // Recently Added Playlist ID
+
     const handleShortPress = () => {
         const index = usePlayer.getState().currentTrackIndex;
         if (index !== -1) scrollToMiddle(index);
     };
 
-    const handleLongPress = () => scrollToMiddle(0);
+    const handleLongPress = () =>
+        typeof scrollToMiddle === "function" && scrollToMiddle(0);
 
     const handleBatchRemove = async () => {
-        const songIds = selectedSongs
-            .map(s => s.id || s._id)
-            .filter(Boolean);
+        const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
         useMultiSelect.getState().reset();
@@ -59,9 +60,7 @@ const Header = ({
     };
 
     const handleBatchDelete = async () => {
-        const songIds = selectedSongs
-            .map(s => s.id || s._id)
-            .filter(Boolean);
+        const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
         Alert.alert(
@@ -76,11 +75,15 @@ const Header = ({
                         useMultiSelect.getState().reset();
                         Toast.show("Deleting Songs", "pending");
                         try {
-                            const res = await deleteSongsPermanentBatch(songIds);
+                            const res =
+                                await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
                                 Toast.show("Songs Deleted", "success");
                                 if (isPlaylist) {
-                                    await removeSongsBatch({ playlistId: ID, songIds });
+                                    await removeSongsBatch({
+                                        playlistId: ID,
+                                        songIds
+                                    });
                                 }
                                 queryClient.invalidateQueries();
                             } else {
@@ -132,17 +135,19 @@ const Header = ({
                     </TouchableOpacity>
 
                     <View style={styles.btnGroup}>
-                        {isPlaylist && (
+                        {!isRecentlyAdded && isPlaylist && (
                             <TouchableOpacity
                                 style={[styles.badgeBtn, styles.removeBtn]}
-                                onPress={handleBatchRemove}>
+                                onPress={handleBatchRemove}
+                            >
                                 <Text style={styles.badgeBtnText}>Remove</Text>
                             </TouchableOpacity>
                         )}
                         {isAdmin && (
                             <TouchableOpacity
                                 style={[styles.badgeBtn, styles.deleteBtn]}
-                                onPress={handleBatchDelete}>
+                                onPress={handleBatchDelete}
+                            >
                                 <Text style={styles.badgeBtnText}>Delete</Text>
                             </TouchableOpacity>
                         )}
