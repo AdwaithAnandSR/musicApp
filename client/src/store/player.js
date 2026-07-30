@@ -181,16 +181,31 @@ export const usePlayer = create((set, get) => ({
         get().playByIndex(currentTrackIndex - 1);
     },
 
-    changePlaylistAndPlay: ({ playlistId, trackId }) => {
-        const { currentPlaylistId } = get();
+    changePlaylistAndPlay: ({ playlistId, trackId, tracksOverride }) => {
+        const { currentPlaylistId, queue } = get();
 
-        if (currentPlaylistId === playlistId) {
+        let tracks = tracksOverride;
+        if (!tracks) {
+            const activeQueries = queryClient.getQueriesData({ queryKey: [playlistId] });
+            if (activeQueries && activeQueries.length > 0) {
+                const [, lastQueryData] = activeQueries[activeQueries.length - 1];
+                tracks = lastQueryData?.pages?.flatMap(page => page.musics) ?? [];
+            }
+        }
+        if (!tracks || !tracks.length) {
+            const data = queryClient.getQueryData([playlistId]);
+            tracks = data?.pages?.flatMap(page => page.musics) ?? [];
+        }
+
+        const shouldUpdateQueue =
+            Boolean(tracksOverride) ||
+            currentPlaylistId !== playlistId ||
+            queue.length !== tracks.length;
+
+        if (!shouldUpdateQueue && currentPlaylistId === playlistId) {
             const found = get().playByTrackId(trackId);
             if (found) return;
         }
-
-        const data = queryClient.getQueryData([playlistId]);
-        const tracks = data?.pages?.flatMap(page => page.musics) ?? [];
 
         if (!tracks.length) return;
 
