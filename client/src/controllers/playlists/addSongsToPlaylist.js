@@ -3,7 +3,7 @@ import Toast from "@services/Toast.js";
 
 const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
     try {
-        Toast.show("please wait...", "pending");
+        Toast.show("Please+wait", "pending");
 
         const selectedSongIds = selectedSongs
             ?.map(s => (typeof s === "string" ? s : s?.id || s?._id))
@@ -17,11 +17,11 @@ const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
         if (selectedSongs?.length === 1 && reset) reset();
 
         if (res.status === 200) {
-            Toast.show("Songs Added Successfully", "success");
+            Toast.show("Songs Added", "success");
         }
     } catch (error) {
         console.log(error);
-        Toast.show("Failed to add songs", "error");
+        Toast.show("Add Failed", "error");
     }
 };
 

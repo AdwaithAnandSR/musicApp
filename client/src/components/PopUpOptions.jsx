@@ -62,22 +62,22 @@ const PopUpOptions = () => {
                     onPress: async () => {
                         useAppStatus.getState().setPopUpOption(-1, null, null);
                         useMultiSelect.getState().reset();
-                        Toast.show(`Deleting ${songIds.length} song(s)...`, "pending");
+                        Toast.show("Deleting Songs", "pending");
 
                         try {
                             const res = await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
-                                Toast.show(`${songIds.length} song(s) deleted permanently`, "success");
+                                Toast.show("Songs Deleted", "success");
                                 if (isPlaylist) {
                                     await removeSongsBatch({ playlistId: options.playId, songIds });
                                 }
                                 queryClient.invalidateQueries();
                             } else {
-                                Toast.show("Failed to delete songs", "error");
+                                Toast.show("Delete Failed", "error");
                             }
                         } catch (err) {
                             Toast.show(
-                                err?.response?.data?.message || "Failed to delete songs",
+                                err?.response?.data?.message || "Delete Failed",
                                 "error"
                             );
                         }
@@ -99,22 +99,22 @@ const PopUpOptions = () => {
                     style: "destructive",
                     onPress: async () => {
                         useAppStatus.getState().setPopUpOption(-1, null, null);
-                        Toast.show("Deleting song...", "pending");
+                        Toast.show("Deleting Song", "pending");
 
                         try {
                             const res = await deleteSongPermanent(options.songId);
                             if (res?.success) {
-                                Toast.show("Song deleted permanently", "success");
+                                Toast.show("Song Deleted", "success");
                                 if (isPlaylist) {
                                     removeSong(options);
                                 }
                                 queryClient.invalidateQueries();
                             } else {
-                                Toast.show("Failed to delete song", "error");
+                                Toast.show("Delete Failed", "error");
                             }
                         } catch (err) {
                             Toast.show(
-                                err?.response?.data?.message || "Failed to delete song",
+                                err?.response?.data?.message || "Delete Failed",
                                 "error"
                             );
                         }
