@@ -1,71 +1,72 @@
 {
-    "expo": {
-        "name": "Music",
-        "slug": "music",
-        "version": "2.4.0",
-        "orientation": "portrait",
-        "icon": "./src/assets/icons/icon.png",
-        "scheme": "music",
-        "userInterfaceStyle": "dark",
-        "ios": {
-            "supportsTablet": true,
-            "bundleIdentifier": "com.adwaithananddev.music"
-        },
-        "android": {
-            "adaptiveIcon": {
-                "foregroundImage": "./src/assets/icons/adaptive-icon.png",
-                "backgroundColor": "#000000"
-            },
-            "package": "com.adwaithananddev.music",
-            "permissions": [
-                "INTERNET",
-                "FOREGROUND_SERVICE",
-                "android.permission.RECORD_AUDIO",
-                "android.permission.MODIFY_AUDIO_SETTINGS",
-                "android.permission.FOREGROUND_SERVICE",
-                "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-            ]
-        },
-        "web": {
-            "bundler": "metro",
-            "output": "static",
-            "favicon": "./src/assets/icons/adaptive-icon.png"
-        },
-        "plugins": [
-            "expo-router",
-            [
-                "expo-splash-screen",
-                {
-                    "image": "./src/assets/icons/adaptive-icon.png",
-                    "imageWidth": 200,
-                    "resizeMode": "contain",
-                    "backgroundColor": "#000000"
-                }
-            ],
-            "expo-font",
-            "expo-asset",
-            [
-                "expo-audio",
-                {
-                    "enableBackgroundPlayback": true
-                }
-            ],
-            "expo-image"
-        ],
-        "experiments": {
-            "typedRoutes": true
-        },
-        "extra": {
-            "router": {
-                "origin": false
-            },
-            "eas": {
-                "projectId": "8d9ab622-be69-4453-bac4-9de0e95969d4"
-            }
-        },
-        "owner": "adwaithanandsr",
-        "runtimeVersion": {
-            "policy": "appVersion"
+  "expo": {
+    "name": "Music",
+    "slug": "music",
+    "version": "2.4.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/icons/icon.png",
+    "scheme": "music",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.adwaithananddev.music"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/icons/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.adwaithananddev.music",
+      "permissions": [
+        "INTERNET",
+        "FOREGROUND_SERVICE",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./src/assets/icons/adaptive-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/icons/adaptive-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000"
         }
+      ],
+      "expo-font",
+      "expo-asset",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-image",
+      "expo-status-bar"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "8d9ab622-be69-4453-bac4-9de0e95969d4"
+      }
+    },
+    "owner": "adwaithanandsr",
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
+  }
 }
