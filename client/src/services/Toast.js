@@ -1,4 +1,4 @@
-/* global setTimeout */
+/* global setTimeout, clearTimeout */
 import React, { useState, useEffect } from "react";
 import { Text, StyleSheet, Dimensions } from "react-native";
 import Animated, {
@@ -17,11 +17,16 @@ const ToastManager = () => {
 
     const translateY = useSharedValue(-120);
 
-    showToast = (text, toastType = "") => {
-        setMessage(text);
-        setType(toastType);
-        setVisible(true);
-    };
+    useEffect(() => {
+        showToast = (text, toastType = "") => {
+            setMessage(text);
+            setType(toastType);
+            setVisible(true);
+        };
+        return () => {
+            showToast = null;
+        };
+    }, []);
 
     useEffect(() => {
         if (!visible) return;
@@ -37,7 +42,7 @@ const ToastManager = () => {
         }, 2200);
 
         return () => clearTimeout(timer);
-    }, [visible]);
+    }, [visible, translateY]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: translateY.value }]

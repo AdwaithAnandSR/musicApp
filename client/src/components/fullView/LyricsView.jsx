@@ -1,12 +1,10 @@
-import { useRef, useEffect, useState } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { useRef, useEffect } from "react";
+import { View, Text, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
 import SyncedRenderItem from "@components/fullView/LyricRenderItem.jsx";
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
-
-const { height: vh, width: vw } = Dimensions.get("window");
 
 const LyricItemAsText = ({ item }) => {
     return (
@@ -45,7 +43,7 @@ const LyricsView = ({ track = {} }) => {
         if (index !== -1 && index !== currentLyricIndex) {
             setCurrentLyricIndex(index);
         }
-    }, [currentTime, track, showSyncedLyric, currentLyricIndex]);
+    }, [currentTime, track, showSyncedLyric, currentLyricIndex, setCurrentLyricIndex]);
 
     useEffect(() => {
         if (!showSyncedLyric || currentLyricIndex < 0) return;

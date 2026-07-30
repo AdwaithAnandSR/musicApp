@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
     StyleSheet,
     Text,
@@ -25,7 +25,7 @@ const limit = 50,
     HEADER_HEIGHT = 250;
 
 const PlaylistSongs = () => {
-    const scrollY = useRef(new Animated.Value(0)).current;
+    const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
 

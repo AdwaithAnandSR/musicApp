@@ -10,7 +10,7 @@ import {
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
 
-import handleCreatePlaylist from "../../../controllers/playlists/handleCreatePlaylist.js";
+import handleCreatePlaylist from "@controllers/playlists/handleCreatePlaylist.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 

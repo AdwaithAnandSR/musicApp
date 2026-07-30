@@ -1,3 +1,4 @@
+/* global setInterval, clearInterval */
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import {
@@ -57,30 +58,26 @@ const RepeatButton = () => {
 
 const TimerButton = () => {
     const timer = usePlayer(state => state.timer);
-    const [timeLeftStr, setTimeLeftStr] = useState("");
+
+    const getRemainingStr = (targetTimer) => {
+        if (!targetTimer) return "";
+        const rem = targetTimer - Date.now();
+        if (rem <= 0) return "";
+        const totalSec = Math.floor(rem / 1000);
+        const mins = Math.floor(totalSec / 60);
+        const hrs = Math.floor(mins / 60);
+        if (hrs > 0) return `${hrs}h`;
+        if (mins > 0) return `${mins}m`;
+        return `${totalSec}s`;
+    };
+
+    const [timeLeftStr, setTimeLeftStr] = useState(() => getRemainingStr(timer));
 
     useEffect(() => {
-        if (!timer) {
-            setTimeLeftStr("");
-            return;
-        }
+        if (!timer) return;
 
         const update = () => {
-            const rem = timer - Date.now();
-            if (rem <= 0) {
-                setTimeLeftStr("");
-            } else {
-                const totalSec = Math.floor(rem / 1000);
-                const mins = Math.floor(totalSec / 60);
-                const hrs = Math.floor(mins / 60);
-                if (hrs > 0) {
-                    setTimeLeftStr(`${hrs}h`);
-                } else if (mins > 0) {
-                    setTimeLeftStr(`${mins}m`);
-                } else {
-                    setTimeLeftStr(`${totalSec}s`);
-                }
-            }
+            setTimeLeftStr(getRemainingStr(timer));
         };
 
         update();

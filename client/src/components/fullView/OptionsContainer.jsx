@@ -39,7 +39,7 @@ const OptionsContainer = () => {
         <View style={styles.optionsContainer}>
             <View style={styles.left}>
                 {!track?.artist ||
-                    (track?.artist?.toLowerCase() != "unknown" && (
+                    (track?.artist?.toLowerCase() !== "unknown" && (
                         <TouchableOpacity
                             onPress={handleShowArtist}
                             style={[

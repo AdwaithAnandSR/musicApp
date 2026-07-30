@@ -1,5 +1,4 @@
 import axios from "axios";
-import Constants from "expo-constants";
 import { getToken, removeToken } from "./storage.js";
 import { useAppStatus } from "@store/appState.store";
 

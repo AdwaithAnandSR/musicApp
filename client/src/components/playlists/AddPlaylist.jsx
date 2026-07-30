@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 
-import handleCreatePlaylist from "../../controllers/handleCreatePlaylist.js";
+import handleCreatePlaylist from "@controllers/playlists/handleCreatePlaylist.js";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 

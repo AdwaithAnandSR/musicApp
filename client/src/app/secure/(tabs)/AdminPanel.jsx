@@ -30,7 +30,11 @@ const AdminPanel = () => {
 
     const loadUsers = useCallback(async (isRefresh = false) => {
         try {
-            isRefresh ? setRefreshing(true) : setLoading(true);
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
             const data = await fetchAllUsers();
             setUsers(Array.isArray(data) ? data : []);
         } catch (err) {

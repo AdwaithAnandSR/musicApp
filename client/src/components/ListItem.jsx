@@ -1,4 +1,4 @@
-import { useRef, memo } from "react";
+import { memo } from "react";
 import {
     View,
     Text,
@@ -7,7 +7,6 @@ import {
     StyleSheet
 } from "react-native";
 import LottieView from "lottie-react-native";
-import { InteractionManager } from "react-native";
 import { Image } from "expo-image";
 
 import {
@@ -19,7 +18,7 @@ import { usePlayer } from "../store/player.js";
 
 import HighlightedText from "../components/HighlightedTitle.jsx";
 
-const { width: vw, height: vh } = Dimensions.get("window");
+const { width: vw } = Dimensions.get("window");
 
 const ListItem = ({ item, ID, text = "" }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
