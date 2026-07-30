@@ -28,6 +28,25 @@ const PlaylistSongs = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
+    const currentSelectedPlaylist = useAppStatus(
+        state => state.currentSelectedPlaylist
+    );
+
+    const cachedPlaylist = (
+        queryClient
+            .getQueryData(["playlists"])
+            ?.pages?.flatMap(page => page.playlists) || []
+    ).find(p => (p._id || p.id) === playlistId);
+
+    const description =
+        currentSelectedPlaylist?.desc ||
+        currentSelectedPlaylist?.description ||
+        cachedPlaylist?.desc ||
+        cachedPlaylist?.description;
+
+    const displayFooterText = description?.trim()
+        ? description.trim()
+        : playlistName;
 
     const {
         data,
@@ -105,7 +124,7 @@ const PlaylistSongs = () => {
                     isFetchingNextPage ? (
                         <Loader size={"large"} />
                     ) : songs.length > 8 ? (
-                        <Text style={styles.loader}>{`• ${playlistName} •`}</Text>
+                        <Text style={styles.loader}>{`• ${displayFooterText} •`}</Text>
                     ) : null
                 }
                 ListEmptyComponent={
