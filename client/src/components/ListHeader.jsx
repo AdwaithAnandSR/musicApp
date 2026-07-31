@@ -16,7 +16,7 @@ import Toast from "../services/Toast.js";
 import queryClient from "../services/queryClient.js";
 
 const HEADER_HEIGHT = 250;
-const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 80;
+const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 90;
 
 const Header = ({
     title,

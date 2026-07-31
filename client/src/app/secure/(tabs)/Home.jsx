@@ -54,7 +54,7 @@ const Home = () => {
                           .flatMap(p => p.musics || [])
                           .map(({ _id, cover, ...rest }) => [
                               _id,
-                              { id: _id, artwork: cover, ...rest }
+                              { id: _id, _id, artwork: cover, cover, ...rest }
                           ])
                   ).values()
               ]
