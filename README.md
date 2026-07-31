@@ -32,7 +32,6 @@
 - 🎶 **Background Audio Control**: Built on `expo-audio` and native sound services, ensuring uninterrupted playback across lock screens and background apps.
 - 📂 **Smart Playlists & Library**: Create, customize, and curate personal playlists with instant local caching powered by **Zustand** and **MMKV**.
 - 🚀 **Silky 60 FPS Scrolling**: Uses `@shopify/flash-list` for ultra-lean memory usage and liquid-smooth scrolling performance across vast song catalogs.
-- 🔌 **Real-time Synchronization**: Powered by **Socket.IO** for live state sync and server events.
 
 ---
 
@@ -61,12 +60,11 @@
 - **Audio Engine**: `expo-audio`
 - **Animations & UX**: `react-native-reanimated`, `lottie-react-native`
 - **UI Performance**: `@shopify/flash-list`, `react-native-image-colors`
-- **Local Storage**: `react-native-mmkv` & Async Storage
+- **Local Storage**: `react-native-mmkv`
 
 ### **Server (Backend API)**
 - **Runtime**: Node.js & Express.js (ES Modules)
 - **Database**: MongoDB Atlas (Mongoose ORM) with Full-Text Search Indexing
-- **Real-Time Communication**: Socket.IO
 - **Media & Metadata Processing**: Cloudinary, Firebase Admin, `music-metadata`, `ytdl-core`, `play-dl`
 
 ---
@@ -140,7 +138,7 @@ musicApp/
 │   ├── handlers/           # Request controllers
 │   ├── models/             # Mongoose schemas (Song, Playlist, User)
 │   ├── routes/             # REST API endpoints
-│   └── index.js            # Server entry point & Socket.IO initialization
+│   └── index.js            # Server entry point
 │
 ├── images/                 # App Screenshots & Showcase assets
 └── README.md
