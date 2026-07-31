@@ -58,7 +58,9 @@ const Search = () => {
         data?.pages.flatMap(page =>
             page.musics?.map(({ _id, cover, ...rest }) => ({
                 id: _id,
+                _id,
                 artwork: cover,
+                cover,
                 ...rest
             })) || []
         ) ?? [];

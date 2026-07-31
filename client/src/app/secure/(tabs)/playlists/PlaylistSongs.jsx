@@ -112,10 +112,19 @@ const PlaylistSongs = () => {
                 seed: newSeed
             });
 
+            if (res) {
+                queryClient.setQueryData([playlistId, "random", newSeed], {
+                    pages: [res],
+                    pageParams: [null]
+                });
+            }
+
             targetTracks =
                 res?.musics?.map(({ _id, cover, ...rest }) => ({
                     id: _id,
+                    _id,
                     artwork: cover,
+                    cover,
                     ...rest
                 })) || [];
         } catch (err) {
@@ -163,17 +172,25 @@ const PlaylistSongs = () => {
             page =>
                 page.musics?.map(({ _id, cover, ...rest }) => ({
                     id: _id,
+                    _id,
                     artwork: cover,
+                    cover,
                     ...rest
                 })) || []
         ) ?? [];
 
     const scrollToMiddle = index => {
-        flashListRef.current?.scrollToIndex({
-            index,
-            animated: true,
-            viewPosition: 0.3
-        });
+        if (index === 0)
+            flashListRef.current?.scrollToOffset({
+                offset: 0,
+                animated: true
+            });
+        else
+            flashListRef.current?.scrollToIndex({
+                index,
+                animated: true,
+                viewPosition: 0.3
+            });
     };
 
     return (
