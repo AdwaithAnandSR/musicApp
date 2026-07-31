@@ -1,10 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    View,
-    Animated
-} from "react-native";
+import { StyleSheet, Text, View, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -79,7 +74,9 @@ const PlaylistSongs = () => {
     });
 
     const handleToggleRandom = () => {
-        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); } catch (e) {}
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch (e) {}
         if (!isRandom) {
             setSeed(Math.random());
             setIsRandom(true);
@@ -89,12 +86,16 @@ const PlaylistSongs = () => {
     };
 
     const handleReshuffle = () => {
-        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } catch (e) {}
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch (e) {}
         setSeed(Math.random());
     };
 
     const handlePlayShuffled = async () => {
-        try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch (e) {}
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } catch (e) {}
 
         const newSeed = Math.random();
         setSeed(newSeed);
@@ -111,11 +112,12 @@ const PlaylistSongs = () => {
                 seed: newSeed
             });
 
-            targetTracks = res?.musics?.map(({ _id, cover, ...rest }) => ({
-                id: _id,
-                artwork: cover,
-                ...rest
-            })) || [];
+            targetTracks =
+                res?.musics?.map(({ _id, cover, ...rest }) => ({
+                    id: _id,
+                    artwork: cover,
+                    ...rest
+                })) || [];
         } catch (err) {
             console.log("Error in handlePlayShuffled fetch:", err);
         }
@@ -143,13 +145,11 @@ const PlaylistSongs = () => {
     };
 
     useEffect(() => {
-        usePlayer
-            .getState()
-            .setPlaylistController(playlistId, {
-                fetchNextPage,
-                hasNextPage,
-                isFetchingNextPage
-            });
+        usePlayer.getState().setPlaylistController(playlistId, {
+            fetchNextPage,
+            hasNextPage,
+            isFetchingNextPage
+        });
     }, [playlistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     useEffect(() => {
@@ -159,17 +159,19 @@ const PlaylistSongs = () => {
     }, [isRandom, seed]);
 
     const songs =
-        data?.pages.flatMap(page =>
-            page.musics?.map(({ _id, cover, ...rest }) => ({
-                id: _id,
-                artwork: cover,
-                ...rest
-            })) || []
+        data?.pages.flatMap(
+            page =>
+                page.musics?.map(({ _id, cover, ...rest }) => ({
+                    id: _id,
+                    artwork: cover,
+                    ...rest
+                })) || []
         ) ?? [];
 
     const scrollToMiddle = index => {
         flashListRef.current?.scrollToIndex({
             index,
+            animated: true,
             viewPosition: 0.3
         });
     };
@@ -205,7 +207,9 @@ const PlaylistSongs = () => {
                     isFetchingNextPage ? (
                         <Loader size={"large"} />
                     ) : songs.length > 8 ? (
-                        <Text style={styles.loader}>{`• ${displayFooterText} •`}</Text>
+                        <Text
+                            style={styles.loader}
+                        >{`• ${displayFooterText} •`}</Text>
                     ) : null
                 }
                 ListEmptyComponent={
@@ -225,7 +229,9 @@ const PlaylistSongs = () => {
                         useNativeDriver: true,
                         listener: () => {
                             if (useAppStatus.getState().popUpOption.y !== -1) {
-                                useAppStatus.getState().setPopUpOption(-1, null, null);
+                                useAppStatus
+                                    .getState()
+                                    .setPopUpOption(-1, null, null);
                             }
                         }
                     }
