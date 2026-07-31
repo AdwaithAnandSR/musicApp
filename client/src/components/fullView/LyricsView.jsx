@@ -55,10 +55,10 @@ const LyricsView = ({ track = {} }) => {
     }, [currentLyricIndex, showSyncedLyric]);
 
     useEffect(() => {
-        if (!track?._id) {
+        if (!track?._id && !track?.id) {
             resetShowLyrics();
         }
-    }, [track?._id, resetShowLyrics]);
+    }, [track?._id, track?.id, resetShowLyrics]);
 
     if (!showLyrics1 && !showLyrics2 && !showSyncedLyric) return;
 

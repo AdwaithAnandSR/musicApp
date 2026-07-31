@@ -1,5 +1,6 @@
 import axios from "@services/axios";
 import Toast from "@services/Toast.js";
+import { useMultiSelect } from "@store/appState.store.js";
 
 const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
     try {
@@ -14,9 +15,9 @@ const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
             selectedSongIds
         });
 
-        if (selectedSongs?.length === 1 && reset) reset();
-
         if (res.status === 200) {
+            useMultiSelect.getState().reset();
+            if (typeof reset === "function") reset();
             Toast.show("Songs Added", "success");
         }
     } catch (error) {
