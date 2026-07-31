@@ -83,7 +83,7 @@ export const usePlayer = create((set, get) => ({
                         title: track.title,
                         artist: track?.artist?.split(",")?.[0],
                         artworkUrl: track.cover || track.artwork,
-                        duration: duration * 60
+                        duration: duration
                     });
 
                 set({
@@ -134,7 +134,8 @@ export const usePlayer = create((set, get) => ({
         newPlayer.updateLockScreenMetadata({
             title: track.title,
             artist: track?.artist?.split(",")?.[0],
-            artworkUrl: track.cover || track.artwork
+            artworkUrl: track.cover || track.artwork,
+	    duration: track?.duration ?? get().duration ?? 0
         });
 
         set({
