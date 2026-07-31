@@ -1,13 +1,9 @@
 import { useRef, useEffect, useState } from "react";
-import {
-    StyleSheet,
-    Text,
-    View,
-    Animated
-} from "react-native";
+import { StyleSheet, Text, View, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import * as Haptics from "expo-haptics";
 
 import { useAppStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -29,6 +25,31 @@ const PlaylistSongs = () => {
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
 
+    const [isRandom, setIsRandom] = useState(false);
+    const [seed, setSeed] = useState(() => Math.random());
+
+    const currentSelectedPlaylist = useAppStatus(
+        state => state.currentSelectedPlaylist
+    );
+
+    const cachedPlaylist = (
+        queryClient
+            .getQueryData(["playlists"])
+            ?.pages?.flatMap(page => page.playlists) || []
+    ).find(p => (p._id || p.id) === playlistId);
+
+    const description =
+        currentSelectedPlaylist?.desc ||
+        currentSelectedPlaylist?.description ||
+        cachedPlaylist?.desc ||
+        cachedPlaylist?.description;
+
+    const displayFooterText = description?.trim()
+        ? description.trim()
+        : playlistName;
+
+    const queryKey = isRandom ? [playlistId, "random", seed] : [playlistId];
+
     const {
         data,
         isLoading,
@@ -38,54 +59,152 @@ const PlaylistSongs = () => {
         refetch,
         isFetching
     } = useInfiniteQuery({
-        queryKey: [playlistId],
+        queryKey,
 
         queryFn: ({ pageParam = null }) =>
-            getPlaylistSongs({ limit, playlistId, pageParam }),
+            getPlaylistSongs({
+                limit,
+                playlistId,
+                pageParam,
+                random: isRandom,
+                seed
+            }),
 
         getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
     });
 
+    const handleToggleRandom = () => {
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        } catch (e) {}
+        if (!isRandom) {
+            setSeed(Math.random());
+            setIsRandom(true);
+        } else {
+            setIsRandom(false);
+        }
+    };
+
+    const handleReshuffle = () => {
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch (e) {}
+        setSeed(Math.random());
+    };
+
+    const handlePlayShuffled = async () => {
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } catch (e) {}
+
+        const newSeed = Math.random();
+        setSeed(newSeed);
+        setIsRandom(true);
+
+        let targetTracks = [];
+
+        try {
+            const res = await getPlaylistSongs({
+                limit,
+                playlistId,
+                pageParam: null,
+                random: true,
+                seed: newSeed
+            });
+
+            if (res) {
+                queryClient.setQueryData([playlistId, "random", newSeed], {
+                    pages: [res],
+                    pageParams: [null]
+                });
+            }
+
+            targetTracks =
+                res?.musics?.map(({ _id, cover, ...rest }) => ({
+                    id: _id,
+                    _id,
+                    artwork: cover,
+                    cover,
+                    ...rest
+                })) || [];
+        } catch (err) {
+            console.log("Error in handlePlayShuffled fetch:", err);
+        }
+
+        // Fallback: If network failed or returned empty list, fall back to current visible songs list
+        if (!targetTracks.length && songs && songs.length > 0) {
+            targetTracks = [...songs].sort(() => Math.random() - 0.5);
+        }
+
+        if (targetTracks.length > 0) {
+            usePlayer.getState().changePlaylistAndPlay({
+                playlistId,
+                trackId: targetTracks[0].id || targetTracks[0]._id,
+                tracksOverride: targetTracks
+            });
+        }
+    };
+
     const handleRefresh = () => {
-        queryClient.resetQueries({ queryKey: [playlistId] });
+        if (isRandom) {
+            setSeed(Math.random());
+        }
+        queryClient.resetQueries({ queryKey });
         refetch();
     };
 
     useEffect(() => {
-        usePlayer
-            .getState()
-            .setPlaylistController(playlistId, {
-                fetchNextPage,
-                hasNextPage,
-                isFetchingNextPage
-            });
+        usePlayer.getState().setPlaylistController(playlistId, {
+            fetchNextPage,
+            hasNextPage,
+            isFetchingNextPage
+        });
     }, [playlistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
+    useEffect(() => {
+        try {
+            flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
+        } catch (e) {}
+    }, [isRandom, seed]);
+
     const songs =
-        data?.pages.flatMap(page =>
-            page.musics?.map(({ _id, cover, ...rest }) => ({
-                id: _id,
-                artwork: cover,
-                ...rest
-            })) || []
+        data?.pages.flatMap(
+            page =>
+                page.musics?.map(({ _id, cover, ...rest }) => ({
+                    id: _id,
+                    _id,
+                    artwork: cover,
+                    cover,
+                    ...rest
+                })) || []
         ) ?? [];
 
     const scrollToMiddle = index => {
-        flashListRef.current?.scrollToIndex({
-            index,
-            viewPosition: 0.3
-        });
+        if (index === 0)
+            flashListRef.current?.scrollToOffset({
+                offset: 0,
+                animated: true
+            });
+        else
+            flashListRef.current?.scrollToIndex({
+                index,
+                animated: true,
+                viewPosition: 0.3
+            });
     };
 
     return (
         <View style={styles.container}>
             <Header
                 title={playlistName}
-                // total={total}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
                 ID={playlistId}
                 containerStyles={{ height: HEADER_HEIGHT }}
+                isRandom={isRandom}
+                onToggleRandom={handleToggleRandom}
+                onReshuffle={handleReshuffle}
+                onPlayShuffled={handlePlayShuffled}
             />
 
             <AnimatedFlashList
@@ -105,7 +224,9 @@ const PlaylistSongs = () => {
                     isFetchingNextPage ? (
                         <Loader size={"large"} />
                     ) : songs.length > 8 ? (
-                        <Text style={styles.loader}>{`• ${playlistName} •`}</Text>
+                        <Text
+                            style={styles.loader}
+                        >{`• ${displayFooterText} •`}</Text>
                     ) : null
                 }
                 ListEmptyComponent={
@@ -125,7 +246,9 @@ const PlaylistSongs = () => {
                         useNativeDriver: true,
                         listener: () => {
                             if (useAppStatus.getState().popUpOption.y !== -1) {
-                                useAppStatus.getState().setPopUpOption(-1, null, null);
+                                useAppStatus
+                                    .getState()
+                                    .setPopUpOption(-1, null, null);
                             }
                         }
                     }

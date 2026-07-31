@@ -17,7 +17,6 @@ const { height: vh, width: vw } = Dimensions.get("window");
 const AddPlaylist = () => {
     const [name, setName] = useState("");
     const [desc, setDesc] = useState("");
-    const [message, setMessage] = useState("");
 
     return (
         <View style={styles.container}>
@@ -50,20 +49,11 @@ const AddPlaylist = () => {
                     />
                 </View>
                 <TouchableOpacity
-                    onPress={() =>
-                        handleCreatePlaylist(
-                            name,
-                            desc,
-                            setMessage,
-                            
-                        )
-                    }
+                    onPress={() => handleCreatePlaylist(name, desc)}
                     style={styles.btn}
                 >
                     <Text style={styles.text}>Create</Text>
                 </TouchableOpacity>
-
-                <Text style={styles.message}>{message}</Text>
             </View>
         </View>
     );

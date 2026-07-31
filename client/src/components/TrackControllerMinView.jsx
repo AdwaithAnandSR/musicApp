@@ -48,8 +48,8 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
             >
                 <Image
                     source={
-                        track?.cover
-                            ? { uri: track.cover }
+                        track?.cover || track?.artwork
+                            ? { uri: track.cover || track.artwork }
                             : require("../assets/images/images.jpeg")
                     }
                     style={{

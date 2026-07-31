@@ -30,22 +30,24 @@ const TrackControllerFullView = () => {
     );
 
     const track = usePlayer(state => state.currentTrack);
+    const trackId = track?._id || track?.id;
+    const coverUrl = track?.cover || track?.artwork;
 
     useEffect(() => {
-        if (!track?._id) {
+        if (!trackId) {
             if (router.canGoBack()) {
                 router.back();
             }
-        } else if (track?.cover) {
-            getColors(track.cover, {
+        } else if (coverUrl) {
+            getColors(coverUrl, {
                 fallback: "#228B22",
                 cache: true,
-                key: track._id
+                key: trackId
             }).then(setColors);
         }
-    }, [track?._id, track?.cover]);
+    }, [trackId, coverUrl]);
 
-    if (!track?._id) return null;
+    if (!trackId) return null;
 
     return (
         <View style={[styles.container]}>
@@ -72,8 +74,8 @@ const TrackControllerFullView = () => {
                 ]}>
                 <Image
                     source={
-                        track?.cover
-                            ? { uri: track.cover }
+                        coverUrl
+                            ? { uri: coverUrl }
                             : require("@assets/images/images.jpeg")
                     }
                     placeholder={{ blurhash }}

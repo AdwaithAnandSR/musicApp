@@ -13,10 +13,9 @@ import handleCreatePlaylist from "@controllers/playlists/handleCreatePlaylist.js
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const AddPlaylist = ({ setIsAddNewPlaylist, setPlaylists }) => {
+const AddPlaylist = ({ setIsAddNewPlaylist }) => {
     const [name, setName] = useState("");
     const [desc, setDesc] = useState("");
-    const [message, setMessage] = useState("");
 
     return (
         <View style={styles.container}>
@@ -51,17 +50,13 @@ const AddPlaylist = ({ setIsAddNewPlaylist, setPlaylists }) => {
                         handleCreatePlaylist(
                             name,
                             desc,
-                            setMessage,
-                            setIsAddNewPlaylist,
-                            setPlaylists
+                            setIsAddNewPlaylist
                         )
                     }
                     style={styles.btn}
                 >
                     <Text style={styles.text}>Create</Text>
                 </TouchableOpacity>
-
-                <Text style={styles.message}>{message}</Text>
             </View>
         </View>
     );
