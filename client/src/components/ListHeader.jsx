@@ -106,6 +106,22 @@ const Header = ({
         );
     };
 
+    const shuffleOpacity = scrollY
+        ? scrollY.interpolate({
+              inputRange: [0, MIN_HEADER_HEIGHT],
+              outputRange: [1, 0],
+              extrapolate: "clamp"
+          })
+        : 1;
+
+    const shuffleTranslateY = scrollY
+        ? scrollY.interpolate({
+              inputRange: [0, 50],
+              outputRange: [0, -10],
+              extrapolate: "clamp"
+          })
+        : 0;
+
     return (
         <Animated.View
             style={[
@@ -117,64 +133,85 @@ const Header = ({
                 }
             ]}
         >
+            {isPlaylist &&
+                !isRecentlyAdded &&
+                (!selectedSongs || selectedSongs.length === 0) && (
+                    <Animated.View
+                        style={[
+                            styles.shuffleRow,
+                            {
+                                opacity: shuffleOpacity,
+                                transform: [{ translateY: shuffleTranslateY }]
+                            }
+                        ]}
+                    >
+                        <TouchableOpacity
+                            style={[
+                                styles.shuffleToggleBtn,
+                                isRandom && styles.shuffleToggleBtnActive
+                            ]}
+                            onPress={onToggleRandom}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name="shuffle"
+                                size={18}
+                                color={isRandom ? "#ffffff" : "#b0b0b0"}
+                            />
+                            <Text
+                                style={[
+                                    styles.shuffleBtnText,
+                                    isRandom && styles.shuffleBtnTextActive
+                                ]}
+                            >
+                                {isRandom ? "Shuffled" : "Shuffle"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {isRandom && (
+                            <TouchableOpacity
+                                style={styles.reshuffleBtn}
+                                onPress={onReshuffle}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons
+                                    name="refresh"
+                                    size={15}
+                                    color="#ffffff"
+                                />
+                                <Text style={styles.reshuffleBtnText}>
+                                    Reshuffle
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.playShuffledBtn}
+                            onPress={onPlayShuffled}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="play" size={15} color="#000000" />
+                            <Text style={styles.playShuffledBtnText}>
+                                Shuffle Play
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
             <TouchableOpacity
                 activeOpacity={0.3}
                 style={styles.textCont}
                 onPress={handleShortPress}
                 onLongPress={handleLongPress}
             >
-                <Animated.Text style={[styles.headerText]}>
+                <Animated.Text
+                    numberOfLines={2}
+                    adjustsFontSizeToFit
+                    style={[styles.headerText]}
+                >
                     {title}
                 </Animated.Text>
                 {total > -1 && <Text style={styles.headerText2}>{total}</Text>}
             </TouchableOpacity>
-
-            {isPlaylist && !isRecentlyAdded && (!selectedSongs || selectedSongs.length === 0) && (
-                <View style={styles.shuffleRow}>
-                    <TouchableOpacity
-                        style={[
-                            styles.shuffleToggleBtn,
-                            isRandom && styles.shuffleToggleBtnActive
-                        ]}
-                        onPress={onToggleRandom}
-                        activeOpacity={0.7}
-                    >
-                        <Ionicons
-                            name="shuffle"
-                            size={18}
-                            color={isRandom ? "#ffffff" : "#b0b0b0"}
-                        />
-                        <Text
-                            style={[
-                                styles.shuffleBtnText,
-                                isRandom && styles.shuffleBtnTextActive
-                            ]}
-                        >
-                            {isRandom ? "Shuffled" : "Shuffle"}
-                        </Text>
-                    </TouchableOpacity>
-
-                    {isRandom && (
-                        <TouchableOpacity
-                            style={styles.reshuffleBtn}
-                            onPress={onReshuffle}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="refresh" size={15} color="#ffffff" />
-                            <Text style={styles.reshuffleBtnText}>Reshuffle</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                        style={styles.playShuffledBtn}
-                        onPress={onPlayShuffled}
-                        activeOpacity={0.8}
-                    >
-                        <Ionicons name="play" size={15} color="#000000" />
-                        <Text style={styles.playShuffledBtnText}>Shuffle Play</Text>
-                    </TouchableOpacity>
-                </View>
-            )}
 
             {selectedSongs?.length > 0 && (
                 <View style={styles.actionRow}>
