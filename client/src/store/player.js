@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createAudioPlayer } from "expo-audio";
 
+import { getDownloadedSongs }from "@services/downloads/downloadService"
 import queryClient from "@services/queryClient";
 
 export const usePlayer = create((set, get) => ({
@@ -135,7 +136,7 @@ export const usePlayer = create((set, get) => ({
             title: track.title,
             artist: track?.artist?.split(",")?.[0],
             artworkUrl: track.cover || track.artwork,
-	    duration: track?.duration ?? get().duration ?? 0
+            duration: track?.duration ?? get().duration ?? 0
         });
 
         set({
@@ -182,34 +183,94 @@ export const usePlayer = create((set, get) => ({
         get().playByIndex(currentTrackIndex - 1);
     },
 
-    changePlaylistAndPlay: ({ playlistId, trackId, tracksOverride }) => {
+    changePlaylistAndPlay: async ({
+        playlistId,
+        trackId,
+        tracksOverride,
+        isLocal = false
+    }) => {
         const { currentPlaylistId, queue } = get();
 
         let tracks = tracksOverride;
+
+        /*
+         * 1. If explicitly playing a local/downloaded playlist,
+         *    load songs from local metadata.
+         */
+
+        console.log(isLocal)
+        if (isLocal) {
+            const downloadedSongs = await getDownloadedSongs(playlistId);
+
+            tracks = downloadedSongs.map(song => ({
+                ...song,
+                isLocal: true,
+                url: song.localUrl
+            }));
+        }
+
+        /*
+         * 2. Otherwise use the normal React Query playlist data.
+         */
         if (!tracks) {
-            const activeQueries = queryClient.getQueriesData({ queryKey: [playlistId] });
+            const activeQueries = queryClient.getQueriesData({
+                queryKey: [playlistId]
+            });
+
             if (activeQueries && activeQueries.length > 0) {
-                const [, lastQueryData] = activeQueries[activeQueries.length - 1];
-                tracks = lastQueryData?.pages?.flatMap(page => page.musics) ?? [];
+                const [, lastQueryData] =
+                    activeQueries[activeQueries.length - 1];
+
+                tracks =
+                    lastQueryData?.pages?.flatMap(page => page.musics) ?? [];
             }
         }
+
+        /*
+         * 3. Fallback to normal query cache.
+         */
         if (!tracks || !tracks.length) {
             const data = queryClient.getQueryData([playlistId]);
+
             tracks = data?.pages?.flatMap(page => page.musics) ?? [];
         }
 
+        if (!tracks?.length) return false;
+
+        /*
+         * 4. If local playlist, make absolutely sure the
+         *    audio URL points to the downloaded file.
+         */
+        if (isLocal) {
+            tracks = tracks
+                .filter(song => song.localUrl)
+                .map(song => ({
+                    ...song,
+                    isLocal: true,
+                    url: song.localUrl
+                }));
+        }
+
+        if (!tracks.length) return false;
+
+        /*
+         * 5. Reuse current queue when possible.
+         */
         const shouldUpdateQueue =
             Boolean(tracksOverride) ||
+            isLocal ||
             currentPlaylistId !== playlistId ||
             queue.length !== tracks.length;
 
         if (!shouldUpdateQueue && currentPlaylistId === playlistId) {
             const found = get().playByTrackId(trackId);
-            if (found) return;
+
+            if (found) return true;
         }
 
-        if (!tracks.length) return;
-
+        /*
+         * 6. Replace queue.
+         */
         set({
             currentPlaylistId: playlistId,
             queue: tracks,
@@ -217,7 +278,10 @@ export const usePlayer = create((set, get) => ({
             currentTrackId: null
         });
 
-        get().playByTrackId(trackId);
+        /*
+         * 7. Start requested track.
+         */
+        return get().playByTrackId(trackId);
     },
 
     appendToQueue: (playlistId, tracks) => {

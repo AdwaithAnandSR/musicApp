@@ -91,3 +91,93 @@ export const useStatus = create(set => ({
             currentLyricIndex: -1
         }))
 }));
+
+export const useDownloadStatus = create((set, get) => ({
+    downloadingPlaylists: {}, // map of playlistId to array of songs with progress
+    downloadTasks: {}, // map of songId to File.DownloadTask (transient, not in state really, but we can store it or keep it in service)
+    
+    // We keep downloadingSongs for O(1) status lookup in ListItem
+    downloadingSongs: {}, 
+
+    setDownloadingPlaylist: (playlistId, songs) =>
+        set(state => {
+            // Only update if there are actually songs to add to avoid unnecessary reference changes
+            if (!songs || songs.length === 0) return state;
+            
+            // Add initial status fields to songs
+            const songsWithState = songs.map(song => ({
+                ...song,
+                progress: 0,
+                bytesWritten: 0,
+                totalBytes: 0,
+                status: 'pending'
+            }));
+
+            return {
+                downloadingPlaylists: {
+                    ...state.downloadingPlaylists,
+                    [playlistId]: songsWithState
+                }
+            };
+        }),
+
+    updateSongProgress: (playlistId, songId, progressData) =>
+        set(state => {
+            const playlistSongs = state.downloadingPlaylists[playlistId];
+            if (!playlistSongs) return state;
+
+            let changed = false;
+            const newPlaylistSongs = playlistSongs.map(song => {
+                if ((song.id || song._id) === songId) {
+                    changed = true;
+                    return { ...song, ...progressData };
+                }
+                return song;
+            });
+
+            if (!changed) return state;
+
+            return {
+                downloadingPlaylists: {
+                    ...state.downloadingPlaylists,
+                    [playlistId]: newPlaylistSongs
+                },
+                downloadingSongs: {
+                    ...state.downloadingSongs,
+                    [songId]: progressData.status || 'downloading'
+                }
+            };
+        }),
+
+    removeDownloadingPlaylistSong: (playlistId, songId) =>
+        set(state => {
+            const playlistSongs = state.downloadingPlaylists[playlistId];
+            if (!playlistSongs) return state;
+            
+            const newPlaylistSongs = playlistSongs.filter(s => (s.id || s._id) !== songId);
+            
+            const { [songId]: _, ...restDownloadingSongs } = state.downloadingSongs;
+
+            return {
+                downloadingPlaylists: {
+                    ...state.downloadingPlaylists,
+                    [playlistId]: newPlaylistSongs
+                },
+                downloadingSongs: restDownloadingSongs
+            };
+        }),
+        
+    setDownloadingSong: (songId, status) =>
+        set(state => ({
+            downloadingSongs: {
+                ...state.downloadingSongs,
+                [songId]: status
+            }
+        })),
+        
+    removeDownloadingSong: (songId) =>
+        set(state => {
+            const { [songId]: _, ...rest } = state.downloadingSongs;
+            return { downloadingSongs: rest };
+        })
+}));

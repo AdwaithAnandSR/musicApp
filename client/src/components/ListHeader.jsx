@@ -28,7 +28,9 @@ const Header = ({
     isRandom = false,
     onToggleRandom,
     onReshuffle,
-    onPlayShuffled
+    onPlayShuffled,
+    onDownload,
+    onDelete
 }) => {
     const translateY = scrollY?.interpolate({
         inputRange: [0, MIN_HEADER_HEIGHT],
@@ -195,6 +197,25 @@ const Header = ({
                                 Shuffle Play
                             </Text>
                         </TouchableOpacity>
+
+                        {onDownload && (
+                            <TouchableOpacity
+                                style={[styles.shuffleToggleBtn, { marginLeft: 10 }]}
+                                onPress={onDownload}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="download-outline" size={18} color="#ffffff" />
+                            </TouchableOpacity>
+                        )}
+                        {onDelete && (
+                            <TouchableOpacity
+                                style={[styles.shuffleToggleBtn, { marginLeft: 10, borderColor: '#ff4d4d', backgroundColor: 'rgba(255,77,77,0.1)' }]}
+                                onPress={onDelete}
+                                activeOpacity={0.8}
+                            >
+                                <Ionicons name="trash-outline" size={18} color="#ff4d4d" />
+                            </TouchableOpacity>
+                        )}
                     </Animated.View>
                 )}
             <TouchableOpacity
@@ -210,7 +231,7 @@ const Header = ({
                 >
                     {title}
                 </Animated.Text>
-                {total > -1 && <Text style={styles.headerText2}>{total}</Text>}
+                {total !== undefined && total !== null && total !== -1 && <Text style={styles.headerText2}>{total}</Text>}
             </TouchableOpacity>
 
             {selectedSongs?.length > 0 && (
@@ -283,9 +304,8 @@ const styles = StyleSheet.create({
     headerText2: {
         color: "white",
         fontWeight: "bold",
-        fontSize: 20,
+        fontSize: 12,
         opacity: 0.7,
-        letterSpacing: -2,
         alignSelf: "center"
     },
     selectedText: {

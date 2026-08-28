@@ -5,6 +5,7 @@ import queryClient from "@services/queryClient.js";
 
 const handleDeletePlaylist = async ({ id, deletePlaylist }) => {
     try {
+        
         Toast.show("Deleting Playlist", "pending");
 
         const res = await axios.post(`/playlist/delete`, { id });

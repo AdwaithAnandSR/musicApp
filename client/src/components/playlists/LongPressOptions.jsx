@@ -2,8 +2,9 @@ import React from "react";
 import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
 
 import handleDelete from "@controllers/playlists/handleDeletePlaylist.js";
+import { deleteDownloadedPlaylist } from "@services/downloads/downloadService.js";
 
-const LongPressOptions = ({ id, setShowOptions, deletePlaylist }) => {
+const LongPressOptions = ({ id, setShowOptions, deletePlaylist, isLocal }) => {
 
     return (
         <View style={styles.container}>
@@ -14,7 +15,11 @@ const LongPressOptions = ({ id, setShowOptions, deletePlaylist }) => {
             <TouchableOpacity
                 onPress={() => {
                     setShowOptions(false);
-                    handleDelete({ id, deletePlaylist });
+                    if (isLocal) {
+                        deleteDownloadedPlaylist(id);
+                    } else {
+                        handleDelete({ id, deletePlaylist });
+                    }
                 }}
                 style={styles.btn}
             >
