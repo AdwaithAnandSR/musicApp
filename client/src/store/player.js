@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import { createAudioPlayer } from "expo-audio";
+import { createAudioPlayer, mediaSessionController } from "expo-audio";
 
-import { getDownloadedSongs }from "@services/downloads/downloadService"
+import { getDownloadedSongs } from "@services/downloads/downloadService";
 import queryClient from "@services/queryClient";
 
 export const usePlayer = create((set, get) => ({
@@ -75,21 +75,35 @@ export const usePlayer = create((set, get) => ({
 
         playbackListener?.remove();
 
+        let metadataUpdated = false;
+
         const listener = newPlayer.addListener(
             "playbackStatusUpdate",
             status => {
-                const duration = (status.duration || track.duration || 0).toFixed(0)
+                const duration = status.duration || track.duration || 0;
+
                 const position = status.currentTime || 0;
 
-                console.log("pbs ", duration)
+                if (status.isLoaded && !metadataUpdated) {
+                    metadataUpdated = true;
 
-                if (status.isLoaded && duration > 0)
-                    newPlayer.updateLockScreenMetadata({
+                    const metadata = {
                         title: track.title,
                         artist: track?.artist?.split(",")?.[0],
-                        artworkUrl: track.cover || track.artwork,
-                        duration: duration
-                    });
+                        artworkUrl: track.cover || track.artwork
+                    };
+
+                    if (!isActiveForLockScreen) {
+                        newPlayer.setActiveForLockScreen(true, metadata, {
+                            showSeekForward: true,
+                            showSeekBackward: true
+                        });
+
+                        set({ isActiveForLockScreen: true });
+                    } else {
+                        newPlayer.updateLockScreenMetadata(metadata);
+                    }
+                }
 
                 set({
                     isPlaying: status.playing,
@@ -113,25 +127,6 @@ export const usePlayer = create((set, get) => ({
 
         newPlayer.play();
 
-        if (!isActiveForLockScreen) {
-            newPlayer.setActiveForLockScreen(true, {
-                options: {
-                    showSeekForward: true,
-                    showSeekBackward: true
-                }
-            });
-            set({ isActiveForLockScreen: true });
-        }
-
-        console.log(track?.duration ?? get().duration ?? 0)
-
-        newPlayer.updateLockScreenMetadata({
-            title: track.title,
-            artist: track?.artist?.split(",")?.[0],
-            artworkUrl: track.cover || track.artwork,
-            duration: track?.duration ?? get().duration ?? 0
-        });
-
         set({
             player: newPlayer,
             playbackListener: listener,
@@ -143,7 +138,13 @@ export const usePlayer = create((set, get) => ({
     },
 
     next: async () => {
-        const { currentTrackIndex, queue, repeatMode, playlistControllers, currentPlaylistId } = get();
+        const {
+            currentTrackIndex,
+            queue,
+            repeatMode,
+            playlistControllers,
+            currentPlaylistId
+        } = get();
 
         if (repeatMode === "one") {
             get().playByIndex(currentTrackIndex);
@@ -162,13 +163,13 @@ export const usePlayer = create((set, get) => ({
 
             if (shouldFetchPage && controller && controller.hasNextPage) {
                 const preFetchPlaylistId = currentPlaylistId;
-                
+
                 try {
                     await controller.fetchNextPage();
                 } catch (e) {
                     console.error("Pagination error:", e);
                 }
-                
+
                 if (get().currentPlaylistId !== preFetchPlaylistId) return;
 
                 const newQueue = get().queue;
@@ -194,7 +195,7 @@ export const usePlayer = create((set, get) => ({
 
     prev: () => {
         const { currentTrackIndex, queue, repeatMode } = get();
-        
+
         if (repeatMode === "one") {
             get().playByIndex(currentTrackIndex);
             return;
@@ -247,7 +248,7 @@ export const usePlayer = create((set, get) => ({
             if (isRandomPlaylist && randomSeed) {
                 targetQueryKey = [playlistId, "random", randomSeed];
             }
-            
+
             const data = queryClient.getQueryData(targetQueryKey);
             tracks = data?.pages?.flatMap(page => page.musics) ?? [];
 
@@ -263,7 +264,8 @@ export const usePlayer = create((set, get) => ({
                         activeQueries[activeQueries.length - 1];
 
                     tracks =
-                        lastQueryData?.pages?.flatMap(page => page.musics) ?? [];
+                        lastQueryData?.pages?.flatMap(page => page.musics) ??
+                        [];
                 }
             }
         }
