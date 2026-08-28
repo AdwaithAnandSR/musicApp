@@ -197,7 +197,7 @@ const PlaylistSongs = () => {
             });
     };
 
-    const handleDownloadSelect = async (numSongs) => {
+    const handleDownloadSelect = async (numSongs, concurrency = 1) => {
         if (!songs || songs.length === 0) {
             Toast.show("No songs to download", "error");
             return;
@@ -228,7 +228,7 @@ const PlaylistSongs = () => {
                 cover: currentSelectedPlaylist?.cover || cachedPlaylist?.cover || null
             };
             
-            await downloadPlaylistSongs(playlistToSave, songsToDownload, (current, total, progress) => {
+            await downloadPlaylistSongs(playlistToSave, songsToDownload, concurrency, (current, total, progress) => {
                 // we could show a progress toast here
             });
             Toast.show("Download Complete!", "success");

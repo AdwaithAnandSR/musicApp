@@ -230,8 +230,14 @@ export const downloadSongToLocal = async (song, playlistId) => {
 export const downloadPlaylistSongs = async (
     playlist,
     songsToDownload,
+    concurrency = 1,
     onProgress
 ) => {
+    if (typeof concurrency === 'function') {
+        onProgress = concurrency;
+        concurrency = 1;
+    }
+
     let downloadedSongs = await getDownloadedSongs(playlist.id);
 
     await saveDownloadedPlaylist({
@@ -258,67 +264,84 @@ export const downloadPlaylistSongs = async (
             .setDownloadingPlaylist(playlist.id, pendingSongs);
     }
 
-    for (let i = 0; i < songsToDownload.length; i++) {
-        const song = songsToDownload[i];
+    let currentIndex = 0;
+    let progressCount = 0;
+    let saveMutex = Promise.resolve();
 
-        const songId = song.id || song._id;
+    const worker = async () => {
+        while (currentIndex < songsToDownload.length) {
+            const index = currentIndex++;
+            const song = songsToDownload[index];
+            const songId = song.id || song._id;
 
-        /*
-         * Already downloaded or currently downloading
-         */
-        const isDownloading = !!useDownloadStatus.getState().downloadTasks[songId];
-        if (downloadedSongs.find(s => (s.id || s._id) === songId) || isDownloading) {
-            if (onProgress) {
-                onProgress(i + 1, songsToDownload.length, 1);
+            const isDownloading = !!useDownloadStatus.getState().downloadTasks[songId];
+            if (downloadedSongs.find(s => (s.id || s._id) === songId) || isDownloading) {
+                if (onProgress) {
+                    progressCount++;
+                    onProgress(progressCount, songsToDownload.length, 1);
+                }
+                continue;
             }
 
-            continue;
+            useDownloadStatus.getState().setDownloadingSong(songId, "downloading");
+
+            const localUrl = await downloadSongToLocal(song, playlist.id);
+
+            useDownloadStatus.getState().removeDownloadingSong(songId);
+
+            if (localUrl) {
+                const progressData =
+                    useDownloadStatus
+                        .getState()
+                        .downloadingPlaylists[
+                            playlist.id
+                        ]?.find(s => (s.id || s._id) === songId) || {};
+
+                const songToSave = {
+                    ...song,
+                    localUrl,
+                    isLocal: true,
+                    url: localUrl,
+                    totalBytes: progressData.totalBytes || 0
+                };
+
+                await new Promise(resolve => {
+                    saveMutex = saveMutex.then(async () => {
+                        try {
+                            const meta = await getMeta();
+                            meta.songs[playlist.id] = meta.songs[playlist.id] || [];
+                            if (!meta.songs[playlist.id].find(s => (s.id || s._id) === songId)) {
+                                meta.songs[playlist.id].push(songToSave);
+                                meta.playlists[playlist.id] = meta.playlists[playlist.id] || {};
+                                meta.playlists[playlist.id].songCount = meta.songs[playlist.id].length;
+                                meta.playlists[playlist.id].sizeBytes = meta.songs[playlist.id].reduce(
+                                    (acc, s) => acc + (s.totalBytes || 0),
+                                    0
+                                );
+                                await saveMeta(meta);
+                            }
+                        } catch (err) {
+                            console.log("Error saving meta:", err);
+                        }
+                        resolve();
+                    });
+                });
+            }
+
+            useDownloadStatus
+                .getState()
+                .removeDownloadingPlaylistSong(playlist.id, songId);
+
+            if (onProgress) {
+                progressCount++;
+                onProgress(progressCount, songsToDownload.length, 1);
+            }
         }
+    };
 
-        /*
-         * Download
-         */
-        useDownloadStatus.getState().setDownloadingSong(songId, "downloading");
-
-        const localUrl = await downloadSongToLocal(song, playlist.id);
-
-        useDownloadStatus.getState().removeDownloadingSong(songId);
-
-        if (localUrl) {
-            // Retrieve progress data stored by updateSongProgress to get totalBytes
-            const progressData =
-                useDownloadStatus
-                    .getState()
-                    .downloadingPlaylists[
-                        playlist.id
-                    ]?.find(s => (s.id || s._id) === songId) || {};
-
-            const songToSave = {
-                ...song,
-                localUrl,
-                isLocal: true,
-                url: localUrl,
-                totalBytes: progressData.totalBytes || 0
-            };
-
-            downloadedSongs.push(songToSave);
-
-            const meta = await getMeta();
-            meta.songs[playlist.id] = downloadedSongs;
-            meta.playlists[playlist.id].songCount = downloadedSongs.length;
-            meta.playlists[playlist.id].sizeBytes = downloadedSongs.reduce(
-                (acc, s) => acc + (s.totalBytes || 0),
-                0
-            );
-            await saveMeta(meta);
-        }
-
-        useDownloadStatus
-            .getState()
-            .removeDownloadingPlaylistSong(playlist.id, songId);
-
-        if (onProgress) {
-            onProgress(i + 1, songsToDownload.length, 1);
-        }
+    const workers = [];
+    for (let i = 0; i < concurrency; i++) {
+        workers.push(worker());
     }
+    await Promise.all(workers);
 };
