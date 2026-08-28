@@ -113,10 +113,17 @@ export const useDownloadStatus = create((set, get) => ({
                 status: 'pending'
             }));
 
+            const existingSongs = state.downloadingPlaylists[playlistId] || [];
+            
+            // Avoid adding duplicates
+            const newSongsFiltered = songsWithState.filter(
+                newSong => !existingSongs.find(es => (es.id || es._id) === (newSong.id || newSong._id))
+            );
+
             return {
                 downloadingPlaylists: {
                     ...state.downloadingPlaylists,
-                    [playlistId]: songsWithState
+                    [playlistId]: [...existingSongs, ...newSongsFiltered]
                 }
             };
         }),
