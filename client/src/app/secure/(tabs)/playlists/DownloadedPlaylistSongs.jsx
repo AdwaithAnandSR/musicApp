@@ -108,7 +108,7 @@ const DownloadedPlaylistSongs = () => {
                 ref={flashListRef}
                 data={songs}
                 estimatedItemSize={70}
-                renderItem={({ item }) => <ListItem ID={playlistId} isLocal={true} item={item} />}
+                renderItem={({ item }) => <ListItem ID={playlistId} item={item} />}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <Text style={styles.emptyText}>No songs in this downloaded playlist.</Text>

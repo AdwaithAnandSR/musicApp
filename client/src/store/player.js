@@ -11,6 +11,8 @@ export const usePlayer = create((set, get) => ({
     queue: [],
 
     currentPlaylistId: null,
+    isRandomPlaylist: false,
+    randomSeed: null,
     currentTrackId: null,
     currentTrack: null,
     currentTrackIndex: -1,
@@ -76,8 +78,10 @@ export const usePlayer = create((set, get) => ({
         const listener = newPlayer.addListener(
             "playbackStatusUpdate",
             status => {
-                const duration = status.duration || track.duration || 0;
+                const duration = (status.duration || track.duration || 0).toFixed(0)
                 const position = status.currentTime || 0;
+
+                console.log("pbs ", duration)
 
                 if (status.isLoaded && duration > 0)
                     newPlayer.updateLockScreenMetadata({
@@ -118,6 +122,8 @@ export const usePlayer = create((set, get) => ({
             });
             set({ isActiveForLockScreen: true });
         }
+
+        console.log(track?.duration ?? get().duration ?? 0)
 
         newPlayer.updateLockScreenMetadata({
             title: track.title,
@@ -210,7 +216,9 @@ export const usePlayer = create((set, get) => ({
         playlistId,
         trackId,
         tracksOverride,
-        isLocal = false
+        isLocal = false,
+        isRandomPlaylist = false,
+        randomSeed = null
     }) => {
         const { currentPlaylistId, queue } = get();
 
@@ -221,7 +229,6 @@ export const usePlayer = create((set, get) => ({
          *    load songs from local metadata.
          */
 
-        console.log(isLocal)
         if (isLocal) {
             const downloadedSongs = await getDownloadedSongs(playlistId);
 
@@ -288,7 +295,10 @@ export const usePlayer = create((set, get) => ({
         if (!shouldUpdateQueue && currentPlaylistId === playlistId) {
             const found = get().playByTrackId(trackId);
 
-            if (found) return true;
+            if (found) {
+                set({ isRandomPlaylist, randomSeed });
+                return true;
+            }
         }
 
         /*
@@ -296,6 +306,8 @@ export const usePlayer = create((set, get) => ({
          */
         set({
             currentPlaylistId: playlistId,
+            isRandomPlaylist,
+            randomSeed,
             queue: tracks,
             currentTrackIndex: -1,
             currentTrackId: null

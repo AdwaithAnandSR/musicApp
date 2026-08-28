@@ -18,7 +18,7 @@ import LongPressOptions from "./LongPressOptions.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item, local = false }) => {
+const ListItem = ({ item }) => {
     const [showOptions, setShowOptions] = useState(false);
     const isSelecting = useMultiSelect(
         state => state.selectedSongs?.length > 0
