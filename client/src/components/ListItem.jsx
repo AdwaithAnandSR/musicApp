@@ -20,7 +20,7 @@ import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item, ID, text = "", isLocal=false }) => {
+const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = null }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
     const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
@@ -53,7 +53,9 @@ const ListItem = ({ item, ID, text = "", isLocal=false }) => {
             changePlaylistAndPlay({
                 playlistId: ID,
                 trackId: item.id || item._id,
-                isLocal
+                isLocal: !!item.isLocal,
+                isRandomPlaylist,
+                randomSeed
             });
         } else {
             updateSelected(item);
@@ -107,13 +109,14 @@ const ListItem = ({ item, ID, text = "", isLocal=false }) => {
                     search={text}
                     isCurrent={isCurrentPlaying}
                 />
-                {downloadingData?.status === 'downloading' && (
-                    <Text style={{ color: 'gray', fontSize: 12, marginTop: 4 }}>
-                        Downloading... {Math.round((downloadingData.progress || 0) * 100)}%
+                {downloadingData?.status === "downloading" && (
+                    <Text style={{ color: "gray", fontSize: 12, marginTop: 4 }}>
+                        Downloading...{" "}
+                        {Math.round((downloadingData.progress || 0) * 100)}%
                     </Text>
                 )}
-                {downloadingData?.status === 'pending' && (
-                    <Text style={{ color: 'gray', fontSize: 12, marginTop: 4 }}>
+                {downloadingData?.status === "pending" && (
+                    <Text style={{ color: "gray", fontSize: 12, marginTop: 4 }}>
                         Pending...
                     </Text>
                 )}

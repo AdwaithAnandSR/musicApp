@@ -29,8 +29,18 @@ const PlaylistSongs = () => {
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
 
-    const [isRandom, setIsRandom] = useState(false);
-    const [seed, setSeed] = useState(() => Math.random());
+    const [isRandom, setIsRandom] = useState(() => {
+        const playerState = usePlayer.getState();
+        return playerState.currentPlaylistId === playlistId && playerState.isRandomPlaylist;
+    });
+    
+    const [seed, setSeed] = useState(() => {
+        const playerState = usePlayer.getState();
+        if (playerState.currentPlaylistId === playlistId && playerState.isRandomPlaylist && playerState.randomSeed) {
+            return playerState.randomSeed;
+        }
+        return Math.random();
+    });
     const [downloadModalVisible, setDownloadModalVisible] = useState(false);
 
     const currentSelectedPlaylist = useAppStatus(
@@ -145,7 +155,9 @@ const PlaylistSongs = () => {
             usePlayer.getState().changePlaylistAndPlay({
                 playlistId,
                 trackId: targetTracks[0].id || targetTracks[0]._id,
-                tracksOverride: targetTracks
+                tracksOverride: targetTracks,
+                isRandomPlaylist: true,
+                randomSeed: newSeed
             });
         }
     };
@@ -257,7 +269,12 @@ const PlaylistSongs = () => {
                 data={songs}
                 estimatedItemSize={70}
                 renderItem={({ item }) => (
-                    <ListItem ID={playlistId} item={item} />
+                    <ListItem 
+                        ID={playlistId} 
+                        item={item} 
+                        isRandomPlaylist={isRandom}
+                        randomSeed={seed}
+                    />
                 )}
                 showsVerticalScrollIndicator={false}
                 onEndReachedThreshold={0.5}

@@ -53,7 +53,7 @@ const DownloadedPlaylists = () => {
             
             <AnimatedFlashList
                 data={playlists}
-                renderItem={({ item }) => <ListItem item={item} local={true} />}
+                renderItem={({ item }) => <ListItem item={item} />}
                 estimatedItemSize={70}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
