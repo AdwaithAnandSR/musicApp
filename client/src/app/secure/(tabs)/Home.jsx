@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -46,8 +46,7 @@ const Home = () => {
         });
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-    const allSongs =
-        data?.pages
+    const allSongs = data?.pages
             ? [
                   ...new Map(
                       data.pages

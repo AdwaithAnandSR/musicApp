@@ -54,8 +54,7 @@ const Search = () => {
         enabled: debouncedText.length >= 3
     });
 
-    const songs =
-        data?.pages.flatMap(page =>
+    const songs = data?.pages.flatMap(page =>
             page.musics?.map(({ _id, cover, ...rest }) => ({
                 id: _id,
                 _id,

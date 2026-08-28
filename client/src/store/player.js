@@ -149,38 +149,70 @@ export const usePlayer = create((set, get) => ({
         });
     },
 
-    next: () => {
-        const { currentTrackIndex, queue, repeatMode } = get();
+    next: async () => {
+        const { currentTrackIndex, queue, repeatMode, playlistControllers, currentPlaylistId } = get();
 
         if (repeatMode === "one") {
             get().playByIndex(currentTrackIndex);
             return;
         }
 
-        const nextIndex = currentTrackIndex + 1;
+        let nextIndex = currentTrackIndex + 1;
+        const controller = playlistControllers[currentPlaylistId];
 
-        if (nextIndex >= queue.length && repeatMode === "queue") {
-            get().playByIndex(0);
+        if (nextIndex >= queue.length && controller && controller.hasNextPage) {
+            const preFetchPlaylistId = currentPlaylistId;
+            
+            await controller.fetchNextPage();
+            
+            if (get().currentPlaylistId !== preFetchPlaylistId) return;
+
+            const newQueue = get().queue;
+            if (nextIndex < newQueue.length) {
+                get().playByIndex(nextIndex);
+            } else if (repeatMode === "queue") {
+                get().playByIndex(0);
+            }
+            return;
+        }
+
+        if (nextIndex >= queue.length) {
+            if (repeatMode === "queue") {
+                get().playByIndex(0);
+            }
             return;
         }
 
         get().playByIndex(nextIndex);
 
-        const state = get();
-        const controller = state.playlistControllers[state.currentPlaylistId];
-
         if (
             controller &&
-            state.queue.length - state.currentTrackIndex <= 3 &&
+            get().queue.length - get().currentTrackIndex <= 3 &&
             controller.hasNextPage &&
             !controller.isFetchingNextPage
-        )
+        ) {
             controller.fetchNextPage();
+        }
     },
 
     prev: () => {
-        const { currentTrackIndex } = get();
-        get().playByIndex(currentTrackIndex - 1);
+        const { currentTrackIndex, queue, repeatMode } = get();
+        
+        if (repeatMode === "one") {
+            get().playByIndex(currentTrackIndex);
+            return;
+        }
+
+        const prevIndex = currentTrackIndex - 1;
+
+        if (prevIndex < 0) {
+            if (repeatMode === "queue" && queue.length > 0) {
+                get().playByIndex(queue.length - 1);
+            }
+            return;
+        }
+
+        get().playByIndex(prevIndex);
     },
 
     changePlaylistAndPlay: async ({
@@ -311,9 +343,10 @@ export const usePlayer = create((set, get) => ({
                     currentTrackIndex,
                     newQueue.length - 1
                 );
-                set({ queue: newQueue });
+                set({ queue: newQueue, currentTrackIndex: -1 });
                 get().playByIndex(nextIdx);
             } else {
+                set({ queue: [] });
                 get().clearPlayer();
             }
         } else {

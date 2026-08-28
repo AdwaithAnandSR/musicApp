@@ -17,11 +17,7 @@ export const fetchPlaylists = async ({ pageParam = 1 }) => {
         return res.data ?? { playlists: [], nextPage: null, hasMore: false };
     } catch (err) {
         console.log(err);
-        return {
-            playlists: [],
-            nextPage: null,
-            hasMore: false
-        };
+        throw err;
     }
 };
 
@@ -49,10 +45,7 @@ export const getPlaylistSongs = async ({
         return data ?? { musics: [], nextCursor: null };
     } catch (err) {
         console.log(err);
-        return {
-            musics: [],
-            nextCursor: null
-        };
+        throw err;
     }
 };
 
