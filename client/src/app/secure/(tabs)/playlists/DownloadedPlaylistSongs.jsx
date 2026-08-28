@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -22,6 +22,7 @@ const DownloadedPlaylistSongs = () => {
     const [downloadedSongsState, setDownloadedSongsState] = useState([]);
     
     const downloadingPlaylistSongs = useDownloadStatus(state => state.downloadingPlaylists[playlistId] ?? EMPTY_ARRAY);
+    const [syncedDownloading, setSyncedDownloading] = useState(downloadingPlaylistSongs);
 
     const loadSongs = useCallback(async () => {
         const fetched = await getDownloadedSongs(playlistId);
@@ -32,8 +33,29 @@ const DownloadedPlaylistSongs = () => {
             return fetched;
         });
     }, [playlistId]);
+
+    useEffect(() => {
+        if (downloadingPlaylistSongs === syncedDownloading) return;
+
+        if (downloadingPlaylistSongs.length > syncedDownloading.length) {
+            setSyncedDownloading(downloadingPlaylistSongs);
+            return;
+        }
+        
+        let isMounted = true;
+        getDownloadedSongs(playlistId).then(fetched => {
+            if (!isMounted) return;
+            setDownloadedSongsState(prev => {
+                if (prev.length === fetched.length) return prev;
+                return fetched;
+            });
+            setSyncedDownloading(downloadingPlaylistSongs);
+        });
+        
+        return () => { isMounted = false; };
+    }, [downloadingPlaylistSongs, syncedDownloading, playlistId]);
     
-    const songs = [...downloadedSongsState, ...downloadingPlaylistSongs];
+    const songs = [...downloadedSongsState, ...syncedDownloading];
 
     useFocusEffect(
         useCallback(() => {
