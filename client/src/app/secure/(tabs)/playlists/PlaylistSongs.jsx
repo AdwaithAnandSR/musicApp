@@ -1,5 +1,5 @@
 import DownloadOptionsModal from "@components/playlists/DownloadOptionsModal.jsx";
-import { downloadPlaylistSongs } from "@services/downloads/downloadService.js";
+import { downloadPlaylistSongs, getDownloadedSongs } from "@services/downloads/downloadService.js";
 import Toast from "@services/Toast.js";
 
 import { useRef, useEffect, useState } from "react";
@@ -9,7 +9,7 @@ import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 
-import { useAppStatus } from "@store/appState.store.js";
+import { useAppStatus, useDownloadStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
 import { getPlaylistSongs } from "@controllers/playlists/fetch";
 import queryClient from "@services/queryClient";
@@ -203,18 +203,32 @@ const PlaylistSongs = () => {
             Toast.show("No songs to download", "error");
             return;
         }
-        
-        Toast.show(`Downloading ${Math.min(numSongs, songs.length)} songs...`, "pending");
-        
-        const playlistToSave = {
-            id: playlistId,
-            name: playlistName,
-            cover: currentSelectedPlaylist?.cover || cachedPlaylist?.cover || null
-        };
-        
-        const songsToDownload = songs.slice(0, numSongs);
-        
+
         try {
+            const downloadedSongs = await getDownloadedSongs(playlistId);
+            const downloadedIds = new Set(downloadedSongs.map(s => s.id || s._id));
+            const downloadingTasks = useDownloadStatus.getState().downloadTasks;
+
+            const pendingSongs = songs.filter(s => {
+                const sId = s.id || s._id;
+                return !downloadedIds.has(sId) && !downloadingTasks[sId];
+            });
+
+            const songsToDownload = pendingSongs.slice(0, numSongs);
+
+            if (songsToDownload.length === 0) {
+                Toast.show("All selected songs are already downloaded", "success");
+                return;
+            }
+
+            Toast.show(`Downloading ${songsToDownload.length} songs...`, "pending");
+            
+            const playlistToSave = {
+                id: playlistId,
+                name: playlistName,
+                cover: currentSelectedPlaylist?.cover || cachedPlaylist?.cover || null
+            };
+            
             await downloadPlaylistSongs(playlistToSave, songsToDownload, (current, total, progress) => {
                 // we could show a progress toast here
             });

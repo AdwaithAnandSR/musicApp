@@ -245,11 +245,12 @@ export const downloadPlaylistSongs = async (
         )
     });
 
+    const downloadingTasks = useDownloadStatus.getState().downloadTasks;
     const pendingSongs = songsToDownload.filter(
         song =>
             !downloadedSongs.find(
                 s => (s.id || s._id) === (song.id || song._id)
-            )
+            ) && !downloadingTasks[song.id || song._id]
     );
     if (pendingSongs.length > 0) {
         useDownloadStatus
@@ -263,9 +264,10 @@ export const downloadPlaylistSongs = async (
         const songId = song.id || song._id;
 
         /*
-         * Already downloaded
+         * Already downloaded or currently downloading
          */
-        if (downloadedSongs.find(s => (s.id || s._id) === songId)) {
+        const isDownloading = !!useDownloadStatus.getState().downloadTasks[songId];
+        if (downloadedSongs.find(s => (s.id || s._id) === songId) || isDownloading) {
             if (onProgress) {
                 onProgress(i + 1, songsToDownload.length, 1);
             }
