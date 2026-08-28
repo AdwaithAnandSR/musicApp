@@ -119,12 +119,18 @@ export const useDownloadStatus = create((set, get) => ({
             const newSongsFiltered = songsWithState.filter(
                 newSong => !existingSongs.find(es => (es.id || es._id) === (newSong.id || newSong._id))
             );
+            
+            const newDownloadingSongs = { ...state.downloadingSongs };
+            newSongsFiltered.forEach(song => {
+                newDownloadingSongs[song.id || song._id] = { status: 'pending', progress: 0 };
+            });
 
             return {
                 downloadingPlaylists: {
                     ...state.downloadingPlaylists,
                     [playlistId]: [...existingSongs, ...newSongsFiltered]
-                }
+                },
+                downloadingSongs: newDownloadingSongs
             };
         }),
 
@@ -151,7 +157,10 @@ export const useDownloadStatus = create((set, get) => ({
                 },
                 downloadingSongs: {
                     ...state.downloadingSongs,
-                    [songId]: progressData.status || 'downloading'
+                    [songId]: {
+                        status: progressData.status || 'downloading',
+                        progress: progressData.progress || 0
+                    }
                 }
             };
         }),
@@ -178,7 +187,10 @@ export const useDownloadStatus = create((set, get) => ({
         set(state => ({
             downloadingSongs: {
                 ...state.downloadingSongs,
-                [songId]: status
+                [songId]: {
+                    status,
+                    progress: state.downloadingSongs[songId]?.progress || 0
+                }
             }
         })),
         

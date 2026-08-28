@@ -39,7 +39,7 @@ const ListItem = ({ item, ID, text = "", isLocal=false }) => {
         )
     );
 
-    const downloadingStatus = useDownloadStatus(
+    const downloadingData = useDownloadStatus(
         state => state.downloadingSongs[item.id || item._id]
     );
 
@@ -107,8 +107,15 @@ const ListItem = ({ item, ID, text = "", isLocal=false }) => {
                     search={text}
                     isCurrent={isCurrentPlaying}
                 />
-                {downloadingStatus === 'downloading' && (
-                    <Text style={{ color: 'gray', fontSize: 12, marginTop: 4 }}>Downloading...</Text>
+                {downloadingData?.status === 'downloading' && (
+                    <Text style={{ color: 'gray', fontSize: 12, marginTop: 4 }}>
+                        Downloading... {Math.round((downloadingData.progress || 0) * 100)}%
+                    </Text>
+                )}
+                {downloadingData?.status === 'pending' && (
+                    <Text style={{ color: 'gray', fontSize: 12, marginTop: 4 }}>
+                        Pending...
+                    </Text>
                 )}
             </View>
 
