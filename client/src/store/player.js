@@ -103,19 +103,6 @@ export const usePlayer = create((set, get) => ({
 
                 if (status.didJustFinish) {
                     queueMicrotask(() => get().next());
-
-                    const state = get();
-                    const controller =
-                        state.playlistControllers[state.currentPlaylistId];
-
-                    if (
-                        controller &&
-                        state.queue.length - state.currentTrackIndex <= 3 &&
-                        controller.hasNextPage &&
-                        !controller.isFetchingNextPage
-                    ) {
-                        controller.fetchNextPage();
-                    }
                 }
             }
         );
@@ -159,26 +146,29 @@ export const usePlayer = create((set, get) => ({
 
         let nextIndex = currentTrackIndex + 1;
         const controller = playlistControllers[currentPlaylistId];
-
-        if (nextIndex >= queue.length && controller && controller.hasNextPage) {
-            const preFetchPlaylistId = currentPlaylistId;
-            
-            await controller.fetchNextPage();
-            
-            if (get().currentPlaylistId !== preFetchPlaylistId) return;
-
-            const newQueue = get().queue;
-            if (nextIndex < newQueue.length) {
-                get().playByIndex(nextIndex);
-            } else if (repeatMode === "queue") {
-                get().playByIndex(0);
-            }
-            return;
-        }
+        const shouldFetchPage = repeatMode !== "queue" && repeatMode !== "one";
 
         if (nextIndex >= queue.length) {
             if (repeatMode === "queue") {
                 get().playByIndex(0);
+                return;
+            }
+
+            if (shouldFetchPage && controller && controller.hasNextPage) {
+                const preFetchPlaylistId = currentPlaylistId;
+                
+                try {
+                    await controller.fetchNextPage();
+                } catch (e) {
+                    console.error("Pagination error:", e);
+                }
+                
+                if (get().currentPlaylistId !== preFetchPlaylistId) return;
+
+                const newQueue = get().queue;
+                if (nextIndex < newQueue.length) {
+                    get().playByIndex(nextIndex);
+                }
             }
             return;
         }
@@ -186,6 +176,7 @@ export const usePlayer = create((set, get) => ({
         get().playByIndex(nextIndex);
 
         if (
+            shouldFetchPage &&
             controller &&
             get().queue.length - get().currentTrackIndex <= 3 &&
             controller.hasNextPage &&
