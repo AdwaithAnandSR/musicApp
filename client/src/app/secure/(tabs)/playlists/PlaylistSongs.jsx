@@ -2,7 +2,7 @@ import DownloadOptionsModal from "@components/playlists/DownloadOptionsModal.jsx
 import { downloadPlaylistSongs, getDownloadedSongs } from "@services/downloads/downloadService.js";
 import Toast from "@services/Toast.js";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
@@ -172,8 +172,7 @@ const PlaylistSongs = () => {
         } catch (e) {}
     }, [isRandom, seed]);
 
-    const songs =
-        data?.pages.flatMap(
+    const songs = data?.pages.flatMap(
             page =>
                 page.musics?.map(({ _id, cover, ...rest }) => ({
                     id: _id,

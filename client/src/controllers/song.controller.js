@@ -21,11 +21,7 @@ export async function fetchSongs({ pageParam }) {
         return result;
     } catch (err) {
         console.log(err);
-        return {
-            musics: [],
-            hasMore: false,
-            nextCursor: null
-        };
+        throw err;
     }
 }
 
