@@ -18,7 +18,7 @@ import LongPressOptions from "./LongPressOptions.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item }) => {
+const ListItem = ({ item, local = false }) => {
     const [showOptions, setShowOptions] = useState(false);
     const isSelecting = useMultiSelect(
         state => state.selectedSongs?.length > 0
@@ -30,12 +30,31 @@ const ListItem = ({ item }) => {
     const reset = useMultiSelect(state => state.reset);
 
     const handleLongPress = () => {
+        if (item.isLocalDownloadsFolder) return;
         Haptics.impactAsync("light");
         setShowOptions(true);
     };
 
     const handleRoute = () => {
+        if (item.isLocalDownloadsFolder) {
+            router.push({
+                pathname: "secure/playlists/DownloadedPlaylists"
+            });
+            return;
+        }
+
         setCurrentSelectedPlaylist(item);
+        if (item.isLocalFolder) {
+            router.push({
+                pathname: "secure/playlists/DownloadedPlaylistSongs",
+                params: {
+                    playlistId: item._id,
+                    playlistName: item.name
+                }
+            });
+            return;
+        }
+
         router.push({
             pathname: "secure/playlists/PlaylistSongs",
             params: {
@@ -51,7 +70,8 @@ const ListItem = ({ item }) => {
         <TouchableOpacity
             onPress={handleRoute}
             onLongPress={handleLongPress}
-            style={styles.container}>
+            style={styles.container}
+        >
             <View style={styles.ImgNameCont}>
                 <View style={styles.imageContainer}>
                     <Image
@@ -79,7 +99,8 @@ const ListItem = ({ item }) => {
                             reset
                         })
                     }
-                    style={styles.btn}>
+                    style={styles.btn}
+                >
                     <Entypo name="plus" size={15} color="white" />
                     <Text style={styles.text}>Add</Text>
                 </TouchableOpacity>
@@ -88,6 +109,7 @@ const ListItem = ({ item }) => {
                 <LongPressOptions
                     id={item?._id}
                     setShowOptions={setShowOptions}
+                    isLocal={item?.isLocalFolder}
                 />
             )}
         </TouchableOpacity>

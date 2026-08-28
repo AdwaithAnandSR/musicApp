@@ -11,7 +11,8 @@ import { Image } from "expo-image";
 import {
     useMultiSelect,
     useStatus,
-    useAppStatus
+    useAppStatus,
+    useDownloadStatus
 } from "../store/appState.store.js";
 import { usePlayer } from "../store/player.js";
 
@@ -19,7 +20,7 @@ import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item, ID, text = "" }) => {
+const ListItem = ({ item, ID, text = "", isLocal=false }) => {
     const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
     const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
@@ -38,6 +39,10 @@ const ListItem = ({ item, ID, text = "" }) => {
         )
     );
 
+    const downloadingStatus = useDownloadStatus(
+        state => state.downloadingSongs[item.id || item._id]
+    );
+
     if (!item?.url) return null;
 
     const handleShortPress = async () => {
@@ -47,7 +52,8 @@ const ListItem = ({ item, ID, text = "" }) => {
             resetShowLyrics();
             changePlaylistAndPlay({
                 playlistId: ID,
-                trackId: item.id || item._id
+                trackId: item.id || item._id,
+                isLocal
             });
         } else {
             updateSelected(item);
@@ -95,11 +101,16 @@ const ListItem = ({ item, ID, text = "" }) => {
                 />
             </View>
 
-            <HighlightedText
-                title={item.title}
-                search={text}
-                isCurrent={isCurrentPlaying}
-            />
+            <View style={{ flex: 1 }}>
+                <HighlightedText
+                    title={item.title}
+                    search={text}
+                    isCurrent={isCurrentPlaying}
+                />
+                {downloadingStatus === 'downloading' && (
+                    <Text style={{ color: 'gray', fontSize: 12, marginTop: 4 }}>Downloading...</Text>
+                )}
+            </View>
 
             {isCurrentPlaying && (
                 <LottieView

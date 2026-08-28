@@ -1,3 +1,7 @@
+import DownloadOptionsModal from "@components/playlists/DownloadOptionsModal.jsx";
+import { downloadPlaylistSongs } from "@services/downloads/downloadService.js";
+import Toast from "@services/Toast.js";
+
 import { useRef, useEffect, useState } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -27,6 +31,7 @@ const PlaylistSongs = () => {
 
     const [isRandom, setIsRandom] = useState(false);
     const [seed, setSeed] = useState(() => Math.random());
+    const [downloadModalVisible, setDownloadModalVisible] = useState(false);
 
     const currentSelectedPlaylist = useAppStatus(
         state => state.currentSelectedPlaylist
@@ -193,6 +198,32 @@ const PlaylistSongs = () => {
             });
     };
 
+    const handleDownloadSelect = async (numSongs) => {
+        if (!songs || songs.length === 0) {
+            Toast.show("No songs to download", "error");
+            return;
+        }
+        
+        Toast.show(`Downloading ${Math.min(numSongs, songs.length)} songs...`, "pending");
+        
+        const playlistToSave = {
+            id: playlistId,
+            name: playlistName,
+            cover: currentSelectedPlaylist?.cover || cachedPlaylist?.cover || null
+        };
+        
+        const songsToDownload = songs.slice(0, numSongs);
+        
+        try {
+            await downloadPlaylistSongs(playlistToSave, songsToDownload, (current, total, progress) => {
+                // we could show a progress toast here
+            });
+            Toast.show("Download Complete!", "success");
+        } catch (error) {
+            Toast.show("Download Failed", "error");
+        }
+    };
+
     return (
         <View style={styles.container}>
             <Header
@@ -205,6 +236,7 @@ const PlaylistSongs = () => {
                 onToggleRandom={handleToggleRandom}
                 onReshuffle={handleReshuffle}
                 onPlayShuffled={handlePlayShuffled}
+                onDownload={() => setDownloadModalVisible(true)}
             />
 
             <AnimatedFlashList
@@ -258,6 +290,12 @@ const PlaylistSongs = () => {
             />
 
             <PopUpOptions />
+            
+            <DownloadOptionsModal 
+                visible={downloadModalVisible}
+                onClose={() => setDownloadModalVisible(false)}
+                onSelect={handleDownloadSelect}
+            />
         </View>
     );
 };

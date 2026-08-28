@@ -46,6 +46,16 @@ const PopUpOptions = () => {
         useMultiSelect.getState().reset();
     };
 
+    const isLocalDownload = typeof options.playId === "string" && options.playId.startsWith("local-");
+
+    const handleRemoveDownload = async () => {
+        const pId = options.playId.replace("local-", "");
+        useAppStatus.getState().setPopUpOption(-1, null, null);
+        const { deleteDownloadedSong } = require("../services/downloads/downloadService.js");
+        await deleteDownloadedSong(pId, options.songId);
+        Toast.show("Download removed", "success");
+    };
+
     const handleBatchRemove = async () => {
         const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
@@ -181,6 +191,17 @@ const PopUpOptions = () => {
                         >
                             <Text style={styles.itemText}>
                                 Remove from Playlist
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+                    
+                    {isLocalDownload && (
+                        <TouchableOpacity
+                            style={styles.item}
+                            onPress={handleRemoveDownload}
+                        >
+                            <Text style={styles.itemText}>
+                                Remove Download
                             </Text>
                         </TouchableOpacity>
                     )}

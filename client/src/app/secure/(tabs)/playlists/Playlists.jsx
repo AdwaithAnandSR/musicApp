@@ -32,7 +32,12 @@ const Playlists = () => {
         getNextPageParam: lastPage => lastPage.nextPage
     });
 
-    const playlists = data?.pages.flatMap(page => page.playlists) || [];
+    const apiPlaylists = data?.pages.flatMap(page => page.playlists) || [];
+    
+    const playlists = [
+        { _id: 'LOCAL_DOWNLOADS', name: 'Downloads', isLocalDownloadsFolder: true, cover: null },
+        ...apiPlaylists
+    ];
 
     const handleRefresh = () => {
         queryClient.resetQueries({ queryKey: ["playlists"] });
