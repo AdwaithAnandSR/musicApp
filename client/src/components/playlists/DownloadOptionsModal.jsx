@@ -3,18 +3,42 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput } from 'reac
 
 const DownloadOptionsModal = ({ visible, onClose, onSelect }) => {
     const [custom, setCustom] = useState('');
+    const [concurrency, setConcurrency] = useState(1);
     const options = [15, 30, 50, 100];
+
+    const handleSelect = (num) => {
+        onSelect(num, concurrency);
+        onClose();
+    };
 
     return (
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
                 <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
                     <Text style={styles.title}>Download Songs</Text>
+                    
+                    <Text style={styles.subtitle}>Parallel Downloads:</Text>
+                    <View style={styles.concurrencyContainer}>
+                        <TouchableOpacity 
+                            style={styles.concurrencyBtn} 
+                            onPress={() => setConcurrency(prev => Math.max(1, prev - 1))}
+                        >
+                            <Text style={styles.concurrencyBtnText}>-</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.concurrencyText}>{concurrency}</Text>
+                        <TouchableOpacity 
+                            style={styles.concurrencyBtn} 
+                            onPress={() => setConcurrency(prev => prev + 1)}
+                        >
+                            <Text style={styles.concurrencyBtnText}>+</Text>
+                        </TouchableOpacity>
+                    </View>
+
                     <Text style={styles.subtitle}>Select the number of songs to download:</Text>
                     
                     <View style={styles.optionsContainer}>
                         {options.map((opt) => (
-                            <TouchableOpacity key={opt} style={styles.optionBtn} onPress={() => { onSelect(opt); onClose(); }}>
+                            <TouchableOpacity key={opt} style={styles.optionBtn} onPress={() => handleSelect(opt)}>
                                 <Text style={styles.optionText}>{opt} Songs</Text>
                             </TouchableOpacity>
                         ))}
@@ -34,8 +58,7 @@ const DownloadOptionsModal = ({ visible, onClose, onSelect }) => {
                             onPress={() => {
                                 const num = parseInt(custom, 10);
                                 if (!isNaN(num) && num > 0) {
-                                    onSelect(num);
-                                    onClose();
+                                    handleSelect(num);
                                 }
                             }}
                         >
@@ -112,6 +135,36 @@ const styles = StyleSheet.create({
     customBtnText: {
         color: 'black',
         fontWeight: 'bold'
+    },
+    concurrencyContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 20,
+        marginBottom: 20,
+        backgroundColor: '#333',
+        alignSelf: 'flex-start',
+        borderRadius: 8,
+        padding: 5
+    },
+    concurrencyBtn: {
+        backgroundColor: '#444',
+        width: 35,
+        height: 35,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 8
+    },
+    concurrencyBtnText: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: 'bold'
+    },
+    concurrencyText: {
+        color: 'white',
+        fontSize: 18,
+        fontWeight: 'bold',
+        minWidth: 20,
+        textAlign: 'center'
     }
 });
 

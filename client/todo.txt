@@ -1,0 +1,6 @@
+. wait for download to complete to play next instead of playing first song,
+if the currently downloaded tracks ends.
+
+. persist the random song to show in ui for playlist if the track is playing 
+from the randomized list.
+
