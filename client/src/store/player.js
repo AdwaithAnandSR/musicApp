@@ -243,26 +243,29 @@ export const usePlayer = create((set, get) => ({
          * 2. Otherwise use the normal React Query playlist data.
          */
         if (!tracks) {
-            const activeQueries = queryClient.getQueriesData({
-                queryKey: [playlistId]
-            });
-
-            if (activeQueries && activeQueries.length > 0) {
-                const [, lastQueryData] =
-                    activeQueries[activeQueries.length - 1];
-
-                tracks =
-                    lastQueryData?.pages?.flatMap(page => page.musics) ?? [];
+            let targetQueryKey = [playlistId];
+            if (isRandomPlaylist && randomSeed) {
+                targetQueryKey = [playlistId, "random", randomSeed];
             }
-        }
-
-        /*
-         * 3. Fallback to normal query cache.
-         */
-        if (!tracks || !tracks.length) {
-            const data = queryClient.getQueryData([playlistId]);
-
+            
+            const data = queryClient.getQueryData(targetQueryKey);
             tracks = data?.pages?.flatMap(page => page.musics) ?? [];
+
+            if (!tracks.length) {
+                // Fallback to active queries matching exactly
+                const activeQueries = queryClient.getQueriesData({
+                    queryKey: targetQueryKey,
+                    exact: true
+                });
+
+                if (activeQueries && activeQueries.length > 0) {
+                    const [, lastQueryData] =
+                        activeQueries[activeQueries.length - 1];
+
+                    tracks =
+                        lastQueryData?.pages?.flatMap(page => page.musics) ?? [];
+                }
+            }
         }
 
         if (!tracks?.length) return false;
@@ -287,9 +290,10 @@ export const usePlayer = create((set, get) => ({
          * 5. Reuse current queue when possible.
          */
         const shouldUpdateQueue =
-            Boolean(tracksOverride) ||
+            !!tracksOverride ||
             isLocal ||
             currentPlaylistId !== playlistId ||
+            get().isRandomPlaylist !== isRandomPlaylist ||
             queue.length !== tracks.length;
 
         if (!shouldUpdateQueue && currentPlaylistId === playlistId) {
