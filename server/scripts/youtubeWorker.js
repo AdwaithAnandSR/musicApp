@@ -62,18 +62,13 @@ const runCommand = (command, args) => {
 };
 
 const connectDB = async () => {
-    let uri = process.env.MONGODB_URI;
+    const uri = process.env.MONGODB_URI;
     if (!uri) {
-        const pass = process.env.MONGODB_PASS;
-        if (!pass) {
-            throw new Error("Missing MongoDB connection info: neither MONGODB_URI nor MONGODB_PASS is set in secrets/environment.");
-        }
-        const dbName = process.env.MONGODB_DB_NAME || "vividMusic";
-        uri = `mongodb+srv://AdwaithAnandSR:${pass}@cluster0.8os2c.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0`;
+        throw new Error("Missing MongoDB connection string: MONGODB_URI secret/environment variable is not set.");
     }
     console.log("Connecting to MongoDB...");
     await mongoose.connect(uri);
-    console.log("Connected to MongoDB successfully.");
+    console.log(`Connected to MongoDB database: ${mongoose.connection.name}`);
 };
 
 const initCloudinary = () => {

@@ -64,8 +64,6 @@ jobs:
           SKIP: ${{ inputs.skip }}
           LIMIT: ${{ inputs.limit }}
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          MONGODB_PASS: ${{ secrets.MONGODB_PASS }}
-          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
