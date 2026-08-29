@@ -17,7 +17,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "@services/axios";
 import { router } from "expo-router";
-// import YoutubeCookiesModule from "youtube-cookies";
+import CookieManager from "@preeternal/react-native-cookie-manager";
 
 const Youtube = () => {
     const webviewRef = useRef(null);
@@ -76,11 +76,25 @@ const Youtube = () => {
         setModalVisible(true);
 
         try {
-            // Extract cookies natively via Android CookieManager
-            // const cookieString = await YoutubeCookiesModule.getCookies("https://m.youtube.com");
-            const cookieString = "";
-            if (cookieString) {
-                setCookies(cookieString.trim());
+            const cookieObj = await CookieManager.get("https://m.youtube.com/");
+
+            if (cookieObj) {
+                if (typeof cookieObj === "object") {
+                    const cookieStr = Object.entries(cookieObj)
+                        .map(([name, item]) => {
+                            const val =
+                                typeof item === "object" &&
+                                item !== null &&
+                                "value" in item
+                                    ? item.value
+                                    : item;
+                            return `${name}=${val}`;
+                        })
+                        .join("; ");
+                    setCookies(cookieStr);
+                } else if (typeof cookieObj === "string") {
+                    setCookies(cookieObj);
+                }
             }
         } catch (e) {
             console.error("Failed to get cookies via CookieManager:", e);
@@ -95,7 +109,6 @@ const Youtube = () => {
 
         setIsLoading(true);
         try {
-            // Note: Update the endpoint path if it's different on your server
             const response = await axios.post("/admin/youtubeDownload", {
                 url,
                 skip: parseInt(skip, 10) || 0,
@@ -103,12 +116,15 @@ const Youtube = () => {
                 cookies
             });
 
-            Alert.alert("Success", "Download started successfully!");
+            Alert.alert(
+                "Success",
+                response?.data?.message || "Download process started successfully!"
+            );
             setModalVisible(false);
         } catch (error) {
             Alert.alert(
                 "Error",
-                error?.response?.data?.message || "Failed to download"
+                error?.response?.data?.message || "Failed to start download"
             );
         } finally {
             setIsLoading(false);

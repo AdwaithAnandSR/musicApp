@@ -1,13 +1,407 @@
-import axios from "axios";
+import { spawn } from "child_process";
+import fs from "fs";
+import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+import musicModel from "../../models/musics.js";
+
+const HISTORY_FILE = path.resolve(process.cwd(), "download_history.json");
+
+const logHistory = (title, ytId, status, details = "") => {
+    try {
+        let history = [];
+        if (fs.existsSync(HISTORY_FILE)) {
+            const data = fs.readFileSync(HISTORY_FILE, "utf-8");
+            if (data) {
+                history = JSON.parse(data);
+            }
+        }
+
+        const entry = {
+            title,
+            ytId,
+            status,
+            details,
+            timestamp: new Date().toISOString()
+        };
+
+        history.unshift(entry);
+        if (history.length > 50) {
+            history = history.slice(0, 50);
+        }
+
+        fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+    } catch (err) {
+        console.error("Failed to write to history file:", err.message);
+    }
+};
+
+const getCloudinaryConfig = () => {
+    if (process.env.CLOUDINARY_URL) {
+        cloudinary.config({
+            cloudinary_url: process.env.CLOUDINARY_URL,
+            secure: true
+        });
+        return;
+    }
+
+    const cloudName =
+        process.env.CLOUDINARY_CLOUD_NAME ||
+        process.env.CLOUDINARY_CLOUD_NAME_1;
+    const apiKey =
+        process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY_1;
+    const apiSecret =
+        process.env.CLOUDINARY_API_SECRET ||
+        process.env.CLOUDINARY_API_SECRET_1;
+
+    if (cloudName && apiKey && apiSecret) {
+        cloudinary.config({
+            cloud_name: cloudName,
+            api_key: apiKey,
+            api_secret: apiSecret,
+            secure: true
+        });
+    } else {
+        console.warn(
+            "Warning: Cloudinary credentials not fully configured in environment."
+        );
+    }
+};
+
+const createCookieFile = cookiesInput => {
+    let raw = cookiesInput;
+    if (!raw && process.env.YOUTUBE_COOKIES) {
+        raw = process.env.YOUTUBE_COOKIES;
+    }
+    if (!raw) return null;
+
+    if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if (!trimmed) return null;
+
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            try {
+                raw = JSON.parse(trimmed);
+            } catch {
+                // keep as string
+            }
+        }
+    }
+
+    let netscapeContent = "# Netscape HTTP Cookie File\n";
+
+    if (typeof raw === "object" && raw !== null) {
+        for (const [key, val] of Object.entries(raw)) {
+            const cookieValue =
+                typeof val === "object" && val !== null && "value" in val
+                    ? val.value
+                    : val;
+            if (key && cookieValue !== undefined && cookieValue !== null) {
+                netscapeContent += `.youtube.com\tTRUE\t/\tTRUE\t2147483647\t${key}\t${cookieValue}\n`;
+            }
+        }
+    } else if (typeof raw === "string") {
+        const trimmed = raw.trim();
+        if (trimmed.startsWith("# Netscape") || trimmed.includes("\t")) {
+            netscapeContent = trimmed.endsWith("\n") ? trimmed : trimmed + "\n";
+        } else {
+            trimmed.split(";").forEach(cookie => {
+                const [name, ...rest] = cookie.trim().split("=");
+                if (name && rest.length > 0) {
+                    const value = rest.join("=");
+                    netscapeContent += `.youtube.com\tTRUE\t/\tTRUE\t2147483647\t${name}\t${value}\n`;
+                }
+            });
+        }
+    }
+
+    const cookiePath = path.resolve(
+        process.cwd(),
+        `cookies-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.txt`
+    );
+    fs.writeFileSync(cookiePath, netscapeContent, { mode: 0o600 });
+    return cookiePath;
+};
+
+const getYtDlpRunner = () => {
+    const localBin = path.resolve(process.cwd(), "bin", "yt-dlp");
+    if (fs.existsSync(localBin)) {
+        return { command: "python3", prefix: [localBin] };
+    }
+    return { command: "yt-dlp", prefix: [] };
+};
+
+const runCommand = (command, args) => {
+    return new Promise((resolve, reject) => {
+        const proc = spawn(command, args);
+        let stdout = "";
+        let stderr = "";
+
+        proc.stdout.on("data", data => {
+            stdout += data.toString();
+        });
+        proc.stderr.on("data", data => {
+            stderr += data.toString();
+        });
+
+        proc.on("close", code => {
+            if (code === 0) {
+                resolve(stdout);
+            } else {
+                reject(
+                    new Error(
+                        `Command '${command} ${args.join(" ")}' failed with code ${code}:\n${stderr}`
+                    )
+                );
+            }
+        });
+
+        proc.on("error", err => reject(err));
+    });
+};
+
+const uploadToCloudinary = async (filePath, resourceType, folder) => {
+    try {
+        const result = await cloudinary.uploader.upload(filePath, {
+            resource_type: resourceType,
+            folder: folder
+        });
+        return result.secure_url;
+    } catch (err) {
+        console.error(`Cloudinary upload error for ${filePath}:`, err);
+        throw err;
+    }
+};
+
+const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
+    const { command, prefix } = getYtDlpRunner();
+    const downloadDir = path.resolve(process.cwd(), "downloads");
+    if (!fs.existsSync(downloadDir)) {
+        fs.mkdirSync(downloadDir, { recursive: true });
+    }
+
+    getCloudinaryConfig();
+
+    const parsedSkip = parseInt(skip, 10) || 0;
+    const parsedLimit = parseInt(limit, 10) || 1;
+    const playlistStart = parsedSkip + 1;
+    const playlistEnd = parsedSkip + parsedLimit;
+
+    try {
+        console.log(
+            `[YouTube Download] Fetching playlist info for: ${url} (items ${playlistStart} to ${playlistEnd})...`
+        );
+        const argsList = [
+            ...prefix,
+            "-j",
+            "--flat-playlist",
+            "--playlist-start",
+            playlistStart.toString(),
+            "--playlist-end",
+            playlistEnd.toString(),
+            "--js-runtimes",
+            "node"
+        ];
+        if (cookieFile) {
+            argsList.push("--cookies", cookieFile);
+        }
+        argsList.push(url);
+
+        const listOutput = await runCommand(command, argsList);
+        const videos = listOutput
+            .split("\n")
+            .map(line => line.trim())
+            .filter(line => line.startsWith("{"))
+            .map(line => {
+                try {
+                    return JSON.parse(line);
+                } catch {
+                    return null;
+                }
+            })
+            .filter(Boolean);
+
+        console.log(
+            `[YouTube Download] Found ${videos.length} video(s) to process.`
+        );
+
+        if (videos.length === 0) {
+            console.log(
+                "[YouTube Download] No videos found matching the criteria or playlist range."
+            );
+        }
+
+        for (const video of videos) {
+            const ytId = video.id;
+            const title = video.title || `Video ${ytId}`;
+            const duration = video.duration || 0;
+            const uploader = video.uploader || video.channel || "Unknown";
+
+            console.log(`------------------------------------------`);
+            console.log(`Processing: "${title}" [${ytId}]`);
+
+            try {
+                // 1. Duplicate check by ytId or title
+                const existing = await musicModel.findOne({
+                    $or: [{ ytId }, { title }]
+                });
+
+                if (existing) {
+                    console.log(
+                        `[SKIPPED] Song already exists in database: "${title}" (${ytId})`
+                    );
+                    logHistory(
+                        title,
+                        ytId,
+                        "SKIPPED",
+                        "Already exists in database"
+                    );
+                    continue;
+                }
+
+                console.log(
+                    `[DOWNLOADING] Audio & thumbnail for "${title}" (${ytId})...`
+                );
+
+                // 2. Download audio (mp3) and thumbnail
+                const dlArgs = [
+                    ...prefix,
+                    "--extract-audio",
+                    "--audio-format",
+                    "mp3",
+                    "--audio-quality",
+                    "0",
+                    "--write-thumbnail",
+                    "--js-runtimes",
+                    "node",
+                    "-o",
+                    path.join(downloadDir, `${ytId}.%(ext)s`),
+                    `https://www.youtube.com/watch?v=${ytId}`
+                ];
+                if (cookieFile) {
+                    dlArgs.push("--cookies", cookieFile);
+                }
+
+                await runCommand(command, dlArgs);
+
+                // 3. Find the downloaded files
+                const files = fs.readdirSync(downloadDir);
+                const audioFile = files.find(
+                    f => f.startsWith(ytId) && f.endsWith(".mp3")
+                );
+                const coverFile = files.find(
+                    f =>
+                        f.startsWith(ytId) &&
+                        !f.endsWith(".mp3") &&
+                        !f.endsWith(".webm") &&
+                        !f.endsWith(".m4a") &&
+                        !f.endsWith(".part") &&
+                        !f.endsWith(".ytdl") &&
+                        !f.endsWith(".temp")
+                );
+
+                if (!audioFile) {
+                    throw new Error(
+                        `Audio file not found for ${ytId} after download`
+                    );
+                }
+
+                // 4. Upload to Cloudinary
+                console.log(
+                    `[UPLOADING] Uploading audio to Cloudinary (musicApp/songs)...`
+                );
+                const audioPath = path.join(downloadDir, audioFile);
+                const audioUrl = await uploadToCloudinary(
+                    audioPath,
+                    "video",
+                    "musicApp/songs"
+                );
+
+                let coverUrl = null;
+                if (coverFile) {
+                    console.log(
+                        `[UPLOADING] Uploading cover image to Cloudinary (musicApp/covers)...`
+                    );
+                    const coverPath = path.join(downloadDir, coverFile);
+                    coverUrl = await uploadToCloudinary(
+                        coverPath,
+                        "image",
+                        "musicApp/covers"
+                    );
+                }
+
+                // 5. Save to MongoDB
+                console.log(`[SAVING] Storing metadata in MongoDB...`);
+                await musicModel.create({
+                    title,
+                    url: audioUrl,
+                    cover: coverUrl,
+                    duration,
+                    artist: uploader,
+                    ytId,
+                    stableRandom: Math.random()
+                });
+
+                console.log(`[SUCCESS] Added "${title}" to database!`);
+                logHistory(
+                    title,
+                    ytId,
+                    "SUCCESS",
+                    "Uploaded to Cloudinary and saved to DB"
+                );
+            } catch (videoError) {
+                console.error(
+                    `[ERROR] Failed processing "${title}" (${ytId}):`,
+                    videoError.message
+                );
+                logHistory(
+                    title,
+                    ytId,
+                    "ERROR",
+                    videoError.message || "Unknown error occurred"
+                );
+            } finally {
+                // 6. Clean up temporary files for this video
+                try {
+                    const currentFiles = fs.readdirSync(downloadDir);
+                    currentFiles.forEach(f => {
+                        if (f.startsWith(ytId)) {
+                            fs.unlinkSync(path.join(downloadDir, f));
+                        }
+                    });
+                } catch (cleanupErr) {
+                    console.error(
+                        `Failed to cleanup temp files for ${ytId}:`,
+                        cleanupErr.message
+                    );
+                }
+            }
+        }
+    } catch (err) {
+        console.error(
+            "[YouTube Download] Error during background download process:",
+            err
+        );
+    } finally {
+        // Cleanup cookie file
+        if (cookieFile && fs.existsSync(cookieFile)) {
+            try {
+                fs.unlinkSync(cookieFile);
+            } catch (e) {
+                console.error("Failed to delete temp cookie file:", e.message);
+            }
+        }
+    }
+};
 
 export const youtubeDownload = async (req, res) => {
     try {
-        const { url, skip, limit } = req.body;
+        const { url, skip, limit, cookies } = req.body;
 
-        console.log("=== YouTube Download Request (Render Dispatcher) ===");
+        console.log("=== YouTube Download Request (Render Server) ===");
         console.log("URL:", url);
         console.log("Skip:", skip);
         console.log("Limit:", limit);
+        console.log("Cookies present:", !!cookies);
 
         // 1. Validation
         if (!url || typeof url !== "string" || !url.trim()) {
@@ -18,80 +412,34 @@ export const youtubeDownload = async (req, res) => {
         }
 
         const trimmedUrl = url.trim();
-
-        // 2. Sanitize skip and limit
         const parsedSkip = parseInt(skip, 10);
         const parsedLimit = parseInt(limit, 10);
-        const safeSkip = !isNaN(parsedSkip) && parsedSkip >= 0 ? String(parsedSkip) : "0";
-        const safeLimit = !isNaN(parsedLimit) && parsedLimit >= 1 ? String(parsedLimit) : "1";
+        const safeSkip = !isNaN(parsedSkip) && parsedSkip >= 0 ? parsedSkip : 0;
+        const safeLimit =
+            !isNaN(parsedLimit) && parsedLimit >= 1 ? parsedLimit : 1;
 
-        // 3. GitHub repository & token configurations
-        const githubToken = process.env.GITHUB_TOKEN;
-        const owner = process.env.GITHUB_OWNER || "AdwaithAnandSR";
-        const repo = process.env.GITHUB_REPO || "musicApp";
-        const ref = process.env.GITHUB_BRANCH || process.env.GITHUB_REF || "main";
-        const workflowId = process.env.GITHUB_WORKFLOW || "youtube-download.yml";
-
-        if (!githubToken) {
-            console.error("Error: GITHUB_TOKEN environment variable is not configured on Render server.");
-            return res.status(500).json({
-                success: false,
-                message: "Server is not configured with GITHUB_TOKEN to trigger download workflows."
-            });
+        // 2. Cookie file creation (if cookies provided)
+        let cookieFile = null;
+        try {
+            cookieFile = createCookieFile(cookies);
+        } catch (cookieErr) {
+            console.error("Failed to create cookie file:", cookieErr.message);
         }
 
-        // 4. Trigger GitHub Actions workflow_dispatch
-        const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`;
+        // 3. Start background download process on Render server
+        processBackgroundDownload(trimmedUrl, safeSkip, safeLimit, cookieFile);
 
-        console.log(`Dispatching workflow '${workflowId}' to GitHub repo '${owner}/${repo}' on branch '${ref}'...`);
-
-        await axios.post(
-            dispatchUrl,
-            {
-                ref,
-                inputs: {
-                    url: trimmedUrl,
-                    skip: safeSkip,
-                    limit: safeLimit
-                }
-            },
-            {
-                headers: {
-                    Accept: "application/vnd.github+json",
-                    Authorization: `Bearer ${githubToken}`,
-                    "X-GitHub-Api-Version": "2022-11-28",
-                    "User-Agent": "musicApp-Render-API"
-                }
-            }
-        );
-
-        console.log("Successfully dispatched GitHub Actions download workflow.");
-
-        // 5. Immediate response
+        // 4. Immediate response
         return res.status(200).json({
             success: true,
-            message: "Download job queued successfully on GitHub Actions worker.",
-            details: {
-                repository: `${owner}/${repo}`,
-                workflow: workflowId,
-                branch: ref,
-                inputs: {
-                    url: trimmedUrl,
-                    skip: safeSkip,
-                    limit: safeLimit
-                }
-            }
+            message:
+                "Download process started in the background on Render server."
         });
-
     } catch (error) {
-        console.error("Error triggering YouTube download workflow:", error?.response?.data || error.message);
-
-        const status = error?.response?.status || 500;
-        const errorMessage = error?.response?.data?.message || error.message || "Failed to trigger GitHub Actions workflow";
-
-        return res.status(status).json({
+        console.error("Error in youtubeDownload:", error);
+        return res.status(500).json({
             success: false,
-            message: `Failed to trigger download worker: ${errorMessage}`
+            message: "Internal server error"
         });
     }
 };
