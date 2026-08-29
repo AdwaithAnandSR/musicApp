@@ -8,9 +8,10 @@ import {
     StyleSheet,
     Alert,
     RefreshControl,
-    StatusBar
+    StatusBar,
+    Linking
 } from "react-native";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, router } from "expo-router";
 
 import {
     fetchAllUsers,
@@ -225,7 +226,15 @@ const AdminPanel = () => {
 
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Admin Panel</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={styles.headerTitle}>Admin Panel</Text>
+                    <TouchableOpacity
+                        style={styles.youtubeBtn}
+                        onPress={() => router.push("/secure/others/Youtube")}
+                    >
+                        <Text style={styles.youtubeBtnText}>Open YouTube</Text>
+                    </TouchableOpacity>
+                </View>
                 <Text style={styles.headerSub}>
                     {users.length} user{users.length !== 1 ? "s" : ""}
                     {pendingCount > 0 && (
@@ -307,6 +316,17 @@ const styles = StyleSheet.create({
         fontSize: 26,
         fontWeight: "800",
         letterSpacing: 0.5
+    },
+    youtubeBtn: {
+        backgroundColor: '#FF0000',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    youtubeBtnText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 12,
     },
     headerSub: {
         color: "#555",

@@ -5,8 +5,9 @@
     "type": "module",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "dev": "npx nodemon index.js",
-        "start": "node index.js"
+        "dev": "npx nodemon --ignore downloads/ --ignore download_history.json --ignore 'cookies-*.txt' index.js",
+        "start": "node index.js",
+        "worker:youtube": "node scripts/youtubeWorker.js"
     },
     "keywords": [],
     "author": "",
