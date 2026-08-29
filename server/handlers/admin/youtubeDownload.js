@@ -123,9 +123,18 @@ const createCookieFile = cookiesInput => {
 };
 
 const getYtDlpRunner = () => {
-    const localBin = path.resolve(process.cwd(), "bin", "yt-dlp");
-    if (fs.existsSync(localBin)) {
-        return { command: "python3", prefix: [localBin] };
+    const currentDir = path.dirname(new URL(import.meta.url).pathname);
+    const candidatePaths = [
+        path.resolve(process.cwd(), "bin", "yt-dlp"),
+        path.resolve(process.cwd(), "server", "bin", "yt-dlp"),
+        path.resolve(currentDir, "..", "..", "bin", "yt-dlp"),
+        path.resolve(currentDir, "..", "bin", "yt-dlp")
+    ];
+
+    for (const binPath of candidatePaths) {
+        if (fs.existsSync(binPath)) {
+            return { command: "python3", prefix: [binPath] };
+        }
     }
     return { command: "yt-dlp", prefix: [] };
 };
@@ -172,6 +181,24 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
     }
 };
 
+const extractVideoId = inputUrl => {
+    try {
+        const parsed = new URL(inputUrl);
+        const v = parsed.searchParams.get("v");
+        if (v) return v;
+        if (parsed.hostname.includes("youtu.be")) {
+            const pathname = parsed.pathname.replace(/^\/+/, "");
+            if (pathname) return pathname.split("/")[0];
+        }
+    } catch {
+        const match =
+            inputUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
+            inputUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+        if (match) return match[1];
+    }
+    return null;
+};
+
 const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
     const { command, prefix } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
@@ -181,44 +208,100 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
 
     getCloudinaryConfig();
 
-    const parsedSkip = parseInt(skip, 10) || 0;
-    const parsedLimit = parseInt(limit, 10) || 1;
-    const playlistStart = parsedSkip + 1;
-    const playlistEnd = parsedSkip + parsedLimit;
-
     try {
-        console.log(
-            `[YouTube Download] Fetching playlist info for: ${url} (items ${playlistStart} to ${playlistEnd})...`
-        );
-        const argsList = [
-            ...prefix,
-            "-j",
-            "--flat-playlist",
-            "--playlist-start",
-            playlistStart.toString(),
-            "--playlist-end",
-            playlistEnd.toString(),
-            "--js-runtimes",
-            "node"
-        ];
-        if (cookieFile) {
-            argsList.push("--cookies", cookieFile);
-        }
-        argsList.push(url);
+        const videoId = extractVideoId(url);
+        let videos = [];
 
-        const listOutput = await runCommand(command, argsList);
-        const videos = listOutput
-            .split("\n")
-            .map(line => line.trim())
-            .filter(line => line.startsWith("{"))
-            .map(line => {
-                try {
-                    return JSON.parse(line);
-                } catch {
-                    return null;
+        if (videoId) {
+            const directVideoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+            console.log(
+                `[YouTube Download] Direct video ID detected: ${videoId}. Using single video URL: ${directVideoUrl}`
+            );
+
+            // Quick duplicate check before running yt-dlp
+            const existing = await musicModel.findOne({ ytId: videoId });
+            if (existing) {
+                console.log(
+                    `[SKIPPED] Song already exists in database: "${existing.title}" (${videoId})`
+                );
+                logHistory(
+                    existing.title,
+                    videoId,
+                    "SKIPPED",
+                    "Already exists in database"
+                );
+                return;
+            }
+
+            console.log(
+                `[YouTube Download] Fetching single video metadata for: ${directVideoUrl}...`
+            );
+            const argsList = [
+                ...prefix,
+                "-j",
+                "--no-playlist",
+                "--js-runtimes",
+                "node"
+            ];
+            if (cookieFile) {
+                argsList.push("--cookies", cookieFile);
+            }
+            argsList.push(directVideoUrl);
+
+            const infoOutput = await runCommand(command, argsList);
+            const videoData = JSON.parse(infoOutput.trim());
+            videos = [
+                {
+                    id: videoData.id || videoId,
+                    title: videoData.title || `Video ${videoId}`,
+                    duration: videoData.duration || 0,
+                    uploader:
+                        videoData.uploader ||
+                        videoData.channel ||
+                        videoData.artist ||
+                        "Unknown"
                 }
-            })
-            .filter(Boolean);
+            ];
+        } else {
+            // Actual playlist without a direct video ID
+            const parsedSkip = parseInt(skip, 10) || 0;
+            const parsedLimit = parseInt(limit, 10) || 1;
+            const playlistStart = parsedSkip + 1;
+            const playlistEnd = parsedSkip + parsedLimit;
+
+            console.log(
+                `[YouTube Download] Fetching playlist info for: ${url} (items ${playlistStart} to ${playlistEnd})...`
+            );
+            const argsList = [
+                ...prefix,
+                "-j",
+                "--flat-playlist",
+                "--playlist-start",
+                playlistStart.toString(),
+                "--playlist-end",
+                playlistEnd.toString(),
+                "--js-runtimes",
+                "node"
+            ];
+            if (cookieFile) {
+                argsList.push("--cookies", cookieFile);
+            }
+            argsList.push(url);
+
+            const listOutput = await runCommand(command, argsList);
+            videos = listOutput
+                .split("\n")
+                .map(line => line.trim())
+                .filter(line => line.startsWith("{"))
+                .map(line => {
+                    try {
+                        return JSON.parse(line);
+                    } catch {
+                        return null;
+                    }
+                })
+                .filter(Boolean);
+        }
 
         console.log(
             `[YouTube Download] Found ${videos.length} video(s) to process.`
@@ -271,6 +354,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
                     "--audio-quality",
                     "0",
                     "--write-thumbnail",
+                    "--no-playlist",
                     "--js-runtimes",
                     "node",
                     "-o",
