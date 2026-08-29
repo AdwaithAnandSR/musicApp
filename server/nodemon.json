@@ -1,0 +1,7 @@
+{
+  "ignore": [
+    "downloads/*",
+    "cookies-*.txt",
+    "download_history.json"
+  ]
+}
