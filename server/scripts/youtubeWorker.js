@@ -53,7 +53,11 @@ const runCommand = (command, args) => {
             if (code === 0) {
                 resolve(stdout);
             } else {
-                reject(new Error(`Command '${command} ${args.join(" ")}' failed with code ${code}:\n${stderr}`));
+                reject(
+                    new Error(
+                        `Command '${command} ${args.join(" ")}' failed with code ${code}:\n${stderr}`
+                    )
+                );
             }
         });
 
@@ -63,13 +67,21 @@ const runCommand = (command, args) => {
 
 const connectDB = async () => {
     const uri = process.env.MONGODB_URI;
-    console.log("Connecting to MongoDB...", uri);
+    console.log("Connecting to MongoDB...", uri.length);
     if (!uri) {
-        throw new Error("Missing MongoDB connection string: MONGODB_URI secret/environment variable is not set.");
+        throw new Error(
+            "Missing MongoDB connection string: MONGODB_URI secret/environment variable is not set."
+        );
     }
     console.log("Connecting to MongoDB...");
-    await mongoose.connect(uri);
-    console.log(`Connected to MongoDB database: ${mongoose.connection.name}`);
+    try {
+        await mongoose.connect(uri);
+        console.log(
+            `Connected to MongoDB database: ${mongoose.connection.name}`
+        );
+    } catch (error) {
+        console.log("Failed to connect: ", error);
+    }
 };
 
 const initCloudinary = () => {
@@ -78,7 +90,9 @@ const initCloudinary = () => {
     const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
     if (!cloudName || !apiKey || !apiSecret) {
-        throw new Error("Missing Cloudinary credentials in secrets: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required.");
+        throw new Error(
+            "Missing Cloudinary credentials in secrets: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET are required."
+        );
     }
 
     cloudinary.config({
@@ -142,7 +156,9 @@ const main = async () => {
         fs.writeFileSync(cookieFile, netscapeContent, { mode: 0o600 });
         console.log("YouTube cookies configured from secret.");
     } else {
-        console.log("No YouTube cookies secret provided; proceeding with standard extractors.");
+        console.log(
+            "No YouTube cookies secret provided; proceeding with standard extractors."
+        );
     }
 
     const downloadDir = path.resolve(process.cwd(), "downloads");
@@ -165,14 +181,20 @@ const main = async () => {
         const playlistStart = parsedSkip + 1;
         const playlistEnd = parsedSkip + parsedLimit;
 
-        console.log(`\nFetching playlist info (items ${playlistStart} to ${playlistEnd})...`);
+        console.log(
+            `\nFetching playlist info (items ${playlistStart} to ${playlistEnd})...`
+        );
         const argsList = [
             "-j",
             "--flat-playlist",
-            "--playlist-start", playlistStart.toString(),
-            "--playlist-end", playlistEnd.toString(),
-            "--js-runtimes", "node",
-            "--extractor-args", "youtube:client=ANDROID,IOS"
+            "--playlist-start",
+            playlistStart.toString(),
+            "--playlist-end",
+            playlistEnd.toString(),
+            "--js-runtimes",
+            "node",
+            "--extractor-args",
+            "youtube:client=ANDROID,IOS"
         ];
         if (cookieFile) {
             argsList.push("--cookies", cookieFile);
@@ -196,7 +218,9 @@ const main = async () => {
         console.log(`Found ${videos.length} video(s) to process.\n`);
 
         if (videos.length === 0) {
-            console.log("No videos found matching the criteria or playlist range.");
+            console.log(
+                "No videos found matching the criteria or playlist range."
+            );
         }
 
         for (const video of videos) {
@@ -215,23 +239,37 @@ const main = async () => {
                 });
 
                 if (existing) {
-                    console.log(`[SKIPPED] Song already exists in database: "${title}" (${ytId})`);
-                    logHistory(title, ytId, "SKIPPED", "Already exists in database");
+                    console.log(
+                        `[SKIPPED] Song already exists in database: "${title}" (${ytId})`
+                    );
+                    logHistory(
+                        title,
+                        ytId,
+                        "SKIPPED",
+                        "Already exists in database"
+                    );
                     skippedCount++;
                     continue;
                 }
 
-                console.log(`[DOWNLOADING] Audio & thumbnail for "${title}" (${ytId})...`);
+                console.log(
+                    `[DOWNLOADING] Audio & thumbnail for "${title}" (${ytId})...`
+                );
 
                 // 2. Download audio (mp3) and thumbnail
                 const dlArgs = [
                     "--extract-audio",
-                    "--audio-format", "mp3",
-                    "--audio-quality", "0",
+                    "--audio-format",
+                    "mp3",
+                    "--audio-quality",
+                    "0",
                     "--write-thumbnail",
-                    "--js-runtimes", "node",
-                    "--extractor-args", "youtube:client=ANDROID,IOS",
-                    "-o", path.join(downloadDir, `${ytId}.%(ext)s`),
+                    "--js-runtimes",
+                    "node",
+                    "--extractor-args",
+                    "youtube:client=ANDROID,IOS",
+                    "-o",
+                    path.join(downloadDir, `${ytId}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
                 ];
                 if (cookieFile) {
@@ -242,31 +280,48 @@ const main = async () => {
 
                 // 3. Find the downloaded files
                 const files = fs.readdirSync(downloadDir);
-                const audioFile = files.find(f => f.startsWith(ytId) && f.endsWith(".mp3"));
+                const audioFile = files.find(
+                    f => f.startsWith(ytId) && f.endsWith(".mp3")
+                );
                 const coverFile = files.find(
-                    f => f.startsWith(ytId) &&
-                    !f.endsWith(".mp3") &&
-                    !f.endsWith(".webm") &&
-                    !f.endsWith(".m4a") &&
-                    !f.endsWith(".part") &&
-                    !f.endsWith(".ytdl") &&
-                    !f.endsWith(".temp")
+                    f =>
+                        f.startsWith(ytId) &&
+                        !f.endsWith(".mp3") &&
+                        !f.endsWith(".webm") &&
+                        !f.endsWith(".m4a") &&
+                        !f.endsWith(".part") &&
+                        !f.endsWith(".ytdl") &&
+                        !f.endsWith(".temp")
                 );
 
                 if (!audioFile) {
-                    throw new Error(`Audio file not found for ${ytId} after download`);
+                    throw new Error(
+                        `Audio file not found for ${ytId} after download`
+                    );
                 }
 
                 // 4. Upload to Cloudinary
-                console.log(`[UPLOADING] Uploading audio to Cloudinary (musicApp/songs)...`);
+                console.log(
+                    `[UPLOADING] Uploading audio to Cloudinary (musicApp/songs)...`
+                );
                 const audioPath = path.join(downloadDir, audioFile);
-                const audioUrl = await uploadToCloudinary(audioPath, "video", "musicApp/songs");
+                const audioUrl = await uploadToCloudinary(
+                    audioPath,
+                    "video",
+                    "musicApp/songs"
+                );
 
                 let coverUrl = null;
                 if (coverFile) {
-                    console.log(`[UPLOADING] Uploading cover image to Cloudinary (musicApp/covers)...`);
+                    console.log(
+                        `[UPLOADING] Uploading cover image to Cloudinary (musicApp/covers)...`
+                    );
                     const coverPath = path.join(downloadDir, coverFile);
-                    coverUrl = await uploadToCloudinary(coverPath, "image", "musicApp/covers");
+                    coverUrl = await uploadToCloudinary(
+                        coverPath,
+                        "image",
+                        "musicApp/covers"
+                    );
                 }
 
                 // 5. Save to MongoDB
@@ -282,12 +337,24 @@ const main = async () => {
                 });
 
                 console.log(`[SUCCESS] Added "${title}" to database!`);
-                logHistory(title, ytId, "SUCCESS", "Uploaded to Cloudinary and saved to DB");
+                logHistory(
+                    title,
+                    ytId,
+                    "SUCCESS",
+                    "Uploaded to Cloudinary and saved to DB"
+                );
                 successCount++;
-
             } catch (videoError) {
-                console.error(`[ERROR] Failed processing "${title}" (${ytId}):`, videoError.message);
-                logHistory(title, ytId, "ERROR", videoError.message || "Unknown error occurred");
+                console.error(
+                    `[ERROR] Failed processing "${title}" (${ytId}):`,
+                    videoError.message
+                );
+                logHistory(
+                    title,
+                    ytId,
+                    "ERROR",
+                    videoError.message || "Unknown error occurred"
+                );
                 errorCount++;
             } finally {
                 // 6. Clean up temporary files for this video
@@ -299,7 +366,10 @@ const main = async () => {
                         }
                     });
                 } catch (cleanupErr) {
-                    console.error(`Failed to cleanup temp files for ${ytId}:`, cleanupErr.message);
+                    console.error(
+                        `Failed to cleanup temp files for ${ytId}:`,
+                        cleanupErr.message
+                    );
                 }
             }
         }
@@ -315,7 +385,6 @@ const main = async () => {
         if (errorCount > 0 && successCount === 0 && skippedCount === 0) {
             throw new Error(`All ${errorCount} video download(s) failed.`);
         }
-
     } catch (err) {
         console.error("\nWorker encountered a fatal error:", err);
         process.exitCode = 1;
