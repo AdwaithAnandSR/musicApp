@@ -17,7 +17,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "@services/axios";
 import { router } from "expo-router";
-import YoutubeCookiesModule from "youtube-cookies";
+// import YoutubeCookiesModule from "youtube-cookies";
 
 const Youtube = () => {
     const webviewRef = useRef(null);
@@ -74,10 +74,11 @@ const Youtube = () => {
     const handleOpenModal = async () => {
         setUrl(currentUrl);
         setModalVisible(true);
-        
+
         try {
             // Extract cookies natively via Android CookieManager
-            const cookieString = await YoutubeCookiesModule.getCookies("https://m.youtube.com");
+            // const cookieString = await YoutubeCookiesModule.getCookies("https://m.youtube.com");
+            const cookieString = "";
             if (cookieString) {
                 setCookies(cookieString.trim());
             }
@@ -184,7 +185,7 @@ const Youtube = () => {
                                     />
                                 </View>
                             </View>
-                            
+
                             <Text style={styles.label}>Cookies (Optional)</Text>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
