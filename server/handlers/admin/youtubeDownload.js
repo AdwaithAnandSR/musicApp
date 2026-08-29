@@ -205,7 +205,7 @@ export const youtubeDownload = async (req, res) => {
         console.log("URL:", url);
         console.log("Skip:", skip);
         console.log("Limit:", limit);
-        console.log("cookie:", cookies);
+        // console.log("cookie:", cookies);
         
         let cookieFile = null;
         if (cookies) {
