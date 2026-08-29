@@ -193,9 +193,9 @@ const main = async () => {
             "--playlist-end",
             playlistEnd.toString(),
             "--js-runtimes",
-            "node",
+            "deno,node",
             "--extractor-args",
-            "youtube:client=ANDROID,IOS"
+            "youtube:player_client=android,ios,mweb;player_skip=webpage,configs"
         ];
         if (cookieFile) {
             argsList.push("--cookies", cookieFile);
@@ -266,9 +266,9 @@ const main = async () => {
                     "0",
                     "--write-thumbnail",
                     "--js-runtimes",
-                    "node",
+                    "deno,node",
                     "--extractor-args",
-                    "youtube:client=ANDROID,IOS",
+                    "youtube:player_client=android,ios,mweb;player_skip=webpage,configs",
                     "-o",
                     path.join(downloadDir, `${ytId}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
