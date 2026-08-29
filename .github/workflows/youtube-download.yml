@@ -1,0 +1,74 @@
+name: YouTube Download Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "YouTube URL (Video, Playlist, or Channel)"
+        required: true
+        type: string
+      skip:
+        description: "Number of songs to skip (offset in playlist)"
+        required: false
+        default: "0"
+        type: string
+      limit:
+        description: "Number of songs to download"
+        required: false
+        default: "1"
+        type: string
+
+# Ensure jobs run sequentially one-by-one to avoid YouTube rate limits
+concurrency:
+  group: youtube-downloader-job
+  cancel-in-progress: false
+
+jobs:
+  download:
+    name: Download YouTube Audio & Save to Cloudinary/MongoDB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install System Packages (ffmpeg)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install yt-dlp
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U yt-dlp
+
+      - name: Install Node Dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Run Download Worker
+        working-directory: server
+        env:
+          URL: ${{ inputs.url }}
+          SKIP: ${{ inputs.skip }}
+          LIMIT: ${{ inputs.limit }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGODB_PASS: ${{ secrets.MONGODB_PASS }}
+          MONGODB_DB_NAME: ${{ secrets.MONGODB_DB_NAME }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+        run: node scripts/youtubeWorker.js
