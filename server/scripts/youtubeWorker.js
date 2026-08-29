@@ -67,20 +67,21 @@ const runCommand = (command, args) => {
 
 const connectDB = async () => {
     const uri = process.env.MONGODB_URI;
-    console.log("Connecting to MongoDB...", uri.length);
-    if (!uri) {
+
+    if (!uri)
         throw new Error(
             "Missing MongoDB connection string: MONGODB_URI secret/environment variable is not set."
         );
-    }
-    console.log("Connecting to MongoDB...");
+
     try {
+        console.log("Connecting to MongoDB...");
         await mongoose.connect(uri);
         console.log(
             `Connected to MongoDB database: ${mongoose.connection.name}`
         );
     } catch (error) {
         console.log("Failed to connect: ", error);
+        throw error;
     }
 };
 
