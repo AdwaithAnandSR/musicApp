@@ -93,7 +93,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
             "-j", "--flat-playlist", 
             "--playlist-start", playlistStart.toString(),
             "--playlist-end", playlistEnd.toString(),
-            "--js-runtimes", "nodejs:node"
+            "--js-runtimes", "node"
         ];
         if (cookieFile) argsList.push("--cookies", cookieFile);
         argsList.push(url);
@@ -125,7 +125,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
                 const dlArgs = [
                     "--extract-audio", "--audio-format", "mp3", "--audio-quality", "0",
                     "--write-thumbnail",
-                    "--js-runtimes", "nodejs:node",
+                    "--js-runtimes", "node",
                     "-o", path.join(downloadDir, `${ytId}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
                 ];
@@ -205,6 +205,7 @@ export const youtubeDownload = async (req, res) => {
         console.log("URL:", url);
         console.log("Skip:", skip);
         console.log("Limit:", limit);
+        console.log("cookie:", cookies);
         
         let cookieFile = null;
         if (cookies) {
