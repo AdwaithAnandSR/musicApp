@@ -17,7 +17,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "@services/axios";
 import { router } from "expo-router";
-import YoutubeCookiesModule from "../../../../../modules/youtube-cookies/src/YoutubeCookiesModule";
+import YoutubeCookiesModule from "youtube-cookies";
 
 const Youtube = () => {
     const webviewRef = useRef(null);
