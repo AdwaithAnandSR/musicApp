@@ -27,7 +27,7 @@ jobs:
   download:
     name: Download YouTube Audio & Save to Cloudinary/MongoDB
     runs-on: ubuntu-latest
-    environment: vividmusic-backend
+    environment: main - vividmusic-backend
 
     steps:
       - name: Checkout Repository
