@@ -16,6 +16,7 @@ import adminRoutes from "./routes/admin.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import lyrics from "./routes/lyrics.js";
 import temp from "./routes/temp.routes.js";
+import streamRoutes from "./routes/stream.routes.js";
 
 import { requireAuth, requireAdmin } from "./moddileware/auth.js";
 
@@ -33,6 +34,7 @@ app.use(
 
 app.use("/temp", temp);
 app.use("/auth", authRoutes);
+app.use("/stream", streamRoutes);
 
 app.use("/", requireAuth, indexRoutes);
 app.use("/lyrics", requireAuth, lyrics);
