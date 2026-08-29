@@ -96,7 +96,9 @@ export const usePlayer = create((set, get) => ({
                     if (!isActiveForLockScreen) {
                         newPlayer.setActiveForLockScreen(true, metadata, {
                             showSeekForward: true,
-                            showSeekBackward: true
+                            showSeekBackward: true,
+                            showNextTrack: true,
+                            showPreviousTrack: true
                         });
 
                         set({ isActiveForLockScreen: true });
@@ -124,6 +126,8 @@ export const usePlayer = create((set, get) => ({
                 }
             }
         );
+
+        newPlayer.addListener("onRemoteNextTrack", () => console.log("next"));
 
         newPlayer.play();
 

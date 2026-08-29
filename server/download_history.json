@@ -1,0 +1,86 @@
+[
+  {
+    "title": "@SaiAbhyankkar - Pavazha Malli (Music Video) | Kayadu | Shruti Haasan | Vivek | Thejo | Think Indie",
+    "ytId": "b68HETiNO98",
+    "status": "SKIPPED",
+    "details": "Already exists in database",
+    "timestamp": "2026-08-29T02:39:30.532Z"
+  },
+  {
+    "title": "Thaalam Trip (Instrumental)",
+    "ytId": "Of_28tkrIHU",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T02:25:27.978Z"
+  },
+  {
+    "title": "Raga of Revenge | DC | Lokesh Kanagaraj | Anirudh | Wamiqa Gabbi | Sun Pictures",
+    "ytId": "El9lOzNyPb4",
+    "status": "ERROR",
+    "details": "Unknown error occurred",
+    "timestamp": "2026-08-29T02:24:36.478Z"
+  },
+  {
+    "title": "Bum Baa Diga Diga - Music Video | DC | Lokesh | Sun Pictures | Anirudh | Arun Matheswaran",
+    "ytId": "X1twu3ztkPU",
+    "status": "SKIPPED",
+    "details": "Already exists in database",
+    "timestamp": "2026-08-29T02:24:08.784Z"
+  },
+  {
+    "title": "Amsham - അംശം",
+    "ytId": "iJHUn33o6UU",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T02:23:45.451Z"
+  },
+  {
+    "title": "Kannukulla Video Song | Dude | Pradeep R, Mamitha Baiju | @SaiAbhyankkar | Jonita | Keerthiswaran",
+    "ytId": "sdajTOjARNg",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T02:22:11.000Z"
+  },
+  {
+    "title": "KALYANI (with Shreya Ghoshal) OFFICIAL MUSIC VIDEO | ARJN | KDS | FIFTY4 | RONN | SHREYA GHOSHAL |",
+    "ytId": "xvT1jH8B9AM",
+    "status": "SKIPPED",
+    "details": "Already exists in database",
+    "timestamp": "2026-08-29T02:21:11.023Z"
+  },
+  {
+    "title": "Bum Baa Diga Diga - Music Video | DC | Lokesh | Sun Pictures | Anirudh | Arun Matheswaran",
+    "ytId": "X1twu3ztkPU",
+    "status": "SKIPPED",
+    "details": "Already exists in database",
+    "timestamp": "2026-08-29T02:21:10.932Z"
+  },
+  {
+    "title": "Hangova (From \"DC\")",
+    "ytId": "B6ppp6WBCKg",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T02:21:10.823Z"
+  },
+  {
+    "title": "Bum Baa Diga Diga - Music Video | DC | Lokesh | Sun Pictures | Anirudh | Arun Matheswaran",
+    "ytId": "X1twu3ztkPU",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T02:17:49.518Z"
+  },
+  {
+    "title": "Asalayavale - Lyric Video | Khalifa | Prithviraj Sukumaran|Malvika Sharma | Jakes Bejoy x Sid Sriram",
+    "ytId": "9iGjes4n1iA",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T02:11:26.266Z"
+  },
+  {
+    "title": "Bum Baa Diga Diga - Music Video | DC | Lokesh | Sun Pictures | Anirudh | Arun Matheswaran",
+    "ytId": "X1twu3ztkPU",
+    "status": "ERROR",
+    "details": "Command failed with code 1: WARNING: [youtube] No supported JavaScript runtime could be found. Only deno is enabled by default; to use another runtime add  --js-runtimes RUNTIME[:PATH]  to your command/config. YouTube extraction without a JS runtime has been deprecated, and some formats may be missing. See  https://github.com/yt-dlp/yt-dlp/wiki/EJS  for details on installing one\nERROR: Postprocessing: ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location\n",
+    "timestamp": "2026-08-29T02:04:20.610Z"
+  }
+]

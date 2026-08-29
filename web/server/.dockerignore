@@ -1,8 +1,0 @@
-node_modules
-npm-debug.log
-downloads/songs/*
-downloads/covers/*
-downloads/metadata.json
-bin/
-.env
-.git

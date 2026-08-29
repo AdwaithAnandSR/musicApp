@@ -25,6 +25,7 @@ import {
     swapLyric
 } from "../handlers/admin/manageSong.js";
 import cloudStatus from "../handlers/admin/cloudStatus.js";
+import { youtubeDownload } from "../handlers/admin/youtubeDownload.js";
 
 const router = express.Router();
 
@@ -61,5 +62,7 @@ router.post("/addNewLyricToDb", addNewLyricToDb);
 // cloud
 
 router.get("/cloudStatus", cloudStatus);
+
+router.post("/youtubeDownload", youtubeDownload);
 
 export default router;
