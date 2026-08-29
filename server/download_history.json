@@ -1,5 +1,19 @@
 [
   {
+    "title": "Yeshanagula | The Paradise | Nani | Keerthy Suresh | Anirudh Ravichander | Srikanth Odela",
+    "ytId": "JqFzhcWo3EU",
+    "status": "SUCCESS",
+    "details": "Uploaded to Cloudinary and saved to DB",
+    "timestamp": "2026-08-29T15:03:55.531Z"
+  },
+  {
+    "title": "Illey Illa | Bethlehem Kudumba Unit | Vishnu Vijay | Girish AD | Nivin Pauly | Mamitha Baiju",
+    "ytId": "7BQjxSEF4Lg",
+    "status": "ERROR",
+    "details": "Command 'python3 /data/data/com.termux/files/home/musicApp/server/bin/yt-dlp --extract-audio --audio-format mp3 --audio-quality 0 --write-thumbnail --js-runtimes node --extractor-args youtube:player_client=android,ios,mweb;player_skip=webpage,configs -o /data/data/com.termux/files/home/musicApp/server/downloads/7BQjxSEF4Lg.%(ext)s https://www.youtube.com/watch?v=7BQjxSEF4Lg --cookies /data/data/com.termux/files/home/musicApp/server/cookies-1788014977862-pg9r4.txt' failed with code 1:\nWARNING: [youtube] Skipping client \"android\" since it does not support cookies\nWARNING: [youtube] Skipping client \"ios\" since it does not support cookies\nWARNING: [youtube] Unable to fetch GVS PO Token for mweb client: Missing required Data Sync ID for account. You may need to pass a Data Sync ID with --extractor-args \"youtube:data_sync_id=XXX\"\nWARNING: [youtube] 7BQjxSEF4Lg: mweb client https formats require a GVS PO Token which was not provided. They will be skipped as they may yield HTTP Error 403. You can manually pass a GVS PO Token for this client with --extractor-args \"youtube:po_token=mweb.gvs+XXX\". For more information, refer to  https://github.com/yt-dlp/yt-dlp/wiki/PO-Token-Guide\nERROR: Postprocessing: ffprobe and ffmpeg not found. Please install or provide the path using --ffmpeg-location\n",
+    "timestamp": "2026-08-29T14:50:18.791Z"
+  },
+  {
     "title": "@SaiAbhyankkar - Pavazha Malli (Music Video) | Kayadu | Shruti Haasan | Vivek | Thejo | Think Indie",
     "ytId": "b68HETiNO98",
     "status": "SKIPPED",
