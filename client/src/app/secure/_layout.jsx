@@ -36,6 +36,12 @@ const _layout = () => {
                         animation: "slide_from_right"
                     }}
                 />
+                <Stack.Screen
+                    name="others/Youtube"
+                    options={{
+                        animation: "slide_from_right"
+                    }}
+                />
             </Stack>
             <Toast />
         </View>
