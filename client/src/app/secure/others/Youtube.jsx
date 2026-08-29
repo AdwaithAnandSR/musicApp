@@ -17,6 +17,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "@services/axios";
 import { router } from "expo-router";
+import YoutubeCookiesModule from "../../../../../modules/youtube-cookies/src/YoutubeCookiesModule";
 
 const Youtube = () => {
     const webviewRef = useRef(null);
@@ -70,24 +71,18 @@ const Youtube = () => {
         return () => backHandler.remove();
     }, [canGoBack, currentUrl, isModalVisible]);
 
-    const handleOpenModal = () => {
+    const handleOpenModal = async () => {
         setUrl(currentUrl);
         setModalVisible(true);
-        webviewRef.current?.injectJavaScript(`
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'cookies',
-                cookies: document.cookie
-            }));
-            true;
-        `);
-    };
-
-    const onMessage = event => {
+        
         try {
-            const data = JSON.parse(event.nativeEvent.data);
-            if (data.type === "cookies") setCookies(data.cookies);
+            // Extract cookies natively via Android CookieManager
+            const cookieString = await YoutubeCookiesModule.getCookies("https://m.youtube.com");
+            if (cookieString) {
+                setCookies(cookieString.trim());
+            }
         } catch (e) {
-            console.error("Failed to parse WebView message:", e);
+            console.error("Failed to get cookies via CookieManager:", e);
         }
     };
 
@@ -129,7 +124,6 @@ const Youtube = () => {
                     setCanGoBack(navState.canGoBack);
                     setCurrentUrl(navState.url);
                 }}
-                onMessage={onMessage}
             />
 
             {/* Floating Action Button */}
