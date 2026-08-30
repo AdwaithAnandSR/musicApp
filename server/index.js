@@ -52,14 +52,6 @@ app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
 
-import cron from "node-cron";
-import { updateChannels } from "./scripts/channelWorker.js";
 
-cron.schedule("0 0 * * *", () => {
-    console.log("[CRON] Starting daily channel auto-update...");
-    updateChannels().catch(err => console.error("[CRON] Channel update error:", err));
-}, {
-    timezone: "UTC"
-});
 
 export default app;

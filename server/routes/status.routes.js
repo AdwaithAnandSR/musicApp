@@ -1,6 +1,7 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import { updateChannels } from "../scripts/channelWorker.js";
 
 const router = express.Router();
 
@@ -71,6 +72,13 @@ router.get("/json", (req, res) => {
         channelConfig: getFileContent("channel.json"),
         downloadHistory: getFileContent("download_history.json")
     });
+});
+
+
+router.get("/trigger-sync", (req, res) => {
+    console.log("[API] Triggered channel sync from public endpoint.");
+    updateChannels().catch(err => console.error("[API] Channel update failed:", err));
+    res.json({ success: true, message: "Channel auto-update started in the background." });
 });
 
 export default router;
