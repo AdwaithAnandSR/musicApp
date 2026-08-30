@@ -1,3 +1,4 @@
+import { usePlayer } from "../../store/player.js";
 import { File, Directory, Paths } from "expo-file-system";
 import { MMKV } from "react-native-mmkv";
 import { useDownloadStatus } from "../../store/appState.store.js";
@@ -319,6 +320,10 @@ export const downloadPlaylistSongs = async (
                                     0
                                 );
                                 await saveMeta(meta);
+                                // Notify player to update its queue if it is currently playing this local playlist
+                                if (usePlayer.getState().onLocalSongDownloaded) {
+                                    usePlayer.getState().onLocalSongDownloaded();
+                                }
                             }
                         } catch (err) {
                             console.log("Error saving meta:", err);
@@ -344,4 +349,16 @@ export const downloadPlaylistSongs = async (
         workers.push(worker());
     }
     await Promise.all(workers);
+};
+
+export const getLocalUrlForSong = async (songId) => {
+    const meta = await getMeta();
+    for (const playlistId in meta.songs) {
+        const songs = meta.songs[playlistId];
+        const song = songs.find(s => (s.id || s._id) === songId);
+        if (song && song.localUrl) {
+            return song.localUrl;
+        }
+    }
+    return null;
 };
