@@ -7,10 +7,10 @@ import musicModel from "../models/musics.js";
 import { v2 as cloudinary } from "cloudinary";
 import { fileURLToPath } from "url";
 import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
+import AppDetail from "../models/appDetails.js";
 
 const __filename = fileURLToPath(import.meta.url);
-const CHANNEL_FILE = path.resolve(process.cwd(), "channel.json");
-const HISTORY_FILE = path.resolve(process.cwd(), "download_history.json");
+
 const INITIAL_CHANNEL_LIMIT = 10;
 const downloadDir = path.resolve(process.cwd(), "downloads");
 
@@ -48,16 +48,13 @@ const runCommand = (command, args) => {
     });
 };
 
-const logHistory = (title, ytId, status, details = "") => {
+const logHistory = async (title, ytId, status, details = "") => {
     try {
-        let history = [];
-        if (fs.existsSync(HISTORY_FILE)) {
-            const data = fs.readFileSync(HISTORY_FILE, "utf-8");
-            if (data) history = JSON.parse(data);
-        }
+        const doc = await AppDetail.findOne({ key: "download_history" });
+        let history = doc ? doc.data : [];
         history.unshift({ title, ytId, status, details, timestamp: new Date().toISOString() });
         if (history.length > 50) history = history.slice(0, 50);
-        fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+        await AppDetail.findOneAndUpdate({ key: "download_history" }, { data: history }, { upsert: true });
     } catch (err) {
         console.error("Failed to write to history file:", err.message);
     }
@@ -141,16 +138,25 @@ const connectDB = async () => {
 
 export const updateChannels = async () => {
     const reqId = createRequestLog("Channel Worker Sync", 0, 0, "worker");
-    if (!fs.existsSync(CHANNEL_FILE)) {
-        console.log("No channel.json found. Exiting.");
-        return;
-    }
-    
     let channels = [];
     try {
-        channels = JSON.parse(fs.readFileSync(CHANNEL_FILE, "utf-8"));
+        const doc = await AppDetail.findOne({ key: "channel_config" });
+        if (!doc || !doc.data || doc.data.length === 0) {
+            const path = require("path");
+            const seedFile = path.resolve(process.cwd(), "channel.json");
+            if (require("fs").existsSync(seedFile)) {
+                console.log("Seeding channel_config from channel.json...");
+                channels = JSON.parse(require("fs").readFileSync(seedFile, "utf-8"));
+                await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
+            } else {
+                console.log("No channel config found in DB or seed file. Exiting.");
+                return;
+            }
+        } else {
+            channels = doc.data;
+        }
     } catch (e) {
-        console.error("Error reading channel.json:", e);
+        console.error("Error reading channel config:", e);
         return;
     }
 
@@ -299,9 +305,7 @@ export const updateChannels = async () => {
         channels[i].lastSongId = checkpointCandidate.ytId;
         channels[i].lastSongTimestamp = checkpointCandidate.currentIsoTimestamp;
         
-        const tempFile = `${CHANNEL_FILE}.tmp`;
-        fs.writeFileSync(tempFile, JSON.stringify(channels, null, 2));
-        fs.renameSync(tempFile, CHANNEL_FILE);
+        await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
     }
 };
 

@@ -1,16 +1,7 @@
-import fs from "fs";
-import path from "path";
-
-const REQUEST_HISTORY_FILE = path.resolve(process.cwd(), "request_history.json");
+import AppDetail from "../models/appDetails.js";
 
 export const createRequestLog = (url, limit, skip, type = "client") => {
     try {
-        let history = [];
-        if (fs.existsSync(REQUEST_HISTORY_FILE)) {
-            const data = fs.readFileSync(REQUEST_HISTORY_FILE, "utf-8");
-            if (data) history = JSON.parse(data);
-        }
-        
         const id = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
         const entry = {
             id,
@@ -24,10 +15,13 @@ export const createRequestLog = (url, limit, skip, type = "client") => {
             skipped: 0
         };
         
-        history.unshift(entry);
-        if (history.length > 15) history = history.slice(0, 15);
+        AppDetail.findOne({ key: "request_history" }).then(doc => {
+            let history = doc ? doc.data : [];
+            history.unshift(entry);
+            if (history.length > 15) history = history.slice(0, 15);
+            AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
+        }).catch(err => console.error(err));
         
-        fs.writeFileSync(REQUEST_HISTORY_FILE, JSON.stringify(history, null, 2));
         return id;
     } catch (err) {
         console.error("Failed to create request log:", err);
@@ -38,18 +32,19 @@ export const createRequestLog = (url, limit, skip, type = "client") => {
 export const updateRequestLog = (id, statusType) => {
     if (!id) return;
     try {
-        if (!fs.existsSync(REQUEST_HISTORY_FILE)) return;
-        
-        let history = JSON.parse(fs.readFileSync(REQUEST_HISTORY_FILE, "utf-8"));
-        const index = history.findIndex(h => h.id === id);
-        
-        if (index !== -1) {
-            if (statusType === "SUCCESS") history[index].success += 1;
-            else if (statusType === "ERROR") history[index].errors += 1;
-            else if (statusType === "SKIPPED") history[index].skipped += 1;
+        AppDetail.findOne({ key: "request_history" }).then(doc => {
+            if (!doc) return;
+            let history = doc.data;
+            const index = history.findIndex(h => h.id === id);
             
-            fs.writeFileSync(REQUEST_HISTORY_FILE, JSON.stringify(history, null, 2));
-        }
+            if (index !== -1) {
+                if (statusType === "SUCCESS") history[index].success += 1;
+                else if (statusType === "ERROR") history[index].errors += 1;
+                else if (statusType === "SKIPPED") history[index].skipped += 1;
+                
+                AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
+            }
+        }).catch(err => console.error(err));
     } catch (err) {
         console.error("Failed to update request log:", err);
     }

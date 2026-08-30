@@ -2,19 +2,25 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { updateChannels } from "../scripts/channelWorker.js";
+import AppDetail from "../models/appDetails.js";
 
 const router = express.Router();
 
-const getFileContent = (filename) => {
-    const filePath = path.resolve(process.cwd(), filename);
-    if (fs.existsSync(filePath)) {
-        try {
-            return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-        } catch (e) {
-            return [];
+const getFileContent = async (key) => {
+    try {
+        const doc = await AppDetail.findOne({ key });
+        if (doc && doc.data && (Array.isArray(doc.data) ? doc.data.length > 0 : Object.keys(doc.data).length > 0)) {
+            return doc.data;
         }
+        // Read-only fallback for initial deploy
+        if (key === "channel_config") {
+            const p = path.resolve(process.cwd(), "channel.json");
+            if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, "utf-8"));
+        }
+        return [];
+    } catch (e) {
+        return [];
     }
-    return [];
 };
 
 const formatDate = (isoString) => {
@@ -25,10 +31,10 @@ const formatDate = (isoString) => {
     });
 };
 
-router.get("/", (req, res) => {
-    const downloadHistory = getFileContent("download_history.json") || [];
-    const requestHistory = getFileContent("request_history.json") || [];
-    const channelConfig = getFileContent("channel.json") || [];
+router.get("/", async (req, res) => {
+    const downloadHistory = await getFileContent("download_history") || [];
+    const requestHistory = await getFileContent("request_history") || [];
+    const channelConfig = await getFileContent("channel_config") || [];
 
     const html = `
     <!DOCTYPE html>
@@ -155,11 +161,11 @@ router.get("/", (req, res) => {
     res.send(html);
 });
 
-router.get("/json", (req, res) => {
+router.get("/json", async (req, res) => {
     res.json({
-        requestHistory: getFileContent("request_history.json"),
-        channelConfig: getFileContent("channel.json"),
-        downloadHistory: getFileContent("download_history.json")
+        requestHistory: await getFileContent("request_history"),
+        channelConfig: await getFileContent("channel_config"),
+        downloadHistory: await getFileContent("download_history")
     });
 });
 

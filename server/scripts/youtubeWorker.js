@@ -6,33 +6,15 @@ import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
 import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
+import AppDetail from "../models/appDetails.js";
 
-const HISTORY_FILE = path.resolve(process.cwd(), "download_history.json");
-
-const logHistory = (title, ytId, status, details = "") => {
+const logHistory = async (title, ytId, status, details = "") => {
     try {
-        let history = [];
-        if (fs.existsSync(HISTORY_FILE)) {
-            const data = fs.readFileSync(HISTORY_FILE, "utf-8");
-            if (data) {
-                history = JSON.parse(data);
-            }
-        }
-
-        const entry = {
-            title,
-            ytId,
-            status,
-            details,
-            timestamp: new Date().toISOString()
-        };
-
-        history.unshift(entry);
-        if (history.length > 50) {
-            history = history.slice(0, 50);
-        }
-
-        fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2));
+        const doc = await AppDetail.findOne({ key: "download_history" });
+        let history = doc ? doc.data : [];
+        history.unshift({ title, ytId, status, details, timestamp: new Date().toISOString() });
+        if (history.length > 50) history = history.slice(0, 50);
+        await AppDetail.findOneAndUpdate({ key: "download_history" }, { data: history }, { upsert: true });
     } catch (err) {
         console.error("Failed to write to history file:", err.message);
     }
