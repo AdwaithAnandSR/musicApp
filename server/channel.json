@@ -1,12 +1,48 @@
 [
-  {
-    "channel": "https://www.youtube.com/@Hi-FiSongsMalayalam",
-    "lastSongId": "GZbAy5wTBv4",
-    "lastSongTimestamp": ""
-  },
-  {
-    "channel": "https://www.youtube.com/@raaga_music",
-    "lastSongId": "p_ggiekTNPk",
-    "lastSongTimestamp": ""
-  }
+    {
+        "channel": "https://www.youtube.com/@Hi-FiSongsMalayalam/videos",
+        "lastSongId": "GZbAy5wTBv4",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@raaga_music/videos",
+        "lastSongId": "p_ggiekTNPk",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@musiczonemoviesong/videos",
+        "lastSongId": "IG4BLk24Sug",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@malayalamCassettes/videos",
+        "lastSongId": "z2Y-ONftm94",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@CinemaPaattu/videos",
+        "lastSongId": "AePG9NwLdKg",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@SanjuRathodSR/videos",
+        "lastSongId": "0oPOmZ411TQ",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@ThirumaLi/videos",
+        "lastSongId": "r1JMuBd4X88",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@saregamamalayalam/videos",
+        "lastSongId": "0Twdl0T56L8",
+        "lastSongTimestamp": ""
+    },
+    {
+        "channel": "https://www.youtube.com/@eternal.mp3/videos",
+        "lastSongId": "6spvBOXZd5M",
+        "lastSongTimestamp": ""
+    }
 ]
+
