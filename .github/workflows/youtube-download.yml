@@ -1,0 +1,87 @@
+name: YouTube Download & Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Execution Mode (single or channels)'
+        required: true
+        default: 'channels'
+        type: choice
+        options:
+          - channels
+          - single
+      url:
+        description: 'YouTube Video/Playlist URL (for single mode)'
+        required: false
+      skip:
+        description: 'Number of videos to skip in playlist (for single mode)'
+        required: false
+        default: '0'
+      limit:
+        description: 'Number of videos to download from playlist (for single mode)'
+        required: false
+        default: '1'
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install System Dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3 ffmpeg
+
+      - name: Install Node Dependencies
+        working-directory: ./server
+        run: npm install
+
+      - name: Make yt-dlp Executable
+        working-directory: ./server
+        run: chmod +x bin/yt-dlp
+
+      - name: Run YouTube Worker (Single Mode)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'single' }}
+        working-directory: ./server
+        env:
+          URL: ${{ github.event.inputs.url }}
+          SKIP: ${{ github.event.inputs.skip }}
+          LIMIT: ${{ github.event.inputs.limit }}
+          MONGODB_PASS: ${{ secrets.MONGODB_PASS }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: npm run worker:youtube
+
+      - name: Run Channel Update Worker (Channels Mode)
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'channels') }}
+        working-directory: ./server
+        env:
+          MONGODB_PASS: ${{ secrets.MONGODB_PASS }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
+          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+        run: npm run worker:channels
+
+      - name: Commit and Push Channel File Changes
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.mode == 'channels') }}
+        working-directory: ./server
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add channel.json download_history.json
+          git commit -m "chore: update channel sync checkpoints" || exit 0
+          git push
