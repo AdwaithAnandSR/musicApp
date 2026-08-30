@@ -35,6 +35,7 @@ router.get("/", async (req, res) => {
     const downloadHistory = await getFileContent("download_history") || [];
     const requestHistory = await getFileContent("request_history") || [];
     const channelConfig = await getFileContent("channel_config") || [];
+    const syncStatus = await getFileContent("channel_sync_status") || { isSyncing: false };
 
     const html = `
     <!DOCTYPE html>
@@ -105,6 +106,22 @@ router.get("/", async (req, res) => {
     </head>
     <body>
         <h1>Server Status</h1>
+        
+        <div id="sync-progress-container" style="display: none; background: rgba(187, 134, 252, 0.1); border: 1px solid var(--accent); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
+            <h3 style="color: var(--accent); margin-top: 0;">Sync in Progress</h3>
+            <div id="sync-channel" class="title">Channel: -</div>
+            <div id="sync-message" class="details" style="margin-bottom: 12px; font-style: italic;">Initializing...</div>
+            <div style="background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 12px;">
+                <div id="sync-bar" style="background: var(--accent); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+            </div>
+            <div class="stats-row" style="margin-top: 0; padding-top: 0; border: none; justify-content: space-between;">
+                <span id="sync-progress" class="stat">0 / 0</span>
+                <span id="sync-success" class="stat s">✓ 0</span>
+                <span id="sync-error" class="stat e">✗ 0</span>
+                <span id="sync-skipped" class="stat k">⏭ 0</span>
+            </div>
+            <div id="sync-title" class="details" style="margin-top: 12px; word-break: break-all;"></div>
+        </div>
 
         <h2>Active Channels</h2>
         ${channelConfig.length === 0 ? '<div class="empty">No channels configured.</div>' : channelConfig.map(ch => `
@@ -112,6 +129,7 @@ router.get("/", async (req, res) => {
                 <div class="title">${ch.channel.replace('https://www.youtube.com/', '')}</div>
                 <div class="details">Last ID: ${ch.lastSongId || 'None'}</div>
                 <div class="details">Last Sync: ${formatDate(ch.lastSongTimestamp)}</div>
+                <div class="details">Last Download Count: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
             </div>
         `).join('')}
 
@@ -146,6 +164,51 @@ router.get("/", async (req, res) => {
         <button class="btn" onclick="triggerSync()">Trigger Sync Now</button>
 
         <script>
+            let pollingInterval = null;
+
+            function updateProgressUI(status) {
+                const container = document.getElementById('sync-progress-container');
+                if (!status.isSyncing) {
+                    container.style.display = 'none';
+                    if (pollingInterval) clearInterval(pollingInterval);
+                    return;
+                }
+                
+                container.style.display = 'block';
+                document.getElementById('sync-channel').innerText = 'Channel: ' + (status.currentChannel || '...');
+                document.getElementById('sync-message').innerText = status.message || 'Processing...';
+                
+                const total = status.totalSongs || 0;
+                const current = status.currentSongIndex || 0;
+                document.getElementById('sync-progress').innerText = current + ' / ' + total;
+                
+                const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+                document.getElementById('sync-bar').style.width = pct + '%';
+                
+                document.getElementById('sync-success').innerText = '✓ ' + (status.successCount || 0);
+                document.getElementById('sync-error').innerText = '✗ ' + (status.errorCount || 0);
+                document.getElementById('sync-skipped').innerText = '⏭ ' + (status.skippedCount || 0);
+                document.getElementById('sync-title').innerText = 'Current: ' + (status.currentSongTitle || '...');
+                
+                if (!pollingInterval) {
+                    pollingInterval = setInterval(pollStatus, 2000);
+                }
+            }
+
+            function pollStatus() {
+                fetch('/status/json')
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.syncStatus) updateProgressUI(data.syncStatus);
+                        else updateProgressUI({ isSyncing: false });
+                    })
+                    .catch(e => console.error(e));
+            }
+            
+            // Check initial status on load
+            const initialStatus = ${JSON.stringify(syncStatus || { isSyncing: false })};
+            updateProgressUI(initialStatus);
+
             function triggerSync() {
                 alert("Background sync triggered!");
                 fetch('/status/trigger-sync')
@@ -165,7 +228,8 @@ router.get("/json", async (req, res) => {
     res.json({
         requestHistory: await getFileContent("request_history"),
         channelConfig: await getFileContent("channel_config"),
-        downloadHistory: await getFileContent("download_history")
+        downloadHistory: await getFileContent("download_history"),
+        syncStatus: await getFileContent("channel_sync_status")
     });
 });
 
