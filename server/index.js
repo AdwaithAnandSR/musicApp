@@ -33,6 +33,7 @@ app.use(
     })
 );
 
+app.get("/health", (req, res) => res.status(200).send("OK"));
 app.use("/temp", temp);
 app.use("/auth", authRoutes);
 app.use("/stream", streamRoutes);

@@ -1,0 +1,25 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          if [ -z "${{ secrets.RENDER_API_BASE_URL }}" ]; then
+            echo "Error: RENDER_API_BASE_URL secret is not set."
+            exit 1
+          fi
+          echo "Pinging Render server to prevent spin-down..."
+          HTTP_STATUS=$(curl -o /dev/null -s -w "%{http_code}\n" "${{ secrets.RENDER_API_BASE_URL }}/health")
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "Server is awake (Status: $HTTP_STATUS)."
+          else
+            echo "Failed to reach server (Status: $HTTP_STATUS)."
+          fi
