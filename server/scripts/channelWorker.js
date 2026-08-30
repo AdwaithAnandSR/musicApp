@@ -83,7 +83,7 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId) => {
             console.log(`[SKIPPED] Song already exists in database: "${title}" (${ytId})`);
             logHistory(title, ytId, "SKIPPED", "Already exists in database");
             if (reqId) updateRequestLog(reqId, "SKIPPED");
-            return;
+            return "SKIPPED";
         }
     }
 
@@ -138,6 +138,24 @@ const connectDB = async () => {
 
 export const updateChannels = async () => {
     const reqId = createRequestLog("Channel Worker Sync", 0, 0, "worker");
+    
+    let syncStatus = {
+        isSyncing: true,
+        currentChannel: null,
+        totalSongs: 0,
+        currentSongIndex: 0,
+        currentSongTitle: "",
+        successCount: 0,
+        skippedCount: 0,
+        errorCount: 0,
+        message: "Initializing..."
+    };
+    const updateSyncStatus = async (updates) => {
+        syncStatus = { ...syncStatus, ...updates };
+        await AppDetail.findOneAndUpdate({ key: "channel_sync_status" }, { data: syncStatus }, { upsert: true }).catch(()=>{});
+    };
+    await updateSyncStatus({});
+
     let channels = [];
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
@@ -175,6 +193,11 @@ export const updateChannels = async () => {
         
         console.log(`\n==========================================`);
         console.log(`Processing channel: ${channelUrl}`);
+        await updateSyncStatus({
+            currentChannel: channelUrl.replace('https://www.youtube.com/', ''),
+            message: "Fetching channel feed...",
+            totalSongs: 0, currentSongIndex: 0, successCount: 0, skippedCount: 0, errorCount: 0
+        });
         
         console.log("Fetching channel playlist...");
         let listOutput = "";
@@ -197,6 +220,7 @@ export const updateChannels = async () => {
         const isInitialSync = !lastSongId && !lastSongTimestamp;
         let stopProcessing = false;
         const newVideoRange = [];
+        let downloadCount = 0;
 
         for (let j = 0; j < videos.length; j++) {
             if (stopProcessing) break;
@@ -247,6 +271,11 @@ export const updateChannels = async () => {
             continue;
         }
 
+        await updateSyncStatus({
+            totalSongs: newVideoRange.length,
+            message: "Processing videos..."
+        });
+        
         // Checkpoint candidate is the NEWEST video (first in our array because we fetched newest -> oldest)
         const checkpointCandidate = newVideoRange[0];
 
@@ -258,20 +287,27 @@ export const updateChannels = async () => {
             const title = videoData.title || `Video ${ytId}`;
 
             console.log(`\n-- Inspecting: "${title}" [${ytId}]`);
+            await updateSyncStatus({
+                currentSongIndex: syncStatus.currentSongIndex + 1,
+                currentSongTitle: title,
+                message: "Downloading..."
+            });
             
             // Duration Filter
             if (duration < 120 || duration >= 300) {
                 console.log(`[SKIPPED] Duration outside allowed range:\n"${title}" (${duration} seconds)`);
                 logHistory(title, ytId, "SKIPPED", `Duration outside allowed range (${duration} seconds)`);
                 if (reqId) updateRequestLog(reqId, "SKIPPED");
+                await updateSyncStatus({ skippedCount: syncStatus.skippedCount + 1 });
                 continue;
             }
 
             // Attempt download up to 3 times
             let success = false;
+            let dlStatus = null;
             for (let attempt = 1; attempt <= 3; attempt++) {
                 try {
-                    await downloadAndSaveVideo(ytId, videoData, reqId);
+                    dlStatus = await downloadAndSaveVideo(ytId, videoData, reqId);
                     success = true;
                     break;
                 } catch (e) {
@@ -296,7 +332,12 @@ export const updateChannels = async () => {
                 console.log(`[FAILED] Skipping "${title}" [${ytId}] permanently for this run after 3 failed attempts.`);
                 logHistory(title, ytId, "ERROR", "Failed after 3 attempts");
                 if (reqId) updateRequestLog(reqId, "ERROR");
-                // Continue to the next video, do not block checkpoint advancement!
+                await updateSyncStatus({ errorCount: syncStatus.errorCount + 1 });
+            } else if (dlStatus === "SKIPPED") {
+                await updateSyncStatus({ skippedCount: syncStatus.skippedCount + 1 });
+            } else if (dlStatus === "SUCCESS") {
+                downloadCount++;
+                await updateSyncStatus({ successCount: syncStatus.successCount + 1 });
             }
         }
 
@@ -304,9 +345,12 @@ export const updateChannels = async () => {
         console.log(`\nUpdating checkpoint for ${channelUrl} to ID: ${checkpointCandidate.ytId}`);
         channels[i].lastSongId = checkpointCandidate.ytId;
         channels[i].lastSongTimestamp = checkpointCandidate.currentIsoTimestamp;
+        channels[i].lastSyncCount = downloadCount;
         
         await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
     }
+    
+    await updateSyncStatus({ isSyncing: false, message: "Sync complete." });
 };
 
 const main = async () => {
