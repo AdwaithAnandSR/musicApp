@@ -3,6 +3,7 @@ import { createAudioPlayer, mediaSessionController } from "expo-audio";
 
 import { getDownloadedSongs } from "@services/downloads/downloadService";
 import queryClient from "@services/queryClient";
+import { useDownloadStatus } from "@store/appState.store.js";
 
 export const usePlayer = create((set, get) => ({
     player: null,
@@ -53,11 +54,9 @@ export const usePlayer = create((set, get) => ({
         else player.play();
     },
 
-    playByIndex: index => {
+    playByIndex: async index => {
         const {
             queue,
-            player,
-            playbackListener,
             isActiveForLockScreen,
             currentTrackIndex,
             isPlaying
@@ -68,12 +67,36 @@ export const usePlayer = create((set, get) => ({
 
         const track = queue[index];
         if (!track) return;
+        
+        // Optimistically set the track index so concurrent calls are visible
+        set({ currentTrackIndex: index, currentTrackId: track._id || track.id, currentTrack: track });
 
+        let trackUrl = track.url;
+
+        // Check if there's a local downloaded version of this song
+        if (!track.isLocal && (track._id || track.id)) {
+            try {
+                const { getLocalUrlForSong } = require("@services/downloads/downloadService");
+                const localUrl = await getLocalUrlForSong(track._id || track.id);
+                if (localUrl) {
+                    trackUrl = localUrl;
+                }
+            } catch (err) {
+                console.log("Error checking local version:", err);
+            }
+        }
+
+        // If another playByIndex was called while we were waiting, abort
+        if (get().currentTrackIndex !== index) {
+            return;
+        }
+
+        const player = get().player;
         let newPlayer = player;
-        if (player) player.replace(track.url);
-        else newPlayer = createAudioPlayer(track.url);
+        if (player) player.replace(trackUrl);
+        else newPlayer = createAudioPlayer(trackUrl);
 
-        playbackListener?.remove();
+        get().playbackListener?.remove();
 
         let metadataUpdated = false;
 
@@ -137,7 +160,8 @@ export const usePlayer = create((set, get) => ({
             currentTrackId: track._id || track.id,
             currentTrackIndex: index,
             currentTrack: track,
-            isStopped: false
+            isStopped: false,
+            isWaitingForDownload: false
         });
     },
 
@@ -160,6 +184,28 @@ export const usePlayer = create((set, get) => ({
         const shouldFetchPage = repeatMode !== "queue" && repeatMode !== "one";
 
         if (nextIndex >= queue.length) {
+            const isLocal = queue.length > 0 && queue[0].isLocal;
+            
+            if (isLocal) {
+                const downloadedSongs = await getDownloadedSongs(currentPlaylistId);
+                if (downloadedSongs.length > queue.length) {
+                    const newTracks = downloadedSongs.map(song => ({
+                        ...song,
+                        isLocal: true,
+                        url: song.localUrl
+                    }));
+                    set({ queue: newTracks, isWaitingForDownload: false });
+                    get().playByIndex(nextIndex);
+                    return;
+                }
+                
+                const downloading = useDownloadStatus.getState().downloadingPlaylists[currentPlaylistId];
+                if (downloading && downloading.length > 0) {
+                    set({ isWaitingForDownload: true });
+                    return;
+                }
+            }
+
             if (repeatMode === "queue") {
                 get().playByIndex(0);
                 return;
@@ -320,7 +366,8 @@ export const usePlayer = create((set, get) => ({
             randomSeed,
             queue: tracks,
             currentTrackIndex: -1,
-            currentTrackId: null
+            currentTrackId: null,
+            isWaitingForDownload: false
         });
 
         /*
@@ -356,7 +403,7 @@ export const usePlayer = create((set, get) => ({
                     currentTrackIndex,
                     newQueue.length - 1
                 );
-                set({ queue: newQueue, currentTrackIndex: -1 });
+                set({ queue: newQueue, currentTrackIndex: -1, isWaitingForDownload: false });
                 get().playByIndex(nextIdx);
             } else {
                 set({ queue: [] });
@@ -428,6 +475,28 @@ export const usePlayer = create((set, get) => ({
             timer: null,
             position: 0,
             duration: 0,
-            progress: 0
-        })
+            progress: 0,
+            isWaitingForDownload: false
+        }),
+
+    onLocalSongDownloaded: async () => {
+        const { isWaitingForDownload, currentPlaylistId, queue, currentTrackIndex } = get();
+        
+        if (currentPlaylistId && queue.length > 0 && queue[0].isLocal) {
+            const downloadedSongs = await getDownloadedSongs(currentPlaylistId);
+            if (downloadedSongs.length > queue.length) {
+                const newTracks = downloadedSongs.map(song => ({
+                    ...song,
+                    isLocal: true,
+                    url: song.localUrl
+                }));
+                set({ queue: newTracks });
+                
+                if (isWaitingForDownload) {
+                    set({ isWaitingForDownload: false });
+                    get().playByIndex(currentTrackIndex + 1);
+                }
+            }
+        }
+    }
 }));
