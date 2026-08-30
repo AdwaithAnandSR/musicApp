@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { v2 as cloudinary } from "cloudinary";
 import musicModel from "../../models/musics.js";
+import { createRequestLog, updateRequestLog } from "../../utils/requestLogger.js";
 
 const HISTORY_FILE = path.resolve(process.cwd(), "download_history.json");
 
@@ -199,7 +200,7 @@ const extractVideoId = inputUrl => {
     return null;
 };
 
-const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
+const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) => {
     const { command, prefix } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
     if (!fs.existsSync(downloadDir)) {
@@ -230,6 +231,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
                     "SKIPPED",
                     "Already exists in database"
                 );
+                if (reqId) updateRequestLog(reqId, "SKIPPED");
                 return;
             }
 
@@ -338,6 +340,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
                         "SKIPPED",
                         "Already exists in database"
                     );
+                    if (reqId) updateRequestLog(reqId, "SKIPPED");
                     continue;
                 }
 
@@ -432,6 +435,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
                     "SUCCESS",
                     "Uploaded to Cloudinary and saved to DB"
                 );
+                if (reqId) updateRequestLog(reqId, "SUCCESS");
             } catch (videoError) {
                 console.error(
                     `[ERROR] Failed processing "${title}" (${ytId}):`,
@@ -443,6 +447,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile) => {
                     "ERROR",
                     videoError.message || "Unknown error occurred"
                 );
+                if (reqId) updateRequestLog(reqId, "ERROR");
             } finally {
                 // 6. Clean up temporary files for this video
                 try {
@@ -511,7 +516,8 @@ export const youtubeDownload = async (req, res) => {
         }
 
         // 3. Start background download process on Render server
-        processBackgroundDownload(trimmedUrl, safeSkip, safeLimit, cookieFile);
+        const reqId = createRequestLog(trimmedUrl, safeLimit, safeSkip, "single");
+        processBackgroundDownload(trimmedUrl, safeSkip, safeLimit, cookieFile, reqId);
 
         // 4. Immediate response
         return res.status(200).json({

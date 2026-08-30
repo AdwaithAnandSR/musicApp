@@ -5,6 +5,7 @@ import path from "path";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
+import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
 
 const HISTORY_FILE = path.resolve(process.cwd(), "download_history.json");
 
@@ -167,6 +168,7 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
 };
 
 const main = async () => {
+    const reqId = createRequestLog(process.env.URL || process.argv[2] || "unknown", process.env.LIMIT || process.argv[4] || 1, process.env.SKIP || process.argv[3] || 0, "cli");
     const url = process.env.URL || process.argv[2];
     const skip = process.env.SKIP || process.argv[3] || "0";
     const limit = process.env.LIMIT || process.argv[4] || "1";
@@ -237,6 +239,7 @@ const main = async () => {
                         "SKIPPED",
                         "Already exists in database"
                     );
+                    if (reqId) updateRequestLog(reqId, "SKIPPED");
                     return;
                 }
             }
@@ -336,6 +339,7 @@ const main = async () => {
                             "SKIPPED",
                             "Already exists in database"
                         );
+                        if (reqId) updateRequestLog(reqId, "SKIPPED");
                         continue;
                     }
                 }
@@ -429,6 +433,7 @@ const main = async () => {
                     "SUCCESS",
                     "Downloaded and saved"
                 );
+                if (reqId) updateRequestLog(reqId, "SUCCESS");
             } catch (videoError) {
                 console.error(
                     `[ERROR] Failed processing "${title}" (${ytId}):`,
@@ -440,6 +445,7 @@ const main = async () => {
                     "ERROR",
                     videoError.message || "Unknown error occurred"
                 );
+                if (reqId) updateRequestLog(reqId, "ERROR");
             } finally {
                 try {
                     const currentFiles = fs.readdirSync(downloadDir);

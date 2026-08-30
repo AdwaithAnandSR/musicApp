@@ -1,0 +1,13 @@
+[
+  {
+    "id": "1693400000000",
+    "timestamp": "2026-08-30T03:34:37Z",
+    "type": "client",
+    "url": "https://youtube.com/playlist?list=XYZ",
+    "limit": 10,
+    "skip": 0,
+    "success": 2,
+    "errors": 1,
+    "skipped": 7
+  }
+]

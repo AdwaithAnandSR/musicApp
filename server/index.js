@@ -17,6 +17,7 @@ import userRoutes from "./routes/user.routes.js";
 import lyrics from "./routes/lyrics.js";
 import temp from "./routes/temp.routes.js";
 import streamRoutes from "./routes/stream.routes.js";
+import statusRoutes from "./routes/status.routes.js";
 
 import { requireAuth, requireAdmin } from "./moddileware/auth.js";
 
@@ -36,6 +37,8 @@ app.use("/temp", temp);
 app.use("/auth", authRoutes);
 app.use("/stream", streamRoutes);
 
+app.use("/status", statusRoutes);
+
 app.use("/", requireAuth, indexRoutes);
 app.use("/lyrics", requireAuth, lyrics);
 app.use("/dashboard", requireAuth, dashboardRoutes);
@@ -47,6 +50,16 @@ app.use("/users", requireAuth, requireAdmin, userRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+});
+
+import cron from "node-cron";
+import { updateChannels } from "./scripts/channelWorker.js";
+
+cron.schedule("0 0 * * *", () => {
+    console.log("[CRON] Starting daily channel auto-update...");
+    updateChannels().catch(err => console.error("[CRON] Channel update error:", err));
+}, {
+    timezone: "UTC"
 });
 
 export default app;
