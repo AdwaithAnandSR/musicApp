@@ -7,7 +7,8 @@
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev": "npx nodemon --ignore downloads/ --ignore download_history.json --ignore 'cookies-*.txt' index.js",
         "start": "node index.js",
-        "worker:youtube": "node scripts/youtubeWorker.js"
+        "worker:youtube": "node scripts/youtubeWorker.js",
+        "worker:channels": "node scripts/channelWorker.js"
     },
     "keywords": [],
     "author": "",
