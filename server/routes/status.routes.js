@@ -11,18 +11,24 @@ const getFileContent = (filename) => {
         try {
             return JSON.parse(fs.readFileSync(filePath, "utf-8"));
         } catch (e) {
-            return { error: "Failed to parse JSON" };
+            return [];
         }
     }
-    return null;
+    return [];
+};
+
+const formatDate = (isoString) => {
+    if (!isoString) return "N/A";
+    const d = new Date(isoString);
+    return d.toLocaleString(undefined, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
 };
 
 router.get("/", (req, res) => {
     const downloadHistory = getFileContent("download_history.json") || [];
     const requestHistory = getFileContent("request_history.json") || [];
     const channelConfig = getFileContent("channel.json") || [];
-
-    const formatJSON = (obj) => JSON.stringify(obj, null, 2).replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     const html = `
     <!DOCTYPE html>
@@ -32,33 +38,116 @@ router.get("/", (req, res) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Server Status</title>
         <style>
-            body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; background: #f4f4f5; color: #18181b; }
-            h1 { color: #27272a; }
-            .container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
-            .card { background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); overflow: hidden; }
-            .card h2 { margin-top: 0; color: #3f3f46; border-bottom: 2px solid #e4e4e7; padding-bottom: 0.5rem; }
-            pre { background: #1e1e2e; color: #a6accd; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.9rem; }
+            :root {
+                --bg: #121212;
+                --card-bg: #1e1e1e;
+                --text-main: #e0e0e0;
+                --text-muted: #9e9e9e;
+                --accent: #bb86fc;
+                --success: #03dac6;
+                --error: #cf6679;
+                --warning: #ffb74d;
+                --border: #333;
+            }
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                margin: 0; padding: 16px; 
+                background: var(--bg); color: var(--text-main); 
+                line-height: 1.5;
+            }
+            h1 { color: var(--accent); font-size: 1.5rem; text-align: center; margin-bottom: 24px; }
+            h2 { color: #fff; font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; }
+            
+            .card {
+                background: var(--card-bg);
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 12px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            }
+            .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+            .time { font-size: 0.85rem; color: var(--text-muted); }
+            
+            .badge {
+                padding: 4px 8px; border-radius: 16px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;
+            }
+            .badge.success { background: rgba(3, 218, 198, 0.2); color: var(--success); }
+            .badge.error { background: rgba(207, 102, 121, 0.2); color: var(--error); }
+            .badge.warning { background: rgba(255, 183, 77, 0.2); color: var(--warning); }
+            .badge.worker { background: rgba(187, 134, 252, 0.2); color: var(--accent); }
+            .badge.client { background: rgba(33, 150, 243, 0.2); color: #64b5f6; }
+            
+            .title { font-size: 1rem; font-weight: 500; margin-bottom: 4px; word-break: break-all; }
+            .details { font-size: 0.85rem; color: var(--text-muted); word-break: break-all; }
+            
+            .stats-row { display: flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+            .stat { font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
+            .stat.s { color: var(--success); }
+            .stat.e { color: var(--error); }
+            .stat.k { color: var(--warning); }
+
+            .btn {
+                display: block; width: 100%; padding: 14px; margin-top: 32px;
+                background: var(--accent); color: #000; text-align: center;
+                border: none; border-radius: 8px; font-weight: bold; font-size: 1rem;
+                cursor: pointer; text-decoration: none;
+            }
+            .btn:active { opacity: 0.8; }
+            
+            .empty { text-align: center; color: var(--text-muted); font-style: italic; padding: 20px 0; }
         </style>
     </head>
     <body>
-        <div class="container">
-            <h1>Server Synchronization Status</h1>
-            
-            <div class="card">
-                <h2>Request History (Latest 15)</h2>
-                <pre><code>${formatJSON(requestHistory)}</code></pre>
-            </div>
+        <h1>Server Status</h1>
 
+        <h2>Active Channels</h2>
+        ${channelConfig.length === 0 ? '<div class="empty">No channels configured.</div>' : channelConfig.map(ch => `
             <div class="card">
-                <h2>Channel Auto-Update Configuration</h2>
-                <pre><code>${formatJSON(channelConfig)}</code></pre>
+                <div class="title">${ch.channel.replace('https://www.youtube.com/', '')}</div>
+                <div class="details">Last ID: ${ch.lastSongId || 'None'}</div>
+                <div class="details">Last Sync: ${formatDate(ch.lastSongTimestamp)}</div>
             </div>
+        `).join('')}
 
+        <h2>Recent Requests</h2>
+        ${requestHistory.length === 0 ? '<div class="empty">No requests found.</div>' : requestHistory.map(req => `
             <div class="card">
-                <h2>Download History (Latest 50)</h2>
-                <pre><code>${formatJSON(downloadHistory)}</code></pre>
+                <div class="header-row">
+                    <span class="badge ${req.type === 'worker' ? 'worker' : 'client'}">${req.type || 'unknown'}</span>
+                    <span class="time">${formatDate(req.timestamp)}</span>
+                </div>
+                <div class="title">${req.url}</div>
+                <div class="stats-row">
+                    <span class="stat s">✓ ${req.success}</span>
+                    <span class="stat e">✗ ${req.errors}</span>
+                    <span class="stat k">⏭ ${req.skipped}</span>
+                </div>
             </div>
-        </div>
+        `).join('')}
+
+        <h2>Download Logs</h2>
+        ${downloadHistory.length === 0 ? '<div class="empty">No logs found.</div>' : downloadHistory.map(dl => `
+            <div class="card">
+                <div class="header-row">
+                    <span class="badge ${dl.status === 'SUCCESS' ? 'success' : dl.status === 'ERROR' ? 'error' : 'warning'}">${dl.status}</span>
+                    <span class="time">${formatDate(dl.timestamp)}</span>
+                </div>
+                <div class="title">${dl.title}</div>
+                <div class="details">${dl.details}</div>
+            </div>
+        `).join('')}
+
+        <button class="btn" onclick="triggerSync()">Trigger Sync Now</button>
+
+        <script>
+            function triggerSync() {
+                alert("Background sync triggered!");
+                fetch('/status/trigger-sync')
+                    .then(res => res.json())
+                    .then(data => console.log(data))
+                    .catch(err => console.error(err));
+            }
+        </script>
     </body>
     </html>
     `;
@@ -73,7 +162,6 @@ router.get("/json", (req, res) => {
         downloadHistory: getFileContent("download_history.json")
     });
 });
-
 
 router.get("/trigger-sync", (req, res) => {
     console.log("[API] Triggered channel sync from public endpoint.");
