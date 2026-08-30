@@ -2,7 +2,7 @@ import DownloadOptionsModal from "@components/playlists/DownloadOptionsModal.jsx
 import { downloadPlaylistSongs, getDownloadedSongs } from "@services/downloads/downloadService.js";
 import Toast from "@services/Toast.js";
 
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
@@ -184,7 +184,7 @@ const PlaylistSongs = () => {
         } catch (e) {}
     }, [isRandom, seed]);
 
-    const songs = data?.pages.flatMap(
+    const rawSongs = data?.pages.flatMap(
             page =>
                 page.musics?.map(({ _id, cover, ...rest }) => ({
                     id: _id,
@@ -194,6 +194,44 @@ const PlaylistSongs = () => {
                     ...rest
                 })) || []
         ) ?? [];
+
+    const isRecentlyAdded = playlistId === "6a3e689cfba948ae55682fe3";
+
+    const songs = rawSongs;
+
+
+    const getHeaderLabel = (dateString) => {
+        if (!dateString) return null;
+        const date = new Date(dateString);
+        const today = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const isSameDate = (d1, d2) => 
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate();
+
+        if (isSameDate(date, today)) return "Today";
+        if (isSameDate(date, yesterday)) return "Yesterday";
+        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    };
+
+    const ItemSeparator = ({ leadingItem, trailingItem }) => {
+        if (!isRecentlyAdded || !leadingItem || !trailingItem) return null;
+
+        const leadingLabel = getHeaderLabel(leadingItem.createdAt);
+        const trailingLabel = getHeaderLabel(trailingItem.createdAt);
+
+        if (leadingLabel && trailingLabel && leadingLabel !== trailingLabel) {
+            return (
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerText}>{trailingLabel}</Text>
+                </View>
+            );
+        }
+        return null;
+    };
 
     const scrollToMiddle = index => {
         if (index === 0)
@@ -276,6 +314,14 @@ const PlaylistSongs = () => {
                         randomSeed={seed}
                     />
                 )}
+                ItemSeparatorComponent={ItemSeparator}
+                ListHeaderComponent={
+                    isRecentlyAdded && songs.length > 0 ? (
+                        <View style={styles.headerContainer}>
+                            <Text style={styles.headerText}>{getHeaderLabel(songs[0].createdAt)}</Text>
+                        </View>
+                    ) : null
+                }
                 showsVerticalScrollIndicator={false}
                 onEndReachedThreshold={0.5}
                 keyExtractor={item => item.id || item._id}
@@ -334,6 +380,16 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "black",
         height: "100%"
+    },
+    headerContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        marginTop: 10,
+    },
+    headerText: {
+        color: "gray",
+        fontSize: 16,
+        fontWeight: "bold",
     },
     loader: {
         color: "white",

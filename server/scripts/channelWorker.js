@@ -158,8 +158,13 @@ export const updateChannels = async () => {
 
     for (let i = 0; i < channels.length; i++) {
         const channelEntry = channels[i];
-        const channelUrl = channelEntry.channel;
+        let channelUrl = channelEntry.channel;
         const lastSongId = channelEntry.lastSongId;
+        
+        // Ensure we only parse the 'videos' tab to avoid fetching Shorts/Live tabs
+        if (!channelUrl.endsWith('/videos') && channelUrl.includes('@')) {
+            channelUrl = channelUrl.replace(/\/?$/, '') + '/videos';
+        }
         const lastSongTimestamp = channelEntry.lastSongTimestamp;
         
         console.log(`\n==========================================`);
