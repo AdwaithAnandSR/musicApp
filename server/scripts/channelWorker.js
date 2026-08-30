@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
 import { v2 as cloudinary } from "cloudinary";
 import { fileURLToPath } from "url";
+import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const CHANNEL_FILE = path.resolve(process.cwd(), "channel.json");
@@ -74,7 +75,7 @@ const fetchVideoMetadata = async (ytId) => {
     return JSON.parse(out.trim());
 };
 
-const downloadAndSaveVideo = async (ytId, videoData) => {
+const downloadAndSaveVideo = async (ytId, videoData, reqId) => {
     const title = videoData.title || `Video ${ytId}`;
     const duration = videoData.duration || 0;
     const uploader = videoData.uploader || videoData.channel || videoData.artist || "Unknown";
@@ -84,6 +85,7 @@ const downloadAndSaveVideo = async (ytId, videoData) => {
         if (existing) {
             console.log(`[SKIPPED] Song already exists in database: "${title}" (${ytId})`);
             logHistory(title, ytId, "SKIPPED", "Already exists in database");
+            if (reqId) updateRequestLog(reqId, "SKIPPED");
             return;
         }
     }
@@ -116,6 +118,7 @@ const downloadAndSaveVideo = async (ytId, videoData) => {
     }
     console.log(`[SUCCESS] Added "${title}"!`);
     logHistory(title, ytId, "SUCCESS", "Downloaded and saved");
+    if (reqId) updateRequestLog(reqId, "SUCCESS");
     
     fs.readdirSync(downloadDir).forEach(f => {
         if (f.startsWith(ytId)) fs.unlinkSync(path.join(downloadDir, f));
@@ -137,6 +140,7 @@ const connectDB = async () => {
 };
 
 export const updateChannels = async () => {
+    const reqId = createRequestLog("Channel Worker Sync", 0, 0, "worker");
     if (!fs.existsSync(CHANNEL_FILE)) {
         console.log("No channel.json found. Exiting.");
         return;
@@ -248,6 +252,7 @@ export const updateChannels = async () => {
             if (duration < 120 || duration >= 300) {
                 console.log(`[SKIPPED] Duration outside allowed range:\n"${title}" (${duration} seconds)`);
                 logHistory(title, ytId, "SKIPPED", `Duration outside allowed range (${duration} seconds)`);
+                if (reqId) updateRequestLog(reqId, "SKIPPED");
                 continue;
             }
 
@@ -255,7 +260,7 @@ export const updateChannels = async () => {
             let success = false;
             for (let attempt = 1; attempt <= 3; attempt++) {
                 try {
-                    await downloadAndSaveVideo(ytId, videoData);
+                    await downloadAndSaveVideo(ytId, videoData, reqId);
                     success = true;
                     break;
                 } catch (e) {
@@ -279,6 +284,7 @@ export const updateChannels = async () => {
             if (!success) {
                 console.log(`[FAILED] Skipping "${title}" [${ytId}] permanently for this run after 3 failed attempts.`);
                 logHistory(title, ytId, "ERROR", "Failed after 3 attempts");
+                if (reqId) updateRequestLog(reqId, "ERROR");
                 // Continue to the next video, do not block checkpoint advancement!
             }
         }
