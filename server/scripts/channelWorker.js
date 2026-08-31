@@ -218,7 +218,23 @@ const connectDB = async () => {
     }
 };
 
+let isUpdateChannelsRunning = false;
+
 export const updateChannels = async () => {
+    if (isUpdateChannelsRunning) {
+        console.log("[Worker] A sync is already in progress. Ignoring duplicate trigger.");
+        return;
+    }
+    isUpdateChannelsRunning = true;
+    
+    try {
+        await _runUpdateChannels();
+    } finally {
+        isUpdateChannelsRunning = false;
+    }
+};
+
+const _runUpdateChannels = async () => {
     const reqId = createRequestLog("Channel Worker Sync", 0, 0, "worker");
 
     let syncStatus = {
@@ -261,24 +277,30 @@ export const updateChannels = async () => {
     let channels = [];
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
-        if (!doc || !doc.data || doc.data.length === 0) {
-            const seedFile = path.resolve(process.cwd(), "channel.json");
-            if (fs.existsSync(seedFile)) {
-                console.log("Seeding channel_config from channel.json...");
-                channels = JSON.parse(fs.readFileSync(seedFile, "utf-8"));
-                await AppDetail.findOneAndUpdate(
-                    { key: "channel_config" },
-                    { data: channels },
-                    { upsert: true }
-                );
-            } else {
-                console.log(
-                    "No channel config found in DB or seed file. Exiting."
-                );
-                return;
-            }
-        } else {
+        if (doc && doc.data && doc.data.length > 0) {
             channels = doc.data;
+        }
+        
+        // Merge any new channels added to channel.json via GitHub
+        const seedFile = path.resolve(process.cwd(), "channel.json");
+        if (fs.existsSync(seedFile)) {
+            const diskChannels = JSON.parse(fs.readFileSync(seedFile, "utf-8"));
+            let addedNew = false;
+            for (const diskCh of diskChannels) {
+                if (!channels.some(c => c.channel === diskCh.channel)) {
+                    console.log(`[NEW CHANNEL DETECTED] Adding ${diskCh.channel} from channel.json to database.`);
+                    channels.push(diskCh);
+                    addedNew = true;
+                }
+            }
+            if (addedNew) {
+                await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
+            }
+        }
+        
+        if (channels.length === 0) {
+            console.log("No channel config found in DB or seed file. Exiting.");
+            return;
         }
     } catch (e) {
         console.error("Error reading channel config:", e);
