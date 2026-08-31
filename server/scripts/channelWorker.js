@@ -246,7 +246,6 @@ export const updateChannels = async () => {
     try {
         const cookieDoc = await AppDetail.findOne({ key: "youtube_cookies" });
         if (cookieDoc && cookieDoc.data) {
-            const path = require("path");
             cookieFile = path.resolve(
                 process.cwd(),
                 `cookies-${Date.now()}.txt`

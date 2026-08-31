@@ -1,4 +1,3 @@
-import { usePlayer } from "../../store/player.js";
 import { File, Directory, Paths } from "expo-file-system";
 import { MMKV } from "react-native-mmkv";
 import { useDownloadStatus } from "../../store/appState.store.js";
@@ -321,6 +320,7 @@ export const downloadPlaylistSongs = async (
                                 );
                                 await saveMeta(meta);
                                 // Notify player to update its queue if it is currently playing this local playlist
+                                const { usePlayer } = require("../../store/player.js");
                                 if (usePlayer.getState().onLocalSongDownloaded) {
                                     usePlayer.getState().onLocalSongDownloaded();
                                 }
