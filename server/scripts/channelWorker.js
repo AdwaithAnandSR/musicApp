@@ -65,14 +65,16 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
     return result.secure_url;
 };
 
-const fetchVideoMetadata = async (ytId) => {
+const fetchVideoMetadata = async (ytId, cookieFile) => {
     const { command, prefix } = getYtDlpRunner();
-    const args = [...prefix, "-j", "--no-playlist", "--js-runtimes", "node", `https://www.youtube.com/watch?v=${ytId}`];
+    const args = [...prefix, "-j", "--no-playlist", "--js-runtimes", "node"];
+    if (cookieFile) args.push("--cookies", cookieFile);
+    args.push(`https://www.youtube.com/watch?v=${ytId}`);
     const out = await runCommand(command, args);
     return JSON.parse(out.trim());
 };
 
-const downloadAndSaveVideo = async (ytId, videoData, reqId) => {
+const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
     const title = videoData.title || `Video ${ytId}`;
     const duration = videoData.duration || 0;
     const uploader = videoData.uploader || videoData.channel || videoData.artist || "Unknown";
@@ -92,8 +94,10 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId) => {
     const dlArgs = [
         ...prefix, "--extract-audio", "--audio-format", "mp3", "--audio-quality", "0",
         "--write-thumbnail", "--no-playlist", "--js-runtimes", "node",
-        "-o", path.join(downloadDir, `${ytId}.%(ext)s`), `https://www.youtube.com/watch?v=${ytId}`
+        "-o", path.join(downloadDir, `${ytId}.%(ext)s`)
     ];
+    if (cookieFile) dlArgs.push("--cookies", cookieFile);
+    dlArgs.push(`https://www.youtube.com/watch?v=${ytId}`);
     await runCommand(command, dlArgs);
 
     const files = fs.readdirSync(downloadDir);
@@ -156,6 +160,19 @@ export const updateChannels = async () => {
     };
     await updateSyncStatus({});
 
+    let cookieFile = null;
+    try {
+        const cookieDoc = await AppDetail.findOne({ key: "youtube_cookies" });
+        if (cookieDoc && cookieDoc.data) {
+            const path = require("path");
+            cookieFile = path.resolve(process.cwd(), `cookies-${Date.now()}.txt`);
+            fs.writeFileSync(cookieFile, cookieDoc.data, { mode: 0o600 });
+            console.log("Loaded saved YouTube cookies from database.");
+        }
+    } catch (e) {
+        console.error("Error loading cookies:", e.message);
+    }
+
     let channels = [];
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
@@ -201,7 +218,9 @@ export const updateChannels = async () => {
         console.log("Fetching channel playlist...");
         let listOutput = "";
         try {
-            const argsList = [...prefix, "-j", "--flat-playlist", "--js-runtimes", "node", channelUrl];
+            const argsList = [...prefix, "-j", "--flat-playlist", "--js-runtimes", "node"];
+            if (cookieFile) argsList.push("--cookies", cookieFile);
+            argsList.push(channelUrl);
             listOutput = await runCommand(command, argsList);
         } catch (e) {
             console.error(`Failed to fetch channel playlist for ${channelUrl}:`, e.message);
@@ -234,7 +253,7 @@ export const updateChannels = async () => {
             console.log(`Fetching metadata for ${ytId}...`);
             let videoData;
             try {
-                videoData = await fetchVideoMetadata(ytId);
+                videoData = await fetchVideoMetadata(ytId, cookieFile);
             } catch (e) {
                 console.error(`Failed to fetch metadata for ${ytId}:`, e.message);
                 continue; // Can't determine timestamp, skip this video in iteration
@@ -306,7 +325,7 @@ export const updateChannels = async () => {
             let dlStatus = null;
             for (let attempt = 1; attempt <= 3; attempt++) {
                 try {
-                    dlStatus = await downloadAndSaveVideo(ytId, videoData, reqId);
+                    dlStatus = await downloadAndSaveVideo(ytId, videoData, reqId, cookieFile);
                     success = true;
                     break;
                 } catch (e) {
@@ -350,6 +369,9 @@ export const updateChannels = async () => {
     }
     
     await updateSyncStatus({ isSyncing: false, message: "Sync complete." });
+    if (cookieFile && fs.existsSync(cookieFile)) {
+        try { fs.unlinkSync(cookieFile); } catch (e) {}
+    }
 };
 
 const main = async () => {
