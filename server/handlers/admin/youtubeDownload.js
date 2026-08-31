@@ -1,7 +1,7 @@
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../../config/cloudinary.js";
 import musicModel from "../../models/musics.js";
 import { createRequestLog, updateRequestLog } from "../../utils/requestLogger.js";
 import AppDetail from "../../models/appDetails.js";
@@ -18,37 +18,7 @@ const logHistory = async (title, ytId, status, details = "") => {
     }
 };
 
-const getCloudinaryConfig = () => {
-    if (process.env.CLOUDINARY_URL) {
-        cloudinary.config({
-            cloudinary_url: process.env.CLOUDINARY_URL,
-            secure: true
-        });
-        return;
-    }
 
-    const cloudName =
-        process.env.CLOUDINARY_CLOUD_NAME ||
-        process.env.CLOUDINARY_CLOUD_NAME_1;
-    const apiKey =
-        process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY_1;
-    const apiSecret =
-        process.env.CLOUDINARY_API_SECRET ||
-        process.env.CLOUDINARY_API_SECRET_1;
-
-    if (cloudName && apiKey && apiSecret) {
-        cloudinary.config({
-            cloud_name: cloudName,
-            api_key: apiKey,
-            api_secret: apiSecret,
-            secure: true
-        });
-    } else {
-        console.warn(
-            "Warning: Cloudinary credentials not fully configured in environment."
-        );
-    }
-};
 
 const createCookieFile = cookiesInput => {
     let raw = cookiesInput;
@@ -189,7 +159,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) =>
         fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-    getCloudinaryConfig();
+
 
     try {
         const videoId = extractVideoId(url);
