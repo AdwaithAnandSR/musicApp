@@ -2,7 +2,7 @@ import "dotenv/config";
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../config/cloudinary.js";
 import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
 import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";

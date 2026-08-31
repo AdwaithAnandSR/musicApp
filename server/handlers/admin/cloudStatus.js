@@ -1,4 +1,4 @@
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../../config/cloudinary.js";
 
 const cloudStatus = async (req, res) => {
     const results = [];

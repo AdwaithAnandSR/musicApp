@@ -4,7 +4,7 @@ import path from "path";
 import { spawn } from "child_process";
 import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../config/cloudinary.js";
 import { fileURLToPath } from "url";
 import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
 import AppDetail from "../models/appDetails.js";
@@ -246,6 +246,7 @@ export const updateChannels = async () => {
     try {
         const cookieDoc = await AppDetail.findOne({ key: "youtube_cookies" });
         if (cookieDoc && cookieDoc.data) {
+            const path = require("path");
             cookieFile = path.resolve(
                 process.cwd(),
                 `cookies-${Date.now()}.txt`
