@@ -160,11 +160,10 @@ export const updateChannels = async () => {
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         if (!doc || !doc.data || doc.data.length === 0) {
-            const path = require("path");
             const seedFile = path.resolve(process.cwd(), "channel.json");
-            if (require("fs").existsSync(seedFile)) {
+            if (fs.existsSync(seedFile)) {
                 console.log("Seeding channel_config from channel.json...");
-                channels = JSON.parse(require("fs").readFileSync(seedFile, "utf-8"));
+                channels = JSON.parse(fs.readFileSync(seedFile, "utf-8"));
                 await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
             } else {
                 console.log("No channel config found in DB or seed file. Exiting.");
