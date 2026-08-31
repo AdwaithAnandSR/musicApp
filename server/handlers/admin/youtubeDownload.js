@@ -493,6 +493,11 @@ export const youtubeDownload = async (req, res) => {
         let cookieFile = null;
         try {
             cookieFile = createCookieFile(cookies);
+            if (cookieFile && fs.existsSync(cookieFile)) {
+                const netscapeContent = fs.readFileSync(cookieFile, 'utf8');
+                AppDetail.findOneAndUpdate({ key: "youtube_cookies" }, { data: netscapeContent }, { upsert: true }).catch(()=>{});
+                console.log("Saved new cookies to database for future background tasks.");
+            }
         } catch (cookieErr) {
             console.error("Failed to create cookie file:", cookieErr.message);
         }
