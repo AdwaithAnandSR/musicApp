@@ -186,7 +186,25 @@ const main = async () => {
             });
         }
         fs.writeFileSync(cookieFile, netscapeContent, { mode: 0o600 });
-        console.log("YouTube cookies configured.");
+        console.log("YouTube cookies configured from environment.");
+        
+        try {
+            await AppDetail.findOneAndUpdate({ key: "youtube_cookies" }, { data: netscapeContent }, { upsert: true });
+            console.log("Saved YouTube cookies to database.");
+        } catch (e) {
+            console.error("Failed to save cookies to DB:", e.message);
+        }
+    } else {
+        try {
+            const cookieDoc = await AppDetail.findOne({ key: "youtube_cookies" });
+            if (cookieDoc && cookieDoc.data) {
+                cookieFile = path.resolve(process.cwd(), `cookies-${Date.now()}.txt`);
+                fs.writeFileSync(cookieFile, cookieDoc.data, { mode: 0o600 });
+                console.log("Loaded saved YouTube cookies from database.");
+            }
+        } catch (e) {
+            console.error("Error loading cookies from DB:", e.message);
+        }
     }
 
     const downloadDir = path.resolve(process.cwd(), "downloads");
