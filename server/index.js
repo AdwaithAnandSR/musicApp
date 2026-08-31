@@ -35,15 +35,27 @@ app.use(
     })
 );
 
+let isWorkerRunning = false;
+
 app.get("/health", async (req, res) => {
     res.status(200).send("OK");
+    
+    // If it's already running in THIS server process, just return
+    if (isWorkerRunning) return;
+
     try {
+        const syncStatusDoc = await AppDetail.findOne({ key: "channel_sync_status" });
+        const isCrashed = syncStatusDoc && syncStatusDoc.data && syncStatusDoc.data.isSyncing === true;
+
         const doc = await AppDetail.findOne({ key: "last_daily_sync_time" });
         const now = Date.now();
         const ONE_DAY = 24 * 60 * 60 * 1000;
         
         let shouldSync = false;
-        if (!doc || !doc.data) {
+        if (isCrashed) {
+            console.log("[Health Check] Detected crashed sync. Resuming immediately...");
+            shouldSync = true;
+        } else if (!doc || !doc.data) {
             shouldSync = true;
         } else {
             const lastSync = Number(doc.data);
@@ -53,9 +65,19 @@ app.get("/health", async (req, res) => {
         }
         
         if (shouldSync) {
+            isWorkerRunning = true;
+            
+            // Set the timestamp so future pings know when we started this sync cycle
             await AppDetail.findOneAndUpdate({ key: "last_daily_sync_time" }, { data: now }, { upsert: true });
             console.log("[Health Check] Triggering daily channel sync...");
-            updateChannels().catch(err => console.error("[Daily Sync] Error:", err));
+            
+            updateChannels().then(() => {
+                isWorkerRunning = false;
+                console.log("[Daily Sync] Completed successfully.");
+            }).catch(err => {
+                console.error("[Daily Sync] Error:", err);
+                isWorkerRunning = false;
+            });
         }
     } catch (e) {
         console.error("Error in health check daily sync logic:", e);
