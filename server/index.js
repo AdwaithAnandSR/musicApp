@@ -18,6 +18,8 @@ import lyrics from "./routes/lyrics.js";
 import temp from "./routes/temp.routes.js";
 import streamRoutes from "./routes/stream.routes.js";
 import statusRoutes from "./routes/status.routes.js";
+import AppDetail from "./models/appDetails.js";
+import { updateChannels } from "./scripts/channelWorker.js";
 
 import { requireAuth, requireAdmin } from "./moddileware/auth.js";
 
@@ -33,7 +35,32 @@ app.use(
     })
 );
 
-app.get("/health", (req, res) => res.status(200).send("OK"));
+app.get("/health", async (req, res) => {
+    res.status(200).send("OK");
+    try {
+        const doc = await AppDetail.findOne({ key: "last_daily_sync_time" });
+        const now = Date.now();
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        
+        let shouldSync = false;
+        if (!doc || !doc.data) {
+            shouldSync = true;
+        } else {
+            const lastSync = Number(doc.data);
+            if (now - lastSync >= ONE_DAY) {
+                shouldSync = true;
+            }
+        }
+        
+        if (shouldSync) {
+            await AppDetail.findOneAndUpdate({ key: "last_daily_sync_time" }, { data: now }, { upsert: true });
+            console.log("[Health Check] Triggering daily channel sync...");
+            updateChannels().catch(err => console.error("[Daily Sync] Error:", err));
+        }
+    } catch (e) {
+        console.error("Error in health check daily sync logic:", e);
+    }
+});
 app.use("/temp", temp);
 app.use("/auth", authRoutes);
 app.use("/stream", streamRoutes);
