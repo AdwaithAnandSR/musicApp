@@ -9,13 +9,26 @@ const router = express.Router();
 const getFileContent = async (key) => {
     try {
         const doc = await AppDetail.findOne({ key });
-        if (doc && doc.data && (Array.isArray(doc.data) ? doc.data.length > 0 : Object.keys(doc.data).length > 0)) {
-            return doc.data;
-        }
-        // Read-only fallback for initial deploy
+        let data = (doc && doc.data) ? doc.data : [];
+        
         if (key === "channel_config") {
             const p = path.resolve(process.cwd(), "channel.json");
-            if (fs.existsSync(p)) return JSON.parse(fs.readFileSync(p, "utf-8"));
+            if (fs.existsSync(p)) {
+                const diskData = JSON.parse(fs.readFileSync(p, "utf-8"));
+                if (Array.isArray(data) && Array.isArray(diskData)) {
+                    const merged = [...data];
+                    for (const diskCh of diskData) {
+                        if (!merged.some(c => c.channel === diskCh.channel)) {
+                            merged.push(diskCh);
+                        }
+                    }
+                    data = merged;
+                }
+            }
+        }
+        
+        if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
+            return data;
         }
         return [];
     } catch (e) {
@@ -25,10 +38,7 @@ const getFileContent = async (key) => {
 
 const formatDate = (isoString) => {
     if (!isoString) return "N/A";
-    const d = new Date(isoString);
-    return d.toLocaleString(undefined, {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
+    return `<span class="client-time" data-iso="${isoString}">${isoString}</span>`;
 };
 
 router.get("/", async (req, res) => {
@@ -124,6 +134,7 @@ router.get("/", async (req, res) => {
         </div>
 
         <h2>Active Channels</h2>
+        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
         ${channelConfig.length === 0 ? '<div class="empty">No channels configured.</div>' : channelConfig.map(ch => `
             <div class="card">
                 <div class="title">${ch.channel.replace('https://www.youtube.com/', '')}</div>
@@ -132,8 +143,10 @@ router.get("/", async (req, res) => {
                 <div class="details">Last Download Count: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
             </div>
         `).join('')}
+        </div>
 
         <h2>Recent Requests</h2>
+        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
         ${requestHistory.length === 0 ? '<div class="empty">No requests found.</div>' : requestHistory.map(req => `
             <div class="card">
                 <div class="header-row">
@@ -148,8 +161,10 @@ router.get("/", async (req, res) => {
                 </div>
             </div>
         `).join('')}
+        </div>
 
         <h2>Download Logs</h2>
+        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
         ${downloadHistory.length === 0 ? '<div class="empty">No logs found.</div>' : downloadHistory.map(dl => `
             <div class="card">
                 <div class="header-row">
@@ -160,10 +175,20 @@ router.get("/", async (req, res) => {
                 <div class="details">${dl.details}</div>
             </div>
         `).join('')}
+        </div>
 
         <button class="btn" onclick="triggerSync()">Trigger Sync Now</button>
 
         <script>
+            document.querySelectorAll('.client-time').forEach(el => {
+                const d = new Date(el.getAttribute('data-iso'));
+                if (!isNaN(d.getTime())) {
+                    el.innerText = d.toLocaleString(undefined, {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+                }
+            });
+
             let pollingInterval = null;
 
             function updateProgressUI(status) {
