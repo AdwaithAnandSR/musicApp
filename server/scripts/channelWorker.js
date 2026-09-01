@@ -195,6 +195,7 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
     fs.readdirSync(downloadDir).forEach(f => {
         if (f.startsWith(ytId)) fs.unlinkSync(path.join(downloadDir, f));
     });
+    return "SUCCESS";
 };
 
 const connectDB = async () => {
