@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
     TouchableOpacity,
     Text,
@@ -14,6 +15,7 @@ import { removeSongsBatch } from "../controllers/playlists/removeSong.js";
 import { deleteSongsPermanentBatch } from "../controllers/admin.js";
 import Toast from "../services/Toast.js";
 import queryClient from "../services/queryClient.js";
+import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";
 
 const HEADER_HEIGHT = 250;
 const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 90;
@@ -106,6 +108,37 @@ const Header = ({
                 }
             ]
         );
+    };
+
+    const [destModalVisible, setDestModalVisible] = useState(false);
+    
+    const handleDownloadSelected = () => {
+        setDestModalVisible(true);
+    };
+
+    const handleDownloadSelectedSubmit = async (playlistName, concurrency) => {
+        setDestModalVisible(false);
+        const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
+        
+        const safePlaylistName = playlistName.trim() || "My Downloads";
+        const playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        
+        const playlistToSave = {
+            id: playlistId,
+            name: safePlaylistName,
+            cover: null
+        };
+
+        const songsToDownload = [...selectedSongs];
+        useMultiSelect.getState().reset();
+        
+        Toast.show(`Downloading ${songsToDownload.length} songs...`, "pending");
+        try {
+            await downloadPlaylistSongs(playlistToSave, songsToDownload, concurrency);
+            Toast.show("Download Complete!", "success");
+        } catch(e) {
+            Toast.show("Download Failed", "error");
+        }
     };
 
     const shuffleOpacity = scrollY
@@ -262,8 +295,23 @@ const Header = ({
                                 <Text style={styles.badgeBtnText}>Delete</Text>
                             </TouchableOpacity>
                         )}
+                        <TouchableOpacity
+                            style={[styles.badgeBtn, { backgroundColor: '#22f97e' }]}
+                            onPress={handleDownloadSelected}
+                        >
+                            <Text style={[styles.badgeBtnText, { color: 'black' }]}>Download</Text>
+                        </TouchableOpacity>
                     </View>
                 </View>
+            )}
+
+            {destModalVisible && (
+                <DestinationPickerModal 
+                    visible={destModalVisible}
+                    onClose={() => setDestModalVisible(false)}
+                    onSelect={handleDownloadSelectedSubmit}
+                    defaultName={title || "My Downloads"}
+                />
             )}
         </Animated.View>
     );

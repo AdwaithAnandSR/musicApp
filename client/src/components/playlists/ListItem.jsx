@@ -30,7 +30,7 @@ const ListItem = ({ item }) => {
     const reset = useMultiSelect(state => state.reset);
 
     const handleLongPress = () => {
-        if (item.isLocalDownloadsFolder) return;
+        if (item.isLocalDownloadsFolder || item._id === "6a3e689cfba948ae55682fe3") return;
         Haptics.impactAsync("light");
         setShowOptions(true);
     };
