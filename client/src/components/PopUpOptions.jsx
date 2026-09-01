@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -18,6 +19,7 @@ const PopUpOptions = () => {
     const user = useAppStatus(state => state.user);
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
     const isAdmin = user?.role === "admin";
+    const [destModalVisible, setDestModalVisible] = useState(false);
 
     if (!options.songId || options.y === -1 || !options.playId) return null;
 
@@ -63,6 +65,40 @@ const PopUpOptions = () => {
         useAppStatus.getState().setPopUpOption(-1, null, null);
         useMultiSelect.getState().reset();
         await removeSongsBatch({ playlistId: options.playId, songIds });
+    };
+
+    const handleDownloadSingle = () => {
+        setDestModalVisible(true);
+    };
+
+    const handleDownloadSingleSubmit = async (playlistName, concurrency) => {
+        setDestModalVisible(false);
+        useAppStatus.getState().setPopUpOption(-1, null, null);
+        
+        const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
+        const currentSelectedPlaylist = useAppStatus.getState().currentSelectedPlaylist;
+        
+        const safePlaylistName = playlistName.trim() || "My Downloads";
+        const playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        
+        const playlistToSave = {
+            id: playlistId,
+            name: safePlaylistName,
+            cover: currentSelectedPlaylist?.cover || null
+        };
+
+        const targetSong = options.song || {
+            id: options.songId,
+            _id: options.songId
+        };
+        
+        Toast.show("Downloading song...", "pending");
+        try {
+            await downloadPlaylistSongs(playlistToSave, [targetSong], 1);
+            Toast.show("Download Complete!", "success");
+        } catch(e) {
+            Toast.show("Download Failed", "error");
+        }
     };
 
     const handleBatchDelete = async () => {
@@ -150,6 +186,7 @@ const PopUpOptions = () => {
     };
 
     return (
+        <>
         <View style={[styles.container, { top: Math.max(10, options.y) }]}>
             {isMultiSelecting ? (
                 <>
@@ -217,6 +254,17 @@ const PopUpOptions = () => {
                         </TouchableOpacity>
                     )}
 
+                    {!isLocalDownload && (
+                        <TouchableOpacity
+                            style={styles.item}
+                            onPress={handleDownloadSingle}
+                        >
+                            <Text style={styles.itemText}>
+                                Download Song
+                            </Text>
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity
                         style={styles.item}
                         onPress={handleSelect}
@@ -226,6 +274,19 @@ const PopUpOptions = () => {
                 </>
             )}
         </View>
+        
+        {destModalVisible && (
+            <DestinationPickerModal 
+                visible={destModalVisible}
+                onClose={() => {
+                    setDestModalVisible(false);
+                    useAppStatus.getState().setPopUpOption(-1, null, null);
+                }}
+                onSelect={handleDownloadSingleSubmit}
+                defaultName={useAppStatus.getState().currentSelectedPlaylist?.name || "My Downloads"}
+            />
+        )}
+        </>
     );
 };
 

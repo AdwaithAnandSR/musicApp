@@ -1,9 +1,0 @@
-{
-  "name": "youtube-cookies",
-  "version": "1.0.0",
-  "main": "src/YoutubeCookiesModule.ts",
-  "types": "src/YoutubeCookiesModule.ts",
-  "peerDependencies": {
-    "expo": "*"
-  }
-}
