@@ -148,6 +148,9 @@ const CLIENT_SCRIPT = `
     }
     
     function deleteChannel(encodedUrl) {
+        if (!confirm("Are you sure you want to delete this channel?")) {
+            return;
+        }
         var channelUrl = decodeURIComponent(encodedUrl);
         showMessage("Removing channel...");
         fetch('/status/delete-channel', {
