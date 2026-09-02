@@ -2,9 +2,9 @@ import { create } from "axios";
 import { getToken, removeToken } from "./storage.js";
 import { useAppStatus } from "@store/appState.store";
 
-// const BASE_URL = process.env.EXPO_PUBLIC_API || "http://localhost:5000";
+const BASE_URL = process.env.EXPO_PUBLIC_API || "http://localhost:5000";
 // const BASE_URL =  "http://localhost:5000";
-const BASE_URL =  "https://musicapp-ju7o.onrender.com";
+// const BASE_URL =  "";
 
 
 const api = create({
