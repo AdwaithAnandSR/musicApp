@@ -47,7 +47,7 @@ app.get("/health", async (req, res) => {
         const syncStatusDoc = await AppDetail.findOne({ key: "channel_sync_status" });
         const isCrashed = syncStatusDoc && syncStatusDoc.data && syncStatusDoc.data.isSyncing === true;
 
-        const doc = await AppDetail.findOne({ key: "last_daily_sync_time" });
+        const nextSyncDoc = await AppDetail.findOne({ key: "next_daily_sync_time" });
         const now = Date.now();
         const ONE_DAY = 24 * 60 * 60 * 1000;
         
@@ -55,11 +55,11 @@ app.get("/health", async (req, res) => {
         if (isCrashed) {
             console.log("[Health Check] Detected crashed sync. Resuming immediately...");
             shouldSync = true;
-        } else if (!doc || !doc.data) {
+        } else if (!nextSyncDoc || !nextSyncDoc.data) {
             shouldSync = true;
         } else {
-            const lastSync = Number(doc.data);
-            if (now - lastSync >= ONE_DAY) {
+            const nextSync = Number(nextSyncDoc.data);
+            if (now >= nextSync) {
                 shouldSync = true;
             }
         }
@@ -67,9 +67,10 @@ app.get("/health", async (req, res) => {
         if (shouldSync) {
             isWorkerRunning = true;
             
-            // Set the timestamp so future pings know when we started this sync cycle
-            await AppDetail.findOneAndUpdate({ key: "last_daily_sync_time" }, { data: now }, { upsert: true });
-            console.log("[Health Check] Triggering daily channel sync...");
+            // Set the next timestamp (24h from now) so future pings know when to run again
+            const nextRun = now + ONE_DAY;
+            await AppDetail.findOneAndUpdate({ key: "next_daily_sync_time" }, { data: nextRun }, { upsert: true });
+            console.log(`[Health Check] Triggering daily channel sync... Next run scheduled for ${new Date(nextRun).toISOString()}`);
             
             updateChannels().then(() => {
                 isWorkerRunning = false;

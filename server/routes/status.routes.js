@@ -47,10 +47,16 @@ router.get("/", async (req, res) => {
     const channelConfig = await getFileContent("channel_config") || [];
     const syncStatus = await getFileContent("channel_sync_status") || { isSyncing: false };
     
-    const lastSyncDoc = await AppDetail.findOne({ key: "last_daily_sync_time" });
-    const lastSyncTime = lastSyncDoc && lastSyncDoc.data ? Number(lastSyncDoc.data) : null;
-    const ONE_DAY = 24 * 60 * 60 * 1000;
-    const nextSyncTime = lastSyncTime ? new Date(lastSyncTime + ONE_DAY).toISOString() : null;
+    const nextSyncDoc = await AppDetail.findOne({ key: "next_daily_sync_time" });
+    let nextSyncTime = nextSyncDoc && nextSyncDoc.data ? new Date(Number(nextSyncDoc.data)).toISOString() : null;
+    
+    if (!nextSyncTime) {
+        const lastSyncDoc = await AppDetail.findOne({ key: "last_daily_sync_time" });
+        const lastSyncTime = lastSyncDoc && lastSyncDoc.data ? Number(lastSyncDoc.data) : null;
+        if (lastSyncTime) {
+            nextSyncTime = new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString();
+        }
+    }
 
     const html = `
     <!DOCTYPE html>
@@ -132,8 +138,15 @@ router.get("/", async (req, res) => {
         <h1>Server Status</h1>
         
         <h2>Scheduled Cron Job</h2>
-        <div class="card">
-            <div class="details">Next Run: ${nextSyncTime ? formatDate(nextSyncTime) : 'Pending / Immediate'}</div>
+        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div class="details" style="margin-bottom: 8px;">Next Run: ${nextSyncTime ? formatDate(nextSyncTime) : 'Pending / Immediate'}</div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="datetime-local" id="newSyncTime" style="padding: 4px; border-radius: 4px; border: 1px solid var(--border); background: #333; color: white;" />
+                    <button class="btn" style="width: auto; padding: 4px 12px; margin-top: 0; font-size: 0.85rem;" onclick="updateSyncTime()">Set Time</button>
+                </div>
+            </div>
+            <button class="btn" style="width: auto; padding: 8px 16px; margin-top: 0;" onclick="triggerSync()">Run Now</button>
         </div>
         
         <div id="sync-progress-container" style="display: none; background: rgba(187, 134, 252, 0.1); border: 1px solid var(--accent); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
@@ -157,7 +170,7 @@ router.get("/", async (req, res) => {
         ${channelConfig.length === 0 ? '<div class="empty">No channels configured.</div>' : channelConfig.map(ch => `
             <div class="card">
                 <button class="btn-delete" onclick="deleteChannel('${encodeURIComponent(ch.channel)}')">Delete</button>
-                <div class="title">${ch.channel.replace('https://www.youtube.com/', '')}</div>
+                <div class="title">${ch.channel.replace('https://www.youtube.com/', '').replace(/\/videos\/?$/, '')}</div>
                 <div class="details">Last ID: ${ch.lastSongId || 'None'}</div>
                 <div class="details">Last Sync: ${formatDate(ch.lastSongTimestamp)}</div>
                 <div class="details">Last Download Count: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
@@ -197,8 +210,6 @@ router.get("/", async (req, res) => {
         `).join('')}
         </div>
 
-        <button class="btn" onclick="triggerSync()">Trigger Sync Now</button>
-
         <script>
             document.querySelectorAll('.client-time').forEach(el => {
                 const d = new Date(el.getAttribute('data-iso'));
@@ -220,7 +231,11 @@ router.get("/", async (req, res) => {
                 }
                 
                 container.style.display = 'block';
-                document.getElementById('sync-channel').innerText = 'Channel: ' + (status.currentChannel || '...');
+                let displayChannel = status.currentChannel || '...';
+                if (displayChannel !== '...') {
+                    displayChannel = displayChannel.replace(/\/videos\/?$/, '');
+                }
+                document.getElementById('sync-channel').innerText = 'Channel: ' + displayChannel;
                 document.getElementById('sync-message').innerText = status.message || 'Processing...';
                 
                 const total = status.totalSongs || 0;
@@ -260,6 +275,28 @@ router.get("/", async (req, res) => {
                     .then(res => res.json())
                     .then(data => console.log(data))
                     .catch(err => console.error(err));
+            }
+            
+            function updateSyncTime() {
+                const timeInput = document.getElementById('newSyncTime').value;
+                if (!timeInput) return alert("Please select a time first.");
+                
+                const ms = new Date(timeInput).getTime();
+                if (isNaN(ms)) return alert("Invalid time.");
+                
+                fetch('/status/update-sync-time', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nextTime: ms })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Next sync time updated!");
+                        location.reload();
+                    } else alert("Failed: " + data.error);
+                })
+                .catch(err => console.error(err));
             }
             
             function deleteChannel(encodedUrl) {
@@ -307,6 +344,18 @@ router.get("/trigger-sync", (req, res) => {
     console.log("[API] Triggered channel sync from public endpoint.");
     updateChannels().catch(err => console.error("[API] Channel update failed:", err));
     res.json({ success: true, message: "Channel auto-update started in the background." });
+});
+
+router.post("/update-sync-time", async (req, res) => {
+    try {
+        const { nextTime } = req.body;
+        if (!nextTime) return res.status(400).json({ error: "Missing nextTime" });
+        await AppDetail.findOneAndUpdate({ key: "next_daily_sync_time" }, { data: nextTime }, { upsert: true });
+        res.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 router.post("/delete-channel", async (req, res) => {
