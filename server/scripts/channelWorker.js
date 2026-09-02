@@ -340,6 +340,8 @@ const _runUpdateChannels = async () => {
                 ...prefix,
                 "-j",
                 "--flat-playlist",
+                "--extractor-args",
+                "youtubetab:skip=authcheck",
                 "--js-runtimes",
                 "node"
             ];
