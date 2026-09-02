@@ -217,35 +217,39 @@ router.get("/", async (req, res) => {
         </div>
 
         <script>
-            document.querySelectorAll('.client-time').forEach(el => {
-                const d = new Date(el.getAttribute('data-iso'));
+            var timeEls = document.querySelectorAll('.client-time');
+            for (var i = 0; i < timeEls.length; i++) {
+                var el = timeEls[i];
+                var d = new Date(el.getAttribute('data-iso'));
                 if (!isNaN(d.getTime())) {
-                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    const month = months[d.getMonth()];
-                    const day = d.getDate();
-                    let hours = d.getHours();
-                    const minutes = d.getMinutes().toString().padStart(2, '0');
-                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    var month = months[d.getMonth()];
+                    var day = d.getDate();
+                    var hours = d.getHours();
+                    var minutes = d.getMinutes().toString();
+                    if (minutes.length < 2) minutes = '0' + minutes;
+                    var ampm = hours >= 12 ? 'PM' : 'AM';
                     hours = hours % 12;
                     hours = hours ? hours : 12; 
                     el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
                 }
-            });
+            }
 
-            let pollingInterval = null;
+            var pollingInterval = null;
             
-            function showMessage(msg, isError = false) {
-                const el = document.getElementById('actionMessage');
+            function showMessage(msg, isError) {
+                if (isError === undefined) isError = false;
+                var el = document.getElementById('actionMessage');
                 el.innerText = msg;
                 el.style.display = 'block';
                 el.style.backgroundColor = isError ? 'rgba(207, 102, 121, 0.2)' : 'rgba(3, 218, 198, 0.2)';
                 el.style.color = isError ? 'var(--error)' : 'var(--success)';
                 el.style.border = '1px solid ' + (isError ? 'var(--error)' : 'var(--success)');
-                setTimeout(() => el.style.display = 'none', 4000);
+                setTimeout(function() { el.style.display = 'none'; }, 4000);
             }
 
             function updateProgressUI(status) {
-                const container = document.getElementById('sync-progress-container');
+                var container = document.getElementById('sync-progress-container');
                 if (!status.isSyncing) {
                     container.style.display = 'none';
                     if (pollingInterval) clearInterval(pollingInterval);
@@ -253,18 +257,18 @@ router.get("/", async (req, res) => {
                 }
                 
                 container.style.display = 'block';
-                let displayChannel = status.currentChannel || '...';
+                var displayChannel = status.currentChannel || '...';
                 if (displayChannel !== '...') {
                     displayChannel = displayChannel.replace(/\/videos\/?$/, '');
                 }
                 document.getElementById('sync-channel').innerText = 'Channel: ' + displayChannel;
                 document.getElementById('sync-message').innerText = status.message || 'Processing...';
                 
-                const total = status.totalSongs || 0;
-                const current = status.currentSongIndex || 0;
+                var total = status.totalSongs || 0;
+                var current = status.currentSongIndex || 0;
                 document.getElementById('sync-progress').innerText = current + ' / ' + total;
                 
-                const pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+                var pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
                 document.getElementById('sync-bar').style.width = pct + '%';
                 
                 document.getElementById('sync-success').innerText = '✓ ' + (status.successCount || 0);
@@ -279,34 +283,33 @@ router.get("/", async (req, res) => {
 
             function pollStatus() {
                 fetch('/status/json')
-                    .then(res => res.json())
-                    .then(data => {
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
                         if (data.syncStatus) updateProgressUI(data.syncStatus);
                         else updateProgressUI({ isSyncing: false });
                     })
-                    .catch(e => console.error(e));
+                    .catch(function(e) { console.error(e); });
             }
             
-            // Check initial status on load
-            const initialStatus = ${JSON.stringify(syncStatus || { isSyncing: false })};
+            var initialStatus = ${JSON.stringify(syncStatus || { isSyncing: false })};
             updateProgressUI(initialStatus);
 
             function triggerSync() {
                 showMessage("Background sync triggered!");
                 fetch('/status/trigger-sync')
-                    .then(res => res.json())
-                    .then(data => console.log(data))
-                    .catch(err => {
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) { console.log(data); })
+                    .catch(function(err) {
                         console.error(err);
                         showMessage("Failed to trigger sync", true);
                     });
             }
             
             function updateSyncTime() {
-                const timeInput = document.getElementById('newSyncTime').value;
+                var timeInput = document.getElementById('newSyncTime').value;
                 if (!timeInput) return showMessage("Please select a time first.", true);
                 
-                const ms = new Date(timeInput).getTime();
+                var ms = new Date(timeInput).getTime();
                 if (isNaN(ms)) return showMessage("Invalid time.", true);
                 
                 fetch('/status/update-sync-time', {
@@ -314,21 +317,21 @@ router.get("/", async (req, res) => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nextTime: ms })
                 })
-                .then(res => res.json())
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data.success) {
                         showMessage("Next sync time updated!");
-                        setTimeout(() => location.reload(), 1500);
+                        setTimeout(function() { location.reload(); }, 1500);
                     } else showMessage("Failed: " + data.error, true);
                 })
-                .catch(err => {
+                .catch(function(err) {
                     console.error(err);
                     showMessage("Network error occurred.", true);
                 });
             }
             
             function deleteChannel(encodedUrl) {
-                const channelUrl = decodeURIComponent(encodedUrl);
+                var channelUrl = decodeURIComponent(encodedUrl);
                 showMessage("Removing channel...");
                 fetch('/status/delete-channel', {
                     method: 'POST',
@@ -337,16 +340,16 @@ router.get("/", async (req, res) => {
                     },
                     body: JSON.stringify({ channel: channelUrl })
                 })
-                .then(res => res.json())
-                .then(data => {
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
                     if (data.success) {
                         showMessage("Channel removed successfully.");
-                        setTimeout(() => location.reload(), 1500);
+                        setTimeout(function() { location.reload(); }, 1500);
                     } else {
                         showMessage("Failed to remove channel: " + data.error, true);
                     }
                 })
-                .catch(err => {
+                .catch(function(err) {
                     console.error(err);
                     showMessage("Error removing channel.", true);
                 });
