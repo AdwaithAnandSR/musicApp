@@ -46,6 +46,11 @@ router.get("/", async (req, res) => {
     const requestHistory = await getFileContent("request_history") || [];
     const channelConfig = await getFileContent("channel_config") || [];
     const syncStatus = await getFileContent("channel_sync_status") || { isSyncing: false };
+    
+    const lastSyncDoc = await AppDetail.findOne({ key: "last_daily_sync_time" });
+    const lastSyncTime = lastSyncDoc && lastSyncDoc.data ? Number(lastSyncDoc.data) : null;
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    const nextSyncTime = lastSyncTime ? new Date(lastSyncTime + ONE_DAY).toISOString() : null;
 
     const html = `
     <!DOCTYPE html>
@@ -81,6 +86,7 @@ router.get("/", async (req, res) => {
                 padding: 16px;
                 margin-bottom: 12px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                position: relative;
             }
             .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
             .time { font-size: 0.85rem; color: var(--text-muted); }
@@ -111,11 +117,24 @@ router.get("/", async (req, res) => {
             }
             .btn:active { opacity: 0.8; }
             
+            .btn-delete {
+                position: absolute; top: 16px; right: 16px;
+                background: rgba(207, 102, 121, 0.2); color: var(--error);
+                border: 1px solid var(--error); border-radius: 4px;
+                padding: 4px 8px; font-size: 0.75rem; cursor: pointer;
+            }
+            .btn-delete:active { opacity: 0.8; }
+            
             .empty { text-align: center; color: var(--text-muted); font-style: italic; padding: 20px 0; }
         </style>
     </head>
     <body>
         <h1>Server Status</h1>
+        
+        <h2>Scheduled Cron Job</h2>
+        <div class="card">
+            <div class="details">Next Run: ${nextSyncTime ? formatDate(nextSyncTime) : 'Pending / Immediate'}</div>
+        </div>
         
         <div id="sync-progress-container" style="display: none; background: rgba(187, 134, 252, 0.1); border: 1px solid var(--accent); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
             <h3 style="color: var(--accent); margin-top: 0;">Sync in Progress</h3>
@@ -137,6 +156,7 @@ router.get("/", async (req, res) => {
         <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
         ${channelConfig.length === 0 ? '<div class="empty">No channels configured.</div>' : channelConfig.map(ch => `
             <div class="card">
+                <button class="btn-delete" onclick="deleteChannel('${encodeURIComponent(ch.channel)}')">Delete</button>
                 <div class="title">${ch.channel.replace('https://www.youtube.com/', '')}</div>
                 <div class="details">Last ID: ${ch.lastSongId || 'None'}</div>
                 <div class="details">Last Sync: ${formatDate(ch.lastSongTimestamp)}</div>
@@ -241,6 +261,31 @@ router.get("/", async (req, res) => {
                     .then(data => console.log(data))
                     .catch(err => console.error(err));
             }
+            
+            function deleteChannel(encodedUrl) {
+                if (!confirm("Are you sure you want to stop watching this channel?")) return;
+                const channelUrl = decodeURIComponent(encodedUrl);
+                fetch('/status/delete-channel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ channel: channelUrl })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("Channel removed successfully.");
+                        location.reload();
+                    } else {
+                        alert("Failed to remove channel: " + data.error);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Error removing channel.");
+                });
+            }
         </script>
     </body>
     </html>
@@ -262,6 +307,32 @@ router.get("/trigger-sync", (req, res) => {
     console.log("[API] Triggered channel sync from public endpoint.");
     updateChannels().catch(err => console.error("[API] Channel update failed:", err));
     res.json({ success: true, message: "Channel auto-update started in the background." });
+});
+
+router.post("/delete-channel", async (req, res) => {
+    const { channel } = req.body;
+    if (!channel) return res.status(400).json({ error: "Missing channel URL" });
+
+    try {
+        const doc = await AppDetail.findOne({ key: "channel_config" });
+        if (doc && doc.data && Array.isArray(doc.data)) {
+            const newData = doc.data.filter(c => c.channel !== channel);
+            await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: newData });
+        }
+
+        const p = path.resolve(process.cwd(), "channel.json");
+        if (fs.existsSync(p)) {
+            const diskData = JSON.parse(fs.readFileSync(p, "utf-8"));
+            if (Array.isArray(diskData)) {
+                const newDiskData = diskData.filter(c => c.channel !== channel);
+                fs.writeFileSync(p, JSON.stringify(newDiskData, null, 2));
+            }
+        }
+        res.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 export default router;
