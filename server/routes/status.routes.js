@@ -137,6 +137,8 @@ router.get("/", async (req, res) => {
     <body>
         <h1>Server Status</h1>
         
+        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: bold; text-align: center;"></div>
+        
         <h2>Scheduled Cron Job</h2>
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
@@ -218,13 +220,29 @@ router.get("/", async (req, res) => {
             document.querySelectorAll('.client-time').forEach(el => {
                 const d = new Date(el.getAttribute('data-iso'));
                 if (!isNaN(d.getTime())) {
-                    el.innerText = d.toLocaleString(undefined, {
-                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    });
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    const month = months[d.getMonth()];
+                    const day = d.getDate();
+                    let hours = d.getHours();
+                    const minutes = d.getMinutes().toString().padStart(2, '0');
+                    const ampm = hours >= 12 ? 'PM' : 'AM';
+                    hours = hours % 12;
+                    hours = hours ? hours : 12; 
+                    el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
                 }
             });
 
             let pollingInterval = null;
+            
+            function showMessage(msg, isError = false) {
+                const el = document.getElementById('actionMessage');
+                el.innerText = msg;
+                el.style.display = 'block';
+                el.style.backgroundColor = isError ? 'rgba(207, 102, 121, 0.2)' : 'rgba(3, 218, 198, 0.2)';
+                el.style.color = isError ? 'var(--error)' : 'var(--success)';
+                el.style.border = '1px solid ' + (isError ? 'var(--error)' : 'var(--success)');
+                setTimeout(() => el.style.display = 'none', 4000);
+            }
 
             function updateProgressUI(status) {
                 const container = document.getElementById('sync-progress-container');
@@ -274,19 +292,22 @@ router.get("/", async (req, res) => {
             updateProgressUI(initialStatus);
 
             function triggerSync() {
-                alert("Background sync triggered!");
+                showMessage("Background sync triggered!");
                 fetch('/status/trigger-sync')
                     .then(res => res.json())
                     .then(data => console.log(data))
-                    .catch(err => console.error(err));
+                    .catch(err => {
+                        console.error(err);
+                        showMessage("Failed to trigger sync", true);
+                    });
             }
             
             function updateSyncTime() {
                 const timeInput = document.getElementById('newSyncTime').value;
-                if (!timeInput) return alert("Please select a time first.");
+                if (!timeInput) return showMessage("Please select a time first.", true);
                 
                 const ms = new Date(timeInput).getTime();
-                if (isNaN(ms)) return alert("Invalid time.");
+                if (isNaN(ms)) return showMessage("Invalid time.", true);
                 
                 fetch('/status/update-sync-time', {
                     method: 'POST',
@@ -296,16 +317,19 @@ router.get("/", async (req, res) => {
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert("Next sync time updated!");
-                        location.reload();
-                    } else alert("Failed: " + data.error);
+                        showMessage("Next sync time updated!");
+                        setTimeout(() => location.reload(), 1500);
+                    } else showMessage("Failed: " + data.error, true);
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error(err);
+                    showMessage("Network error occurred.", true);
+                });
             }
             
             function deleteChannel(encodedUrl) {
-                if (!confirm("Are you sure you want to stop watching this channel?")) return;
                 const channelUrl = decodeURIComponent(encodedUrl);
+                showMessage("Removing channel...");
                 fetch('/status/delete-channel', {
                     method: 'POST',
                     headers: {
@@ -316,15 +340,15 @@ router.get("/", async (req, res) => {
                 .then(res => res.json())
                 .then(data => {
                     if (data.success) {
-                        alert("Channel removed successfully.");
-                        location.reload();
+                        showMessage("Channel removed successfully.");
+                        setTimeout(() => location.reload(), 1500);
                     } else {
-                        alert("Failed to remove channel: " + data.error);
+                        showMessage("Failed to remove channel: " + data.error, true);
                     }
                 })
                 .catch(err => {
                     console.error(err);
-                    alert("Error removing channel.");
+                    showMessage("Error removing channel.", true);
                 });
             }
         </script>
