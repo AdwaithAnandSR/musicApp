@@ -269,9 +269,9 @@ router.get("/", async (req, res) => {
             <div id="sync-title" class="details" style="margin-top: 12px; word-break: break-all;"></div>
         </div>
 
-        <h2>Active Channels</h2>
-        <div class="card" style="margin-bottom: 24px; text-align: center;">
-            <a href="/status/channels" class="btn" style="display: inline-block; width: auto; margin-top: 0; padding: 12px 24px;">Manage Channels</a>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; margin-bottom: 16px;">
+            <h2 style="border: none; padding-bottom: 0; margin-top: 0; margin-bottom: 0;">Active Channels</h2>
+            <a href="/status/channels" class="btn" style="display: inline-block; width: auto; margin-top: 0; padding: 6px 12px; font-size: 0.85rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);">Manage</a>
         </div>
 
         <h2>Recent Requests</h2>
@@ -399,7 +399,11 @@ router.get("/channels", async (req, res) => {
             <div class="card">
                 <button class="btn-delete" onclick="deleteChannel('${encodeURIComponent(ch.channel)}')">Delete</button>
                 <div class="title">${ch.channel.replace('https://www.youtube.com/', '').replace(/\/videos\/?$/, '')}</div>
-                <div class="details">Last ID: ${ch.lastSongId || 'None'}</div>
+                <div class="details" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; margin-top: 4px;">
+                    Last ID: 
+                    <input type="text" id="lastId-${index}" value="${ch.lastSongId || ''}" placeholder="None" style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 0.85rem;" />
+                    <button class="btn" style="margin: 0; padding: 6px 12px; width: auto; font-size: 0.85rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);" onclick="updateLastId('${encodeURIComponent(ch.channel)}', ${index})">Save</button>
+                </div>
                 <div class="details">Last Sync: <span class="client-time" data-iso="${ch.lastSongTimestamp || ''}">${ch.lastSongTimestamp || 'N/A'}</span></div>
                 <div class="details">Last Download Count: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
                 
@@ -489,6 +493,27 @@ router.get("/channels", async (req, res) => {
                     if (data.success) {
                         showMessage("Channel added successfully.");
                         setTimeout(function() { location.reload(); }, 1500);
+                    } else showMessage("Failed: " + data.error, true);
+                })
+                .catch(function(err) {
+                    console.error(err);
+                    showMessage("Network error occurred.", true);
+                });
+            }
+
+            function updateLastId(encodedUrl, index) {
+                var channelUrl = decodeURIComponent(encodedUrl);
+                var lastId = document.getElementById('lastId-' + index).value.trim();
+                showMessage("Updating Last ID...");
+                fetch('/status/update-last-id', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel: channelUrl, lastSongId: lastId })
+                })
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        showMessage("Last ID updated successfully.");
                     } else showMessage("Failed: " + data.error, true);
                 })
                 .catch(function(err) {
@@ -651,6 +676,27 @@ router.post("/update-all-filters", async (req, res) => {
                 ch.include = include || [];
             });
             await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels });
+        }
+        res.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+router.post("/update-last-id", async (req, res) => {
+    const { channel, lastSongId } = req.body;
+    if (!channel) return res.status(400).json({ error: "Missing channel URL" });
+    
+    try {
+        const doc = await AppDetail.findOne({ key: "channel_config" });
+        if (doc && doc.data && Array.isArray(doc.data)) {
+            const channels = doc.data;
+            const idx = channels.findIndex(c => c.channel === channel);
+            if (idx !== -1) {
+                channels[idx].lastSongId = lastSongId || "";
+                await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels });
+            }
         }
         res.json({ success: true });
     } catch (e) {
