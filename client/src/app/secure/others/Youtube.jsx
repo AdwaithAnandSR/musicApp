@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
-import axios from "@services/axios";
+import axios from "axios";
 import { router } from "expo-router";
 import CookieManager from "@preeternal/react-native-cookie-manager";
 
@@ -109,7 +109,7 @@ const Youtube = () => {
 
         setIsLoading(true);
         try {
-            const response = await axios.post("/admin/youtubeDownload", {
+            const response = await axios.post("https://musicapp-ju7o.onrender.com/admin/youtubeDownload", {
                 url,
                 skip: parseInt(skip, 10) || 0,
                 limit: parseInt(limit, 10) || 1,
