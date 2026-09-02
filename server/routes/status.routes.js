@@ -36,6 +36,143 @@ const getFileContent = async (key) => {
     }
 };
 
+const CLIENT_SCRIPT = `
+    var timeEls = document.querySelectorAll('.client-time');
+    for (var i = 0; i < timeEls.length; i++) {
+        var el = timeEls[i];
+        var d = new Date(el.getAttribute('data-iso'));
+        if (!isNaN(d.getTime())) {
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            var month = months[d.getMonth()];
+            var day = d.getDate();
+            var hours = d.getHours();
+            var minutes = d.getMinutes().toString();
+            if (minutes.length < 2) minutes = '0' + minutes;
+            var ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12; 
+            el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
+        }
+    }
+
+    var pollingInterval = null;
+    
+    function showMessage(msg, isError) {
+        if (isError === undefined) isError = false;
+        var el = document.getElementById('actionMessage');
+        el.innerText = msg;
+        el.style.display = 'block';
+        el.style.backgroundColor = isError ? 'rgba(207, 102, 121, 0.2)' : 'rgba(3, 218, 198, 0.2)';
+        el.style.color = isError ? 'var(--error)' : 'var(--success)';
+        el.style.border = '1px solid ' + (isError ? 'var(--error)' : 'var(--success)');
+        setTimeout(function() { el.style.display = 'none'; }, 4000);
+    }
+
+    function updateProgressUI(status) {
+        var container = document.getElementById('sync-progress-container');
+        if (!status.isSyncing) {
+            container.style.display = 'none';
+            if (pollingInterval) clearInterval(pollingInterval);
+            return;
+        }
+        
+        container.style.display = 'block';
+        var displayChannel = status.currentChannel || '...';
+        if (displayChannel !== '...') {
+            displayChannel = displayChannel.replace(/\\/videos\\/?$/, '');
+        }
+        document.getElementById('sync-channel').innerText = 'Channel: ' + displayChannel;
+        document.getElementById('sync-message').innerText = status.message || 'Processing...';
+        
+        var total = status.totalSongs || 0;
+        var current = status.currentSongIndex || 0;
+        document.getElementById('sync-progress').innerText = current + ' / ' + total;
+        
+        var pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+        document.getElementById('sync-bar').style.width = pct + '%';
+        
+        document.getElementById('sync-success').innerText = '✓ ' + (status.successCount || 0);
+        document.getElementById('sync-error').innerText = '✗ ' + (status.errorCount || 0);
+        document.getElementById('sync-skipped').innerText = '⏭ ' + (status.skippedCount || 0);
+        document.getElementById('sync-title').innerText = 'Current: ' + (status.currentSongTitle || '...');
+        
+        if (!pollingInterval) {
+            pollingInterval = setInterval(pollStatus, 2000);
+        }
+    }
+
+    function pollStatus() {
+        fetch('/status/json')
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.syncStatus) updateProgressUI(data.syncStatus);
+                else updateProgressUI({ isSyncing: false });
+            })
+            .catch(function(e) { console.error(e); });
+    }
+    
+    function triggerSync() {
+        showMessage("Background sync triggered!");
+        fetch('/status/trigger-sync')
+            .then(function(res) { return res.json(); })
+            .then(function(data) { console.log(data); })
+            .catch(function(err) {
+                console.error(err);
+                showMessage("Failed to trigger sync", true);
+            });
+    }
+    
+    function updateSyncTime() {
+        var timeInput = document.getElementById('newSyncTime').value;
+        if (!timeInput) return showMessage("Please select a time first.", true);
+        
+        var ms = new Date(timeInput).getTime();
+        if (isNaN(ms)) return showMessage("Invalid time.", true);
+        
+        fetch('/status/update-sync-time', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nextTime: ms })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showMessage("Next sync time updated!");
+                setTimeout(function() { location.reload(); }, 1500);
+            } else showMessage("Failed: " + data.error, true);
+        })
+        .catch(function(err) {
+            console.error(err);
+            showMessage("Network error occurred.", true);
+        });
+    }
+    
+    function deleteChannel(encodedUrl) {
+        var channelUrl = decodeURIComponent(encodedUrl);
+        showMessage("Removing channel...");
+        fetch('/status/delete-channel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ channel: channelUrl })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showMessage("Channel removed successfully.");
+                setTimeout(function() { location.reload(); }, 1500);
+            } else {
+                showMessage("Failed to remove channel: " + data.error, true);
+            }
+        })
+        .catch(function(err) {
+            console.error(err);
+            showMessage("Error removing channel.", true);
+        });
+    }
+`;
+
 const formatDate = (isoString) => {
     if (!isoString) return "N/A";
     return `<span class="client-time" data-iso="${isoString}">${isoString}</span>`;
@@ -217,143 +354,9 @@ router.get("/", async (req, res) => {
         </div>
 
         <script>
-            var timeEls = document.querySelectorAll('.client-time');
-            for (var i = 0; i < timeEls.length; i++) {
-                var el = timeEls[i];
-                var d = new Date(el.getAttribute('data-iso'));
-                if (!isNaN(d.getTime())) {
-                    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    var month = months[d.getMonth()];
-                    var day = d.getDate();
-                    var hours = d.getHours();
-                    var minutes = d.getMinutes().toString();
-                    if (minutes.length < 2) minutes = '0' + minutes;
-                    var ampm = hours >= 12 ? 'PM' : 'AM';
-                    hours = hours % 12;
-                    hours = hours ? hours : 12; 
-                    el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
-                }
-            }
-
-            var pollingInterval = null;
-            
-            function showMessage(msg, isError) {
-                if (isError === undefined) isError = false;
-                var el = document.getElementById('actionMessage');
-                el.innerText = msg;
-                el.style.display = 'block';
-                el.style.backgroundColor = isError ? 'rgba(207, 102, 121, 0.2)' : 'rgba(3, 218, 198, 0.2)';
-                el.style.color = isError ? 'var(--error)' : 'var(--success)';
-                el.style.border = '1px solid ' + (isError ? 'var(--error)' : 'var(--success)');
-                setTimeout(function() { el.style.display = 'none'; }, 4000);
-            }
-
-            function updateProgressUI(status) {
-                var container = document.getElementById('sync-progress-container');
-                if (!status.isSyncing) {
-                    container.style.display = 'none';
-                    if (pollingInterval) clearInterval(pollingInterval);
-                    return;
-                }
-                
-                container.style.display = 'block';
-                var displayChannel = status.currentChannel || '...';
-                if (displayChannel !== '...') {
-                    displayChannel = displayChannel.replace(/\/videos\/?$/, '');
-                }
-                document.getElementById('sync-channel').innerText = 'Channel: ' + displayChannel;
-                document.getElementById('sync-message').innerText = status.message || 'Processing...';
-                
-                var total = status.totalSongs || 0;
-                var current = status.currentSongIndex || 0;
-                document.getElementById('sync-progress').innerText = current + ' / ' + total;
-                
-                var pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-                document.getElementById('sync-bar').style.width = pct + '%';
-                
-                document.getElementById('sync-success').innerText = '✓ ' + (status.successCount || 0);
-                document.getElementById('sync-error').innerText = '✗ ' + (status.errorCount || 0);
-                document.getElementById('sync-skipped').innerText = '⏭ ' + (status.skippedCount || 0);
-                document.getElementById('sync-title').innerText = 'Current: ' + (status.currentSongTitle || '...');
-                
-                if (!pollingInterval) {
-                    pollingInterval = setInterval(pollStatus, 2000);
-                }
-            }
-
-            function pollStatus() {
-                fetch('/status/json')
-                    .then(function(res) { return res.json(); })
-                    .then(function(data) {
-                        if (data.syncStatus) updateProgressUI(data.syncStatus);
-                        else updateProgressUI({ isSyncing: false });
-                    })
-                    .catch(function(e) { console.error(e); });
-            }
-            
+            ${CLIENT_SCRIPT}
             var initialStatus = ${JSON.stringify(syncStatus || { isSyncing: false })};
             updateProgressUI(initialStatus);
-
-            function triggerSync() {
-                showMessage("Background sync triggered!");
-                fetch('/status/trigger-sync')
-                    .then(function(res) { return res.json(); })
-                    .then(function(data) { console.log(data); })
-                    .catch(function(err) {
-                        console.error(err);
-                        showMessage("Failed to trigger sync", true);
-                    });
-            }
-            
-            function updateSyncTime() {
-                var timeInput = document.getElementById('newSyncTime').value;
-                if (!timeInput) return showMessage("Please select a time first.", true);
-                
-                var ms = new Date(timeInput).getTime();
-                if (isNaN(ms)) return showMessage("Invalid time.", true);
-                
-                fetch('/status/update-sync-time', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nextTime: ms })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showMessage("Next sync time updated!");
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else showMessage("Failed: " + data.error, true);
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Network error occurred.", true);
-                });
-            }
-            
-            function deleteChannel(encodedUrl) {
-                var channelUrl = decodeURIComponent(encodedUrl);
-                showMessage("Removing channel...");
-                fetch('/status/delete-channel', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ channel: channelUrl })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showMessage("Channel removed successfully.");
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else {
-                        showMessage("Failed to remove channel: " + data.error, true);
-                    }
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Error removing channel.", true);
-                });
-            }
         </script>
     </body>
     </html>
