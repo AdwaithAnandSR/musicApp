@@ -282,25 +282,8 @@ const _runUpdateChannels = async () => {
             channels = doc.data;
         }
         
-        // Merge any new channels added to channel.json via GitHub
-        const seedFile = path.resolve(process.cwd(), "channel.json");
-        if (fs.existsSync(seedFile)) {
-            const diskChannels = JSON.parse(fs.readFileSync(seedFile, "utf-8"));
-            let addedNew = false;
-            for (const diskCh of diskChannels) {
-                if (!channels.some(c => c.channel === diskCh.channel)) {
-                    console.log(`[NEW CHANNEL DETECTED] Adding ${diskCh.channel} from channel.json to database.`);
-                    channels.push(diskCh);
-                    addedNew = true;
-                }
-            }
-            if (addedNew) {
-                await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
-            }
-        }
-        
         if (channels.length === 0) {
-            console.log("No channel config found in DB or seed file. Exiting.");
+            console.log("No channel config found in DB. Exiting.");
             return;
         }
     } catch (e) {
@@ -466,6 +449,45 @@ const _runUpdateChannels = async () => {
                 currentSongTitle: title,
                 message: "Downloading..."
             });
+
+            // Title filter based on include/exclude
+            const titleLower = title.toLowerCase();
+            const excludeArr = channelEntry.exclude || [];
+            const includeArr = channelEntry.include || [];
+            
+            let excluded = false;
+            for (const term of excludeArr) {
+                if (titleLower.includes(term.toLowerCase())) {
+                    excluded = true;
+                    break;
+                }
+            }
+            
+            let included = true;
+            if (includeArr.length > 0) {
+                included = false;
+                for (const term of includeArr) {
+                    if (titleLower.includes(term.toLowerCase())) {
+                        included = true;
+                        break;
+                    }
+                }
+            }
+
+            if (excluded || !included) {
+                console.log(`[SKIPPED] Title filtered out by exclude/include rules:\n"${title}"`);
+                logHistory(
+                    title,
+                    ytId,
+                    "SKIPPED",
+                    "Title filtered out by rules"
+                );
+                if (reqId) updateRequestLog(reqId, "SKIPPED");
+                await updateSyncStatus({
+                    skippedCount: syncStatus.skippedCount + 1
+                });
+                continue;
+            }
 
             // Duration Filter
             if (duration < 120 || duration >= 300) {
