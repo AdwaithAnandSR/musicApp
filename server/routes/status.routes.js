@@ -138,15 +138,19 @@ router.get("/", async (req, res) => {
         <h1>Server Status</h1>
         
         <h2>Scheduled Cron Job</h2>
-        <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <div class="details" style="margin-bottom: 8px;">Next Run: ${nextSyncTime ? formatDate(nextSyncTime) : 'Pending / Immediate'}</div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="datetime-local" id="newSyncTime" style="padding: 4px; border-radius: 4px; border: 1px solid var(--border); background: #333; color: white;" />
-                    <button class="btn" style="width: auto; padding: 4px 12px; margin-top: 0; font-size: 0.85rem;" onclick="updateSyncTime()">Set Time</button>
-                </div>
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <span class="title" style="margin: 0;">Next Scheduled Run:</span>
+                <span class="details" style="font-weight: bold; color: var(--accent);">${nextSyncTime ? formatDate(nextSyncTime) : 'Pending'}</span>
             </div>
-            <button class="btn" style="width: auto; padding: 8px 16px; margin-top: 0;" onclick="triggerSync()">Run Now</button>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; gap: 8px;">
+                    <input type="datetime-local" id="newSyncTime" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 1rem; color-scheme: dark;" />
+                    <button class="btn" style="width: auto; margin: 0; padding: 10px 20px;" onclick="updateSyncTime()">Set</button>
+                </div>
+                <button class="btn" style="margin: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent);" onclick="triggerSync()">Run Sync Now</button>
+            </div>
         </div>
         
         <div id="sync-progress-container" style="display: none; background: rgba(187, 134, 252, 0.1); border: 1px solid var(--accent); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
