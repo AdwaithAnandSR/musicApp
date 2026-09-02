@@ -235,7 +235,7 @@ router.get("/", async (req, res) => {
     <body>
         <h1>Server Status</h1>
         
-        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: bold; text-align: center;"></div>
+        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 90%; max-width: 400px;"></div>
         
         <h2>Scheduled Cron Job</h2>
         <div class="card">
@@ -385,7 +385,7 @@ router.get("/channels", async (req, res) => {
         <a href="/status" class="back-link">&larr; Back to Status</a>
         <h1>Manage Channels</h1>
         
-        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-weight: bold; text-align: center;"></div>
+        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 90%; max-width: 400px;"></div>
         
         <div class="card" style="margin-bottom: 24px;">
             <div style="display: flex; gap: 8px;">
