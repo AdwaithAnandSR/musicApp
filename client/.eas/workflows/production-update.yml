@@ -1,10 +1,9 @@
-name: Production Update
-
-on:
-  workflow_dispatch:
+name: Production Android Update
 
 jobs:
   update:
+    name: Android Update
     type: update
     params:
-      channel: production
+      branch: main
+      platform: android
