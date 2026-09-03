@@ -1,0 +1,10 @@
+name: Production Update
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update:
+    type: update
+    params:
+      channel: production
