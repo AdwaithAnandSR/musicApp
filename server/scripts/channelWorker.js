@@ -14,7 +14,7 @@ const __filename = fileURLToPath(import.meta.url);
 const INITIAL_CHANNEL_LIMIT = 10;
 const downloadDir = path.resolve(process.cwd(), "downloads");
 
-if (!fs.existsSync(downloadDir)) {
+if (!process.env.VERCEL && !fs.existsSync(downloadDir)) {
     fs.mkdirSync(downloadDir, { recursive: true });
 }
 

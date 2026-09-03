@@ -40,6 +40,8 @@ let isWorkerRunning = false;
 app.get("/health", async (req, res) => {
     res.status(200).send("OK");
     
+    if (process.env.VERCEL) return;
+
     // If it's already running or evaluating in THIS server process, just return
     if (isWorkerRunning) return;
     isWorkerRunning = true; // Lock immediately before async DB calls
