@@ -5,7 +5,7 @@ import path from "path";
 import cloudinary from "../config/cloudinary.js";
 import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
-import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
+import { createRequestLog, updateRequestLog, setRequestCurrentItem, markRequestDone } from "../utils/requestLogger.js";
 import AppDetail from "../models/appDetails.js";
 
 const logHistory = async (title, ytId, status, details = "") => {
@@ -322,6 +322,7 @@ const main = async () => {
 
             console.log(`------------------------------------------`);
             console.log(`Processing: "${title}" [${ytId}]`);
+            if (reqId) setRequestCurrentItem(reqId, title);
 
             try {
                 if (mongoose.connection.readyState === 1) {
@@ -465,6 +466,7 @@ const main = async () => {
     } catch (err) {
         console.error("Worker error:", err);
     } finally {
+        if (reqId) markRequestDone(reqId);
         if (cookieFile && fs.existsSync(cookieFile)) {
             try {
                 fs.unlinkSync(cookieFile);
