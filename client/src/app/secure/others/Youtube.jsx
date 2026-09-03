@@ -109,7 +109,7 @@ const Youtube = () => {
 
         setIsLoading(true);
         try {
-            const response = await api.post(
+            const response = await axios.post(
                 "/admin/youtubeDownload",
                 {
                     url,
@@ -121,10 +121,6 @@ const Youtube = () => {
                     baseURL: "https://musicapp-ju7o.onrender.com"
                 }
             );
-
-            await api.get("/users", {
-                baseURL: "https://other-api.com/api"
-            });
 
             Alert.alert(
                 "Success",
