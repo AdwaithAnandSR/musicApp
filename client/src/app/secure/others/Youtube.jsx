@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "@services/axios.js";
 import { router } from "expo-router";
 import CookieManager from "@preeternal/react-native-cookie-manager";
+import { getToken } from "@services/storage.js";
 
 const Youtube = () => {
     const webviewRef = useRef(null);
@@ -109,6 +110,7 @@ const Youtube = () => {
 
         setIsLoading(true);
         try {
+            const token = getToken();
             const response = await axios.post(
                 "/admin/youtubeDownload",
                 {
@@ -118,7 +120,8 @@ const Youtube = () => {
                     cookies
                 },
                 {
-                    baseURL: "https://musicapp-ju7o.onrender.com"
+                    baseURL: "https://musicapp-ju7o.onrender.com",
+                    headers: token ? { Authorization: `Bearer ${token}` } : {}
                 }
             );
 
@@ -253,7 +256,7 @@ const Youtube = () => {
 const styles = StyleSheet.create({
     fab: {
         position: "absolute",
-        bottom: 20,
+        bottom: 150,
         right: 20,
         backgroundColor: "#ff0000",
         width: 56,
