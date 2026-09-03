@@ -120,8 +120,7 @@ const Youtube = () => {
                     cookies
                 },
                 {
-                    baseURL: "https://musicapp-ju7o.onrender.com",
-                    headers: token ? { Authorization: `Bearer ${token}` } : {}
+                    baseURL: "https://musicapp-ju7o.onrender.com"
                 }
             );
 
