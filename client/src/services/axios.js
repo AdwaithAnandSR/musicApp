@@ -17,7 +17,7 @@ const api = create({
 api.interceptors.request.use(
     config => {
         const token = getToken();
-        if (token) config.headers.Authorization = `Bearer ${token}`;
+        if (token) config.headers.set("Authorization", `Bearer ${token}`);
         return config;
     },
     error => Promise.reject(error)
