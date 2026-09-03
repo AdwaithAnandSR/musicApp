@@ -5,6 +5,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 export const requireAuth = async (req, res, next) => {
     try {
+        
         const authHeader = req.headers.authorization;
         if (!authHeader?.startsWith("Bearer "))
             return res
@@ -16,6 +17,7 @@ export const requireAuth = async (req, res, next) => {
         let decoded;
         try {
             decoded = jwt.verify(token, JWT_SECRET);
+        
         } catch (err) {
             if (err.name === "TokenExpiredError")
                 return res
