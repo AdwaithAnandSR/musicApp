@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
 import { v2 as cloudinary } from "cloudinary";
 import { fileURLToPath } from "url";
-import { createRequestLog, updateRequestLog } from "../utils/requestLogger.js";
+import { createRequestLog, updateRequestLog, setRequestCurrentItem, markRequestDone } from "../utils/requestLogger.js";
 import AppDetail from "../models/appDetails.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -444,6 +444,7 @@ const _runUpdateChannels = async () => {
             const title = videoData.title || `Video ${ytId}`;
 
             console.log(`\n-- Inspecting: "${title}" [${ytId}]`);
+            if (reqId) setRequestCurrentItem(reqId, title);
             await updateSyncStatus({
                 currentSongIndex: syncStatus.currentSongIndex + 1,
                 currentSongTitle: title,
@@ -579,6 +580,7 @@ const _runUpdateChannels = async () => {
     }
 
     await updateSyncStatus({ isSyncing: false, message: "Sync complete." });
+    if (reqId) markRequestDone(reqId);
     if (cookieFile && fs.existsSync(cookieFile)) {
         try {
             fs.unlinkSync(cookieFile);

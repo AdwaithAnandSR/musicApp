@@ -276,20 +276,34 @@ router.get("/", async (req, res) => {
 
         <h2>Recent Requests</h2>
         <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
-        ${requestHistory.length === 0 ? '<div class="empty">No requests found.</div>' : requestHistory.map(req => `
-            <div class="card">
+        ${requestHistory.length === 0 ? '<div class="empty">No requests found.</div>' : requestHistory.map(req => {
+            const isRunning = req.status === 'RUNNING';
+            const statusBadgeColor = isRunning ? 'warning' : 'success';
+            const statusText = req.status || 'COMPLETED';
+            const total = req.limit || 0;
+            const doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
+            const left = Math.max(0, total - doneSoFar);
+            
+            return `
+            <div class="card" ${isRunning ? 'style="border: 1px solid var(--warning);"' : ''}>
                 <div class="header-row">
-                    <span class="badge ${req.type === 'worker' ? 'worker' : 'client'}">${req.type || 'unknown'}</span>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="badge ${req.type === 'worker' ? 'worker' : 'client'}">${req.type || 'unknown'}</span>
+                        <span class="badge ${statusBadgeColor}">${statusText}</span>
+                    </div>
                     <span class="time">${formatDate(req.timestamp)}</span>
                 </div>
                 <div class="title">${req.url}</div>
+                ${req.currentTitle ? `<div class="details" style="margin-top: 8px; font-style: italic;">Current: ${req.currentTitle}</div>` : ''}
                 <div class="stats-row">
-                    <span class="stat s">✓ ${req.success}</span>
-                    <span class="stat e">✗ ${req.errors}</span>
-                    <span class="stat k">⏭ ${req.skipped}</span>
+                    <span class="stat s">✓ ${req.success || 0}</span>
+                    <span class="stat e">✗ ${req.errors || 0}</span>
+                    <span class="stat k">⏭ ${req.skipped || 0}</span>
+                    ${total > 0 ? `<span class="stat" style="margin-left: auto;">${doneSoFar} / ${total} (Left: ${left})</span>` : ''}
                 </div>
             </div>
-        `).join('')}
+            `;
+        }).join('')}
         </div>
 
         <h2>Download Logs</h2>

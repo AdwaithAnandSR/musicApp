@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import cloudinary from "../../config/cloudinary.js";
 import musicModel from "../../models/musics.js";
-import { createRequestLog, updateRequestLog } from "../../utils/requestLogger.js";
+import { createRequestLog, updateRequestLog, setRequestCurrentItem, markRequestDone } from "../../utils/requestLogger.js";
 import AppDetail from "../../models/appDetails.js";
 
 const logHistory = async (title, ytId, status, details = "") => {
@@ -275,6 +275,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) =>
 
             console.log(`------------------------------------------`);
             console.log(`Processing: "${title}" [${ytId}]`);
+            if (reqId) setRequestCurrentItem(reqId, title);
 
             try {
                 // 1. Duplicate check by ytId or title
@@ -423,6 +424,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) =>
             err
         );
     } finally {
+        if (reqId) markRequestDone(reqId);
         // Cleanup cookie file
         if (cookieFile && fs.existsSync(cookieFile)) {
             try {

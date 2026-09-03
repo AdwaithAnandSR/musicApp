@@ -12,7 +12,9 @@ export const createRequestLog = (url, limit, skip, type = "client") => {
             skip,
             success: 0,
             errors: 0,
-            skipped: 0
+            skipped: 0,
+            status: "RUNNING",
+            currentTitle: "Initializing..."
         };
         
         AppDetail.findOne({ key: "request_history" }).then(doc => {
@@ -47,5 +49,40 @@ export const updateRequestLog = (id, statusType) => {
         }).catch(err => console.error(err));
     } catch (err) {
         console.error("Failed to update request log:", err);
+    }
+};
+
+export const setRequestCurrentItem = (id, title) => {
+    if (!id) return;
+    try {
+        AppDetail.findOne({ key: "request_history" }).then(doc => {
+            if (!doc) return;
+            let history = doc.data;
+            const index = history.findIndex(h => h.id === id);
+            if (index !== -1) {
+                history[index].currentTitle = title;
+                AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
+            }
+        }).catch(err => console.error(err));
+    } catch (err) {
+        console.error("Failed to set request current item:", err);
+    }
+};
+
+export const markRequestDone = (id) => {
+    if (!id) return;
+    try {
+        AppDetail.findOne({ key: "request_history" }).then(doc => {
+            if (!doc) return;
+            let history = doc.data;
+            const index = history.findIndex(h => h.id === id);
+            if (index !== -1) {
+                history[index].status = "COMPLETED";
+                history[index].currentTitle = "Done";
+                AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
+            }
+        }).catch(err => console.error(err));
+    } catch (err) {
+        console.error("Failed to mark request as done:", err);
     }
 };
