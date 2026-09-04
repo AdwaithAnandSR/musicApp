@@ -10,7 +10,6 @@ export const resumePendingTasks = async () => {
         if (!doc || !doc.data) return;
         
         const history = doc.data;
-        let requiresSave = false;
 
         for (let i = 0; i < history.length; i++) {
             const req = history[i];
@@ -42,21 +41,17 @@ export const resumePendingTasks = async () => {
                         }
                     } catch (e) {}
 
-                    // Run the background process but DO NOT block the loop (fire and forget)
-                    processBackgroundDownload(req.url, newSkip, newLimit, cookieFile, req.id)
+                    // Await the background process to prevent OOM from too many concurrent yt-dlp instances
+                    await processBackgroundDownload(req.url, newSkip, newLimit, cookieFile, req.id)
                         .catch(err => console.error(`[Resume] Task ${req.id} failed:`, err));
                 } else {
                     console.log(`[Resume] Task ${req.id} actually finished processing all items before crash. Marking complete.`);
-                    req.status = "COMPLETED";
-                    req.currentTitle = "Done";
-                    requiresSave = true;
+                    const { markRequestDone } = await import("../utils/requestLogger.js");
+                    markRequestDone(req.id);
                 }
             }
         }
         
-        if (requiresSave) {
-            await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true });
-        }
     } catch (e) {
         console.error("[Resume] Error resuming tasks:", e);
     }
