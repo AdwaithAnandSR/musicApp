@@ -183,7 +183,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     "SKIPPED",
                     "Already exists in database"
                 );
-                if (reqId) updateRequestLog(reqId, "SKIPPED");
+                if (reqId) await updateRequestLog(reqId, "SKIPPED");
                 return;
             }
 
@@ -275,7 +275,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
 
             console.log(`------------------------------------------`);
             console.log(`Processing: "${title}" [${ytId}]`);
-            if (reqId) setRequestCurrentItem(reqId, title);
+            if (reqId) await setRequestCurrentItem(reqId, title);
 
             try {
                 // 1. Duplicate check by ytId or title
@@ -293,7 +293,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                         "SKIPPED",
                         "Already exists in database"
                     );
-                    if (reqId) updateRequestLog(reqId, "SKIPPED");
+                    if (reqId) await updateRequestLog(reqId, "SKIPPED");
                     continue;
                 }
 
@@ -397,7 +397,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     "SUCCESS",
                     "Uploaded to Cloudinary and saved to DB"
                 );
-                if (reqId) updateRequestLog(reqId, "SUCCESS");
+                if (reqId) await updateRequestLog(reqId, "SUCCESS");
             } catch (videoError) {
                 console.error(
                     `[ERROR] Failed processing "${title}" (${ytId}):`,
@@ -409,7 +409,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     "ERROR",
                     videoError.message || "Unknown error occurred"
                 );
-                if (reqId) updateRequestLog(reqId, "ERROR");
+                if (reqId) await updateRequestLog(reqId, "ERROR");
             } finally {
                 // 6. Clean up temporary files for this video
                 try {
@@ -433,7 +433,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
             err
         );
     } finally {
-        if (reqId) markRequestDone(reqId);
+        if (reqId) await markRequestDone(reqId);
         // Cleanup cookie file
         if (cookieFile && fs.existsSync(cookieFile)) {
             try {
@@ -484,7 +484,7 @@ export const youtubeDownload = async (req, res) => {
         }
 
         // 3. Start background download process on Render server
-        const reqId = createRequestLog(trimmedUrl, safeLimit, safeSkip, "single");
+        const reqId = await createRequestLog(trimmedUrl, safeLimit, safeSkip, "single");
         processBackgroundDownload(trimmedUrl, safeSkip, safeLimit, cookieFile, reqId);
 
         // 4. Immediate response
