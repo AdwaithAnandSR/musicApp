@@ -177,6 +177,46 @@ const CLIENT_SCRIPT = `
         }
     }
 
+    function updateDownloadLogsUI(downloadHistory) {
+        var container = document.getElementById('download-logs-list');
+        if (!container) return;
+        if (!downloadHistory || downloadHistory.length === 0) {
+            container.innerHTML = '<div class="empty">No logs found.</div>';
+            return;
+        }
+        var html = '';
+        downloadHistory.forEach(function(dl) {
+            var badgeClass = dl.status === 'SUCCESS' ? 'success' : (dl.status === 'ERROR' ? 'error' : 'warning');
+            html += '<div class="card">';
+            html += '  <div class="header-row">';
+            html += '    <span class="badge ' + badgeClass + '">' + (dl.status || '') + '</span>';
+            html += '    <span class="time">' + (dl.timestamp ? '<span class="client-time" data-iso="'+dl.timestamp+'">'+dl.timestamp+'</span>' : 'N/A') + '</span>';
+            html += '  </div>';
+            html += '  <div class="title">' + (dl.title || '') + '</div>';
+            html += '  <div class="details">' + (dl.details || '') + '</div>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
+        
+        var timeEls = container.querySelectorAll('.client-time');
+        for (var i = 0; i < timeEls.length; i++) {
+            var el = timeEls[i];
+            var d = new Date(el.getAttribute('data-iso'));
+            if (!isNaN(d.getTime())) {
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                var month = months[d.getMonth()];
+                var day = d.getDate();
+                var hours = d.getHours();
+                var minutes = d.getMinutes().toString();
+                if (minutes.length < 2) minutes = '0' + minutes;
+                var ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
+            }
+        }
+    }
+
     function pollStatus() {
         fetch('/status/json')
             .then(function(res) { return res.json(); })
@@ -184,6 +224,7 @@ const CLIENT_SCRIPT = `
                 var isSyncing = updateProgressUI(data.syncStatus);
                 var hasManualTasks = updateManualTasksUI(data.requestHistory);
                 updateRecentRequestsUI(data.requestHistory);
+                updateDownloadLogsUI(data.downloadHistory);
                 
                 if (!isSyncing && !hasManualTasks) {
                     if (pollingInterval) {
@@ -416,7 +457,7 @@ router.get("/", async (req, res) => {
         </div>
 
         <h2>Download Logs</h2>
-        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+        <div id="download-logs-list" style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
         ${downloadHistory.length === 0 ? '<div class="empty">No logs found.</div>' : downloadHistory.map(dl => `
             <div class="card">
                 <div class="header-row">
