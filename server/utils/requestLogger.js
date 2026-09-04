@@ -76,6 +76,7 @@ export const markRequestDone = async (id) => {
         if (index !== -1) {
             history[index].status = "COMPLETED";
             history[index].currentTitle = "Done";
+            history[index].completedAt = new Date().toISOString();
             await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true });
         }
     } catch (err) {
