@@ -137,11 +137,23 @@ const CLIENT_SCRIPT = `
             var doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
             var left = Math.max(0, total - doneSoFar);
             
+            var durationText = '';
+            if (!isRunning && req.timestamp && req.completedAt && req.type === 'worker') {
+                var startMs = new Date(req.timestamp).getTime();
+                var endMs = new Date(req.completedAt).getTime();
+                if (!isNaN(startMs) && !isNaN(endMs) && startMs <= endMs) {
+                    var diffSecs = Math.floor((endMs - startMs) / 1000);
+                    var m = Math.floor(diffSecs / 60);
+                    var s = diffSecs % 60;
+                    durationText = ' (' + m + 'm ' + s + 's)';
+                }
+            }
+            
             html += '<div class="card" ' + (isRunning ? 'style="border: 1px solid var(--warning);"' : '') + '>';
             html += '  <div class="header-row">';
             html += '    <div style="display: flex; gap: 8px;">';
             html += '      <span class="badge ' + (req.type === "worker" ? "worker" : "client") + '">' + (req.type || "unknown") + '</span>';
-            html += '      <span class="badge ' + statusBadgeColor + '">' + statusText + '</span>';
+            html += '      <span class="badge ' + statusBadgeColor + '">' + statusText + durationText + '</span>';
             html += '    </div>';
             html += '    <span class="time">' + (req.timestamp ? '<span class="client-time" data-iso="'+req.timestamp+'">'+req.timestamp+'</span>' : 'N/A') + '</span>';
             html += '  </div>';
@@ -434,12 +446,24 @@ router.get("/", async (req, res) => {
             const doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
             const left = Math.max(0, total - doneSoFar);
             
+            let durationText = '';
+            if (!isRunning && req.timestamp && req.completedAt && req.type === 'worker') {
+                const startMs = new Date(req.timestamp).getTime();
+                const endMs = new Date(req.completedAt).getTime();
+                if (!isNaN(startMs) && !isNaN(endMs) && startMs <= endMs) {
+                    const diffSecs = Math.floor((endMs - startMs) / 1000);
+                    const m = Math.floor(diffSecs / 60);
+                    const s = diffSecs % 60;
+                    durationText = ` (${m}m ${s}s)`;
+                }
+            }
+            
             return `
             <div class="card" ${isRunning ? 'style="border: 1px solid var(--warning);"' : ''}>
                 <div class="header-row">
                     <div style="display: flex; gap: 8px;">
                         <span class="badge ${req.type === 'worker' ? 'worker' : 'client'}">${req.type || 'unknown'}</span>
-                        <span class="badge ${statusBadgeColor}">${statusText}</span>
+                        <span class="badge ${statusBadgeColor}">${statusText}${durationText}</span>
                     </div>
                     <span class="time">${formatDate(req.timestamp)}</span>
                 </div>
