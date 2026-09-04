@@ -13,16 +13,17 @@ export const resumePendingTasks = async () => {
 
         for (let i = 0; i < history.length; i++) {
             const req = history[i];
-            if (req.status === "RUNNING") {
-                console.log(`[Resume] Found orphaned task for URL: ${req.url} (ID: ${req.id})`);
-                
-                // Calculate where it left off
-                const success = req.success || 0;
-                const errors = req.errors || 0;
-                const skipped = req.skipped || 0;
-                const processed = success + errors + skipped;
-                
-                const originalLimit = parseInt(req.limit, 10);
+            
+            const success = req.success || 0;
+            const errors = req.errors || 0;
+            const skipped = req.skipped || 0;
+            const processed = success + errors + skipped;
+            
+            const originalLimit = parseInt(req.limit, 10);
+            
+            if (req.status === "RUNNING" || processed < originalLimit) {
+                console.log(`[Resume] Found orphaned or incomplete task for URL: ${req.url} (ID: ${req.id})`);
+
                 const originalSkip = parseInt(req.skip, 10);
                 
                 const newSkip = (isNaN(originalSkip) ? 0 : originalSkip) + processed;
@@ -31,6 +32,19 @@ export const resumePendingTasks = async () => {
                 if (newLimit > 0) {
                     console.log(`[Resume] Resuming task ${req.id} - New Skip: ${newSkip}, Remaining Limit: ${newLimit}`);
                     
+                    // Mark it as RUNNING again in the DB if it wasn't
+                    if (req.status !== "RUNNING") {
+                        const doc = await AppDetail.findOne({ key: "request_history" });
+                        if (doc && doc.data) {
+                            const updated = doc.data;
+                            const idx = updated.findIndex(r => r.id === req.id);
+                            if (idx !== -1) {
+                                updated[idx].status = "RUNNING";
+                                await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: updated });
+                            }
+                        }
+                    }
+
                     // Recover cookie file if possible
                     let cookieFile = null;
                     try {
