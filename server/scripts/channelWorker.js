@@ -33,16 +33,16 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
-const runCommand = (command, args) => {
+const runCommand = (command, args, ignoreOutput = false) => {
     return new Promise((resolve, reject) => {
         const proc = spawn(command, args);
         let stdout = "";
         let stderr = "";
         proc.stdout.on("data", data => {
-            stdout += data.toString();
+            if (!ignoreOutput) stdout += data.toString();
         });
         proc.stderr.on("data", data => {
-            stderr += data.toString();
+            if (!ignoreOutput) stderr += data.toString();
         });
         proc.on("close", code => {
             if (code === 0) resolve(stdout);
@@ -120,6 +120,12 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
     }
 
     console.log(`[DOWNLOADING] Audio & thumbnail for "${title}" (${ytId})...`);
+    try {
+        const currentFiles = fs.readdirSync(downloadDir);
+        currentFiles.forEach(f => {
+            if (f.startsWith(ytId)) fs.unlinkSync(path.join(downloadDir, f));
+        });
+    } catch (cleanupErr) {}
     const { command, prefix } = getYtDlpRunner();
     const dlArgs = [
         ...prefix,
@@ -137,7 +143,7 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
     ];
     if (cookieFile) dlArgs.push("--cookies", cookieFile);
     dlArgs.push(`https://www.youtube.com/watch?v=${ytId}`);
-    await runCommand(command, dlArgs);
+    await runCommand(command, dlArgs, true);
 
     const files = fs.readdirSync(downloadDir);
     const audioFile = files.find(f => f.startsWith(ytId) && f.endsWith(".mp3"));

@@ -92,17 +92,17 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
-const runCommand = (command, args) => {
+const runCommand = (command, args, ignoreOutput = false) => {
     return new Promise((resolve, reject) => {
         const proc = spawn(command, args);
         let stdout = "";
         let stderr = "";
 
         proc.stdout.on("data", data => {
-            stdout += data.toString();
+            if (!ignoreOutput) stdout += data.toString();
         });
         proc.stderr.on("data", data => {
-            stderr += data.toString();
+            if (!ignoreOutput) stderr += data.toString();
         });
 
         proc.on("close", code => {
@@ -152,7 +152,7 @@ const extractVideoId = inputUrl => {
     return null;
 };
 
-const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) => {
+export const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) => {
     const { command, prefix } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
     if (!fs.existsSync(downloadDir)) {
@@ -301,6 +301,15 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) =>
                     `[DOWNLOADING] Audio & thumbnail for "${title}" (${ytId})...`
                 );
 
+                try {
+                    const currentFiles = fs.readdirSync(downloadDir);
+                    currentFiles.forEach(f => {
+                        if (f.startsWith(ytId)) {
+                            fs.unlinkSync(path.join(downloadDir, f));
+                        }
+                    });
+                } catch (cleanupErr) {}
+
                 // 2. Download audio (mp3) and thumbnail
                 const dlArgs = [
                     ...prefix,
@@ -321,7 +330,7 @@ const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) =>
                     dlArgs.push("--cookies", cookieFile);
                 }
 
-                await runCommand(command, dlArgs);
+                await runCommand(command, dlArgs, true);
 
                 // 3. Find the downloaded files
                 const files = fs.readdirSync(downloadDir);

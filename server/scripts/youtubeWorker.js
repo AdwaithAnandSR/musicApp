@@ -55,17 +55,17 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
-const runCommand = (command, args) => {
+const runCommand = (command, args, ignoreOutput = false) => {
     return new Promise((resolve, reject) => {
         const proc = spawn(command, args);
         let stdout = "";
         let stderr = "";
 
         proc.stdout.on("data", data => {
-            stdout += data.toString();
+            if (!ignoreOutput) stdout += data.toString();
         });
         proc.stderr.on("data", data => {
-            stderr += data.toString();
+            if (!ignoreOutput) stderr += data.toString();
         });
 
         proc.on("close", code => {
@@ -349,6 +349,15 @@ const main = async () => {
                     `[DOWNLOADING] Audio & thumbnail for "${title}" (${ytId})...`
                 );
 
+                try {
+                    const currentFiles = fs.readdirSync(downloadDir);
+                    currentFiles.forEach(f => {
+                        if (f.startsWith(ytId)) {
+                            fs.unlinkSync(path.join(downloadDir, f));
+                        }
+                    });
+                } catch (cleanupErr) {}
+
                 const dlArgs = [
                     ...prefix,
                     "--extract-audio",
@@ -368,7 +377,7 @@ const main = async () => {
                     dlArgs.push("--cookies", cookieFile);
                 }
 
-                await runCommand(command, dlArgs);
+                await runCommand(command, dlArgs, true);
 
                 const files = fs.readdirSync(downloadDir);
                 const audioFile = files.find(

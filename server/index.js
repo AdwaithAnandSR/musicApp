@@ -70,21 +70,20 @@ app.get("/health", async (req, res) => {
         }
 
         if (shouldSync) {
-            // Set the next timestamp (24h from now) so future pings know when to run again
-            const nextRun = now + ONE_DAY;
-            await AppDetail.findOneAndUpdate(
-                { key: "next_daily_sync_time" },
-                { data: nextRun },
-                { upsert: true }
-            );
             console.log(
-                `[Health Check] Triggering daily channel sync... Next run scheduled for ${new Date(nextRun).toISOString()}`
+                `[Health Check] Triggering daily channel sync...`
             );
 
             updateChannels()
-                .then(() => {
+                .then(async () => {
+                    const nextRun = Date.now() + ONE_DAY;
+                    await AppDetail.findOneAndUpdate(
+                        { key: "next_daily_sync_time" },
+                        { data: nextRun },
+                        { upsert: true }
+                    );
                     isWorkerRunning = false;
-                    console.log("[Daily Sync] Completed successfully.");
+                    console.log(`[Daily Sync] Completed successfully. Next run scheduled for ${new Date(nextRun).toISOString()}`);
                 })
                 .catch(err => {
                     console.error("[Daily Sync] Error:", err);
@@ -114,8 +113,13 @@ app.use("/playlist", requireAuth, playlistRoutes);
 app.use("/admin", requireAuth, requireAdmin, adminRoutes);
 app.use("/users", requireAuth, requireAdmin, userRoutes);
 
+import { resumePendingTasks } from "./scripts/resumeTasks.js";
+
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+    if (!process.env.VERCEL) {
+        setTimeout(resumePendingTasks, 3000);
+    }
 });
 
 export default app;
