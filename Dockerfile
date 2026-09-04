@@ -12,6 +12,8 @@ RUN pip3 install --break-system-packages -U yt-dlp
 
 COPY package*.json ./
 
+COPY server/ .
+
 RUN ls -la
 RUN pwd
 
