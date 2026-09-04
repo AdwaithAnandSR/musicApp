@@ -1,0 +1,25 @@
+{
+  "name": "musicapp-server",
+  "billing": {
+    "deploymentPlan": "nf-compute-20"
+  },
+  "deployment": {
+    "instances": 1,
+    "docker": {
+      "configType": "custom",
+      "buildpack": {
+        "builder": "heroku/builder:22"
+      }
+    }
+  },
+  "buildSettings": {
+    "source": {
+      "type": "github",
+      "branch": "main"
+    },
+    "dockerfile": {
+      "dockerfilePath": "/server/Dockerfile",
+      "buildContext": "/server"
+    }
+  }
+}
