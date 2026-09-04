@@ -18,8 +18,6 @@ const logHistory = async (title, ytId, status, details = "") => {
     }
 };
 
-
-
 const createCookieFile = cookiesInput => {
     let raw = cookiesInput;
     if (!raw && process.env.YOUTUBE_COOKIES) {
@@ -102,6 +100,7 @@ const getYtDlpRunner = () => {
 };
 
 const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
+    ignoreOutput = false
     return new Promise((resolve, reject) => {
         const proc = spawn(command, args, env ? { env } : undefined);
         let stdout = "";
