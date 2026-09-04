@@ -249,6 +249,8 @@ const main = async () => {
                 ...prefix,
                 "-j",
                 "--no-playlist",
+                "--extractor-args",
+                "youtube:player_client=ios,android,web",
                 "--js-runtimes",
                 "node"
             ];
@@ -288,6 +290,8 @@ const main = async () => {
                 playlistStart.toString(),
                 "--playlist-end",
                 playlistEnd.toString(),
+                "--extractor-args",
+                "youtube:player_client=ios,android,web",
                 "--js-runtimes",
                 "node"
             ];
@@ -367,6 +371,8 @@ const main = async () => {
                     "0",
                     "--write-thumbnail",
                     "--no-playlist",
+                    "--extractor-args",
+                    "youtube:player_client=ios,android,web",
                     "--js-runtimes",
                     "node",
                     "-o",

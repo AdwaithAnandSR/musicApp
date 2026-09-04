@@ -194,6 +194,8 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 ...prefix,
                 "-j",
                 "--no-playlist",
+                "--extractor-args",
+                "youtube:player_client=ios,android,web",
                 "--js-runtimes",
                 "node"
             ];
@@ -234,6 +236,8 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 playlistStart.toString(),
                 "--playlist-end",
                 playlistEnd.toString(),
+                "--extractor-args",
+                "youtube:player_client=ios,android,web",
                 "--js-runtimes",
                 "node"
             ];
@@ -320,6 +324,8 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     "0",
                     "--write-thumbnail",
                     "--no-playlist",
+                    "--extractor-args",
+                    "youtube:player_client=ios,android,web",
                     "--js-runtimes",
                     "node",
                     "-o",
