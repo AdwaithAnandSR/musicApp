@@ -55,10 +55,9 @@ const CLIENT_SCRIPT = `
 
     function updateProgressUI(status) {
         var container = document.getElementById('sync-progress-container');
-        if (!status.isSyncing) {
+        if (!status || !status.isSyncing) {
             container.style.display = 'none';
-            if (pollingInterval) clearInterval(pollingInterval);
-            return;
+            return false;
         }
         
         container.style.display = 'block';
@@ -81,8 +80,100 @@ const CLIENT_SCRIPT = `
         document.getElementById('sync-skipped').innerText = '⏭ ' + (status.skippedCount || 0);
         document.getElementById('sync-title').innerText = 'Current: ' + (status.currentSongTitle || '...');
         
-        if (!pollingInterval) {
-            pollingInterval = setInterval(pollStatus, 2000);
+        return true;
+    }
+
+    function updateManualTasksUI(requestHistory) {
+        var container = document.getElementById('active-manual-container');
+        var tasksList = document.getElementById('active-manual-list');
+        
+        var runningTasks = (requestHistory || []).filter(function(r) { return r.status === 'RUNNING'; });
+        
+        if (runningTasks.length === 0) {
+            container.style.display = 'none';
+            return false;
+        }
+        
+        container.style.display = 'block';
+        var html = '';
+        runningTasks.forEach(function(req) {
+            var total = req.limit || 0;
+            var doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
+            var left = Math.max(0, total - doneSoFar);
+            var pct = total > 0 ? Math.min(100, Math.round((doneSoFar / total) * 100)) : 0;
+            
+            html += '<div style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">';
+            html += '  <div class="title">' + req.url + '</div>';
+            html += '  <div class="details" style="margin-bottom: 8px; font-style: italic;">Current: ' + (req.currentTitle || '...') + '</div>';
+            html += '  <div style="background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 8px;">';
+            html += '    <div style="background: #64b5f6; height: 100%; width: ' + pct + '%; transition: width 0.3s ease;"></div>';
+            html += '  </div>';
+            html += '  <div class="stats-row" style="margin-top: 0; padding-top: 0; border: none; justify-content: space-between;">';
+            html += '    <span class="stat s">✓ ' + (req.success || 0) + '</span>';
+            html += '    <span class="stat e">✗ ' + (req.errors || 0) + '</span>';
+            html += '    <span class="stat k">⏭ ' + (req.skipped || 0) + '</span>';
+            if (total > 0) {
+                html += '    <span class="stat" style="margin-left: auto;">' + doneSoFar + ' / ' + total + '</span>';
+            }
+            html += '  </div>';
+            html += '</div>';
+        });
+        tasksList.innerHTML = html;
+        return true;
+    }
+
+    function updateRecentRequestsUI(requestHistory) {
+        var container = document.getElementById('recent-requests-list');
+        if (!requestHistory || requestHistory.length === 0) {
+            container.innerHTML = '<div class="empty">No requests found.</div>';
+            return;
+        }
+        var html = '';
+        requestHistory.forEach(function(req) {
+            var isRunning = req.status === 'RUNNING';
+            var statusBadgeColor = isRunning ? 'warning' : 'success';
+            var statusText = req.status || 'COMPLETED';
+            var total = req.limit || 0;
+            var doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
+            var left = Math.max(0, total - doneSoFar);
+            
+            html += '<div class="card" ' + (isRunning ? 'style="border: 1px solid var(--warning);"' : '') + '>';
+            html += '  <div class="header-row">';
+            html += '    <div style="display: flex; gap: 8px;">';
+            html += '      <span class="badge ' + (req.type === "worker" ? "worker" : "client") + '">' + (req.type || "unknown") + '</span>';
+            html += '      <span class="badge ' + statusBadgeColor + '">' + statusText + '</span>';
+            html += '    </div>';
+            html += '    <span class="time">' + (req.timestamp ? '<span class="client-time" data-iso="'+req.timestamp+'">'+req.timestamp+'</span>' : 'N/A') + '</span>';
+            html += '  </div>';
+            html += '  <div class="title">' + req.url + '</div>';
+            if (req.currentTitle) html += '  <div class="details" style="margin-top: 8px; font-style: italic;">Current: ' + req.currentTitle + '</div>';
+            html += '  <div class="stats-row">';
+            html += '    <span class="stat s">✓ ' + (req.success || 0) + '</span>';
+            html += '    <span class="stat e">✗ ' + (req.errors || 0) + '</span>';
+            html += '    <span class="stat k">⏭ ' + (req.skipped || 0) + '</span>';
+            if (total > 0) html += '    <span class="stat" style="margin-left: auto;">' + doneSoFar + ' / ' + total + ' (Left: ' + left + ')</span>';
+            html += '  </div>';
+            html += '</div>';
+        });
+        container.innerHTML = html;
+        
+        // Re-run time parsing
+        var timeEls = container.querySelectorAll('.client-time');
+        for (var i = 0; i < timeEls.length; i++) {
+            var el = timeEls[i];
+            var d = new Date(el.getAttribute('data-iso'));
+            if (!isNaN(d.getTime())) {
+                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                var month = months[d.getMonth()];
+                var day = d.getDate();
+                var hours = d.getHours();
+                var minutes = d.getMinutes().toString();
+                if (minutes.length < 2) minutes = '0' + minutes;
+                var ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12; 
+                el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
+            }
         }
     }
 
@@ -90,8 +181,18 @@ const CLIENT_SCRIPT = `
         fetch('/status/json')
             .then(function(res) { return res.json(); })
             .then(function(data) {
-                if (data.syncStatus) updateProgressUI(data.syncStatus);
-                else updateProgressUI({ isSyncing: false });
+                var isSyncing = updateProgressUI(data.syncStatus);
+                var hasManualTasks = updateManualTasksUI(data.requestHistory);
+                updateRecentRequestsUI(data.requestHistory);
+                
+                if (!isSyncing && !hasManualTasks) {
+                    if (pollingInterval) {
+                        clearInterval(pollingInterval);
+                        pollingInterval = null;
+                    }
+                } else if (!pollingInterval) {
+                    pollingInterval = setInterval(pollStatus, 2000);
+                }
             })
             .catch(function(e) { console.error(e); });
     }
@@ -100,7 +201,10 @@ const CLIENT_SCRIPT = `
         showMessage("Background sync triggered!");
         fetch('/status/trigger-sync')
             .then(function(res) { return res.json(); })
-            .then(function(data) { console.log(data); })
+            .then(function(data) {
+                console.log(data);
+                if (!pollingInterval) pollingInterval = setInterval(pollStatus, 2000);
+            })
             .catch(function(err) {
                 console.error(err);
                 showMessage("Failed to trigger sync", true);
@@ -269,13 +373,18 @@ router.get("/", async (req, res) => {
             <div id="sync-title" class="details" style="margin-top: 12px; word-break: break-all;"></div>
         </div>
 
+        <div id="active-manual-container" style="display: none; background: rgba(33, 150, 243, 0.1); border: 1px solid #64b5f6; padding: 16px; border-radius: 12px; margin-bottom: 24px;">
+            <h3 style="color: #64b5f6; margin-top: 0; margin-bottom: 12px;">Active Manual Tasks</h3>
+            <div id="active-manual-list"></div>
+        </div>
+
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; margin-bottom: 16px;">
             <h2 style="border: none; padding-bottom: 0; margin-top: 0; margin-bottom: 0;">Active Channels</h2>
             <a href="/status/channels" class="btn" style="display: inline-block; width: auto; margin-top: 0; padding: 6px 12px; font-size: 0.85rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);">Manage</a>
         </div>
 
         <h2>Recent Requests</h2>
-        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+        <div id="recent-requests-list" style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
         ${requestHistory.length === 0 ? '<div class="empty">No requests found.</div>' : requestHistory.map(req => {
             const isRunning = req.status === 'RUNNING';
             const statusBadgeColor = isRunning ? 'warning' : 'success';
@@ -323,7 +432,13 @@ router.get("/", async (req, res) => {
         <script>
             ${CLIENT_SCRIPT}
             var initialStatus = ${JSON.stringify(syncStatus || { isSyncing: false })};
-            updateProgressUI(initialStatus);
+            var isSyncing = updateProgressUI(initialStatus);
+            var initialRequests = ${JSON.stringify(requestHistory || [])};
+            var hasManual = updateManualTasksUI(initialRequests);
+            
+            if (isSyncing || hasManual) {
+                pollingInterval = setInterval(pollStatus, 2000);
+            }
         </script>
     </body>
     </html>
