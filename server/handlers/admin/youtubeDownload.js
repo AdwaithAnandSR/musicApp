@@ -3,26 +3,55 @@ import fs from "fs";
 import path from "path";
 import cloudinary from "../../config/cloudinary.js";
 import musicModel from "../../models/musics.js";
-import { createRequestLog, updateRequestLog, setRequestCurrentItem, markRequestDone } from "../../utils/requestLogger.js";
+import {
+    createRequestLog,
+    updateRequestLog,
+    setRequestCurrentItem,
+    markRequestDone
+} from "../../utils/requestLogger.js";
 import AppDetail from "../../models/appDetails.js";
+
+const COOKIE_DB_KEY = "youtube_cookies";
+// Cap how much stdout/stderr we buffer in memory per spawned process. yt-dlp's own
+// progress output can otherwise grow unbounded on long downloads/playlists, which is
+// the main way this was quietly eating RAM on Render's free tier.
+const MAX_LOG_CHARS = 4000;
 
 const logHistory = async (title, ytId, status, details = "") => {
     try {
         const doc = await AppDetail.findOne({ key: "download_history" });
         let history = doc ? doc.data : [];
-        history.unshift({ title, ytId, status, details, timestamp: new Date().toISOString() });
+        history.unshift({
+            title,
+            ytId,
+            status,
+            details,
+            timestamp: new Date().toISOString()
+        });
         if (history.length > 50) history = history.slice(0, 50);
-        await AppDetail.findOneAndUpdate({ key: "download_history" }, { data: history }, { upsert: true });
+        await AppDetail.findOneAndUpdate(
+            { key: "download_history" },
+            { data: history },
+            { upsert: true }
+        );
     } catch (err) {
         console.error("Failed to write to history file:", err.message);
     }
 };
 
-const createCookieFile = cookiesInput => {
+// ---------------------------------------------------------------------------
+// Cookie handling
+//
+// Every yt-dlp invocation now runs with a cookie file. Priority:
+//   1. Cookies supplied on this request (also persisted to DB for next time)
+//   2. Cookies previously stored in DB
+//   3. Nothing (we warn and continue cookie-less rather than hard failing)
+// ---------------------------------------------------------------------------
+
+// Normalizes whatever shape of cookie input we're given (JSON object, "a=b; c=d"
+// string, or an already-Netscape-formatted string) into Netscape cookie-jar text.
+const cookiesToNetscape = cookiesInput => {
     let raw = cookiesInput;
-    if (!raw && process.env.YOUTUBE_COOKIES) {
-        raw = process.env.YOUTUBE_COOKIES;
-    }
     if (!raw) return null;
 
     if (typeof raw === "string") {
@@ -39,6 +68,7 @@ const createCookieFile = cookiesInput => {
     }
 
     let netscapeContent = "# Netscape HTTP Cookie File\n";
+    let wrote = false;
 
     if (typeof raw === "object" && raw !== null) {
         for (const [key, val] of Object.entries(raw)) {
@@ -48,23 +78,31 @@ const createCookieFile = cookiesInput => {
                     : val;
             if (key && cookieValue !== undefined && cookieValue !== null) {
                 netscapeContent += `.youtube.com\tTRUE\t/\tTRUE\t2147483647\t${key}\t${cookieValue}\n`;
+                wrote = true;
             }
         }
     } else if (typeof raw === "string") {
         const trimmed = raw.trim();
         if (trimmed.startsWith("# Netscape") || trimmed.includes("\t")) {
             netscapeContent = trimmed.endsWith("\n") ? trimmed : trimmed + "\n";
+            wrote = true;
         } else {
             trimmed.split(";").forEach(cookie => {
                 const [name, ...rest] = cookie.trim().split("=");
                 if (name && rest.length > 0) {
                     const value = rest.join("=");
                     netscapeContent += `.youtube.com\tTRUE\t/\tTRUE\t2147483647\t${name}\t${value}\n`;
+                    wrote = true;
                 }
             });
         }
     }
 
+    return wrote ? netscapeContent : null;
+};
+
+const writeCookieFile = netscapeContent => {
+    if (!netscapeContent) return null;
     const cookiePath = path.resolve(
         process.cwd(),
         `cookies-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.txt`
@@ -73,11 +111,67 @@ const createCookieFile = cookiesInput => {
     return cookiePath;
 };
 
+// Fire-and-forget DB persist — we don't want a slow Mongo round trip to block kicking
+// off the actual download.
+const saveCookiesToDb = netscapeContent => {
+    if (!netscapeContent) return;
+    AppDetail.findOneAndUpdate(
+        { key: COOKIE_DB_KEY },
+        { data: netscapeContent },
+        { upsert: true }
+    )
+        .then(() =>
+            console.log(
+                "[Cookies] Saved latest cookies to DB for future downloads."
+            )
+        )
+        .catch(err =>
+            console.error(
+                "[Cookies] Failed to save cookies to DB:",
+                err.message
+            )
+        );
+};
+
+const loadCookiesFromDb = async () => {
+    try {
+        const doc = await AppDetail.findOne({ key: COOKIE_DB_KEY });
+        return doc?.data || null;
+    } catch (err) {
+        console.error("[Cookies] Failed to load cookies from DB:", err.message);
+        return null;
+    }
+};
+
+// Resolves the single cookie file path to use for this whole request (playlist or
+// single video). Supplied cookies win and get persisted; otherwise falls back to
+// whatever was last stored in DB.
+const resolveCookieFile = async cookiesInput => {
+    const suppliedContent = cookiesToNetscape(cookiesInput);
+    if (suppliedContent) {
+        saveCookiesToDb(suppliedContent);
+        return writeCookieFile(suppliedContent);
+    }
+
+    const storedContent = await loadCookiesFromDb();
+    if (storedContent) {
+        console.log(
+            "[Cookies] No cookies supplied with request — using cookies stored in DB."
+        );
+        return writeCookieFile(storedContent);
+    }
+
+    console.warn(
+        "[Cookies] No cookies supplied and none stored in DB — proceeding without cookies."
+    );
+    return null;
+};
+
 const getYtDlpRunner = () => {
     const renderPath = "/opt/render/project/src/yt-dlp-package";
     if (fs.existsSync(renderPath)) {
-        return { 
-            command: "python3", 
+        return {
+            command: "python3",
             prefix: ["-m", "yt_dlp"],
             env: { ...process.env, PYTHONPATH: renderPath }
         };
@@ -99,18 +193,29 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
+// Bounded-memory command runner. Previously this force-reset `ignoreOutput` to false
+// on every call regardless of what was passed in, so the (very chatty) download
+// command was always buffering full stdout progress output in memory. Fixed so
+// callers that pass `ignoreOutput: true` actually skip buffering, and stdout/stderr
+// are now hard-capped so a misbehaving process can't grow memory unbounded.
 const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
-    ignoreOutput = false
     return new Promise((resolve, reject) => {
         const proc = spawn(command, args, env ? { env } : undefined);
         let stdout = "";
         let stderr = "";
 
         proc.stdout.on("data", data => {
-            if (!ignoreOutput) stdout += data.toString();
+            if (ignoreOutput) return;
+            stdout += data.toString();
+            if (stdout.length > MAX_LOG_CHARS * 4) {
+                stdout = stdout.slice(-MAX_LOG_CHARS * 4);
+            }
         });
         proc.stderr.on("data", data => {
-            if (!ignoreOutput) stderr += data.toString();
+            stderr += data.toString();
+            if (stderr.length > MAX_LOG_CHARS * 2) {
+                stderr = stderr.slice(-MAX_LOG_CHARS * 2);
+            }
         });
 
         proc.on("close", code => {
@@ -119,7 +224,7 @@ const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
             } else {
                 reject(
                     new Error(
-                        `Command '${command} ${args.join(" ")}' failed with code ${code}:\n${stderr}`
+                        `Command '${command} ${args.join(" ")}' failed with code ${code}:\n${stderr.slice(-MAX_LOG_CHARS)}`
                     )
                 );
             }
@@ -160,14 +265,20 @@ const extractVideoId = inputUrl => {
     return null;
 };
 
-export const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) => {
+export const processBackgroundDownload = async (
+    url,
+    skip,
+    limit,
+    cookieFile,
+    reqId
+) => {
     const { command, prefix, env } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
     if (!fs.existsSync(downloadDir)) {
         fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-
+    const cookieArgs = cookieFile ? ["--cookies", cookieFile] : [];
 
     try {
         const videoId = extractVideoId(url);
@@ -203,10 +314,14 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 "-j",
                 "--no-playlist",
                 "--js-runtimes",
-                "node"
+                "node",
+                "--retries",
+                "3",
+                "--socket-timeout",
+                "30",
+                ...cookieArgs,
+                directVideoUrl
             ];
-            // Cookies are deliberately not passed to avoid skipping the android client, which leads to 403s.
-            argsList.push(directVideoUrl);
 
             const infoOutput = await runCommand(command, argsList, false, env);
             const videoData = JSON.parse(infoOutput.trim());
@@ -241,10 +356,14 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 "--playlist-end",
                 playlistEnd.toString(),
                 "--js-runtimes",
-                "node"
+                "node",
+                "--retries",
+                "3",
+                "--socket-timeout",
+                "30",
+                ...cookieArgs,
+                url
             ];
-            // Cookies are deliberately not passed to avoid skipping the android client, which leads to 403s.
-            argsList.push(url);
 
             const listOutput = await runCommand(command, argsList, false, env);
             videos = listOutput
@@ -324,14 +443,25 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     "0",
                     "--write-thumbnail",
                     "--no-playlist",
+                    "--no-cache-dir",
+                    "--no-progress",
                     "--js-runtimes",
                     "node",
+                    "--retries",
+                    "3",
+                    "--fragment-retries",
+                    "3",
+                    "--socket-timeout",
+                    "30",
+                    ...cookieArgs,
                     "-o",
                     path.join(downloadDir, `${ytId}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
                 ];
-                // Cookies are deliberately not passed to avoid skipping the android client
 
+                // ignoreOutput=true here now actually skips buffering yt-dlp's stdout
+                // (progress lines), which was the biggest avoidable memory cost on
+                // Render's free plan.
                 await runCommand(command, dlArgs, true, env);
 
                 // 3. Find the downloaded files
@@ -356,29 +486,28 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     );
                 }
 
-                // 4. Upload to Cloudinary
+                // 4. Upload to Cloudinary. Audio and cover are uploaded concurrently —
+                // both are disk-streamed by the Cloudinary SDK rather than buffered
+                // whole into memory, so running them together saves wall-clock time
+                // per video without meaningfully raising peak memory use.
                 console.log(
-                    `[UPLOADING] Uploading audio to Cloudinary (musicApp/songs)...`
+                    `[UPLOADING] Uploading audio${coverFile ? " and cover" : ""} to Cloudinary...`
                 );
                 const audioPath = path.join(downloadDir, audioFile);
-                const audioUrl = await uploadToCloudinary(
-                    audioPath,
-                    "video",
-                    "musicApp/songs"
-                );
+                const coverPath = coverFile
+                    ? path.join(downloadDir, coverFile)
+                    : null;
 
-                let coverUrl = null;
-                if (coverFile) {
-                    console.log(
-                        `[UPLOADING] Uploading cover image to Cloudinary (musicApp/covers)...`
-                    );
-                    const coverPath = path.join(downloadDir, coverFile);
-                    coverUrl = await uploadToCloudinary(
-                        coverPath,
-                        "image",
-                        "musicApp/covers"
-                    );
-                }
+                const [audioUrl, coverUrl] = await Promise.all([
+                    uploadToCloudinary(audioPath, "video", "musicApp/songs"),
+                    coverPath
+                        ? uploadToCloudinary(
+                              coverPath,
+                              "image",
+                              "musicApp/covers"
+                          )
+                        : Promise.resolve(null)
+                ]);
 
                 // 5. Save to MongoDB
                 console.log(`[SAVING] Storing metadata in MongoDB...`);
@@ -472,22 +601,29 @@ export const youtubeDownload = async (req, res) => {
         const safeLimit =
             !isNaN(parsedLimit) && parsedLimit >= 1 ? parsedLimit : 1;
 
-        // 2. Cookie file creation (if cookies provided)
+        // 2. Resolve the cookie file to use: supplied cookies win (and get persisted
+        // to DB for next time); otherwise fall back to whatever's stored in DB.
         let cookieFile = null;
         try {
-            cookieFile = createCookieFile(cookies);
-            if (cookieFile && fs.existsSync(cookieFile)) {
-                const netscapeContent = fs.readFileSync(cookieFile, 'utf8');
-                AppDetail.findOneAndUpdate({ key: "youtube_cookies" }, { data: netscapeContent }, { upsert: true }).catch(()=>{});
-                console.log("Saved new cookies to database for future background tasks.");
-            }
+            cookieFile = await resolveCookieFile(cookies);
         } catch (cookieErr) {
-            console.error("Failed to create cookie file:", cookieErr.message);
+            console.error("Failed to resolve cookie file:", cookieErr.message);
         }
 
         // 3. Start background download process on Render server
-        const reqId = await createRequestLog(trimmedUrl, safeLimit, safeSkip, "single");
-        processBackgroundDownload(trimmedUrl, safeSkip, safeLimit, cookieFile, reqId);
+        const reqId = await createRequestLog(
+            trimmedUrl,
+            safeLimit,
+            safeSkip,
+            "single"
+        );
+        processBackgroundDownload(
+            trimmedUrl,
+            safeSkip,
+            safeLimit,
+            cookieFile,
+            reqId
+        );
 
         // 4. Immediate response
         return res.status(200).json({
