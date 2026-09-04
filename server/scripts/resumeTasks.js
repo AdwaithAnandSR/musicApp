@@ -47,7 +47,7 @@ export const resumePendingTasks = async () => {
                 } else {
                     console.log(`[Resume] Task ${req.id} actually finished processing all items before crash. Marking complete.`);
                     const { markRequestDone } = await import("../utils/requestLogger.js");
-                    markRequestDone(req.id);
+                    await markRequestDone(req.id);
                 }
             }
         }
