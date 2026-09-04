@@ -1,6 +1,6 @@
 import AppDetail from "../models/appDetails.js";
 
-export const createRequestLog = (url, limit, skip, type = "client") => {
+export const createRequestLog = async (url, limit, skip, type = "client") => {
     try {
         const id = Date.now().toString() + Math.floor(Math.random() * 1000).toString();
         const entry = {
@@ -17,12 +17,11 @@ export const createRequestLog = (url, limit, skip, type = "client") => {
             currentTitle: "Initializing..."
         };
         
-        AppDetail.findOne({ key: "request_history" }).then(doc => {
-            let history = doc ? doc.data : [];
-            history.unshift(entry);
-            if (history.length > 15) history = history.slice(0, 15);
-            AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
-        }).catch(err => console.error(err));
+        const doc = await AppDetail.findOne({ key: "request_history" });
+        let history = doc ? doc.data : [];
+        history.unshift(entry);
+        if (history.length > 15) history = history.slice(0, 15);
+        await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true });
         
         return id;
     } catch (err) {
@@ -31,57 +30,54 @@ export const createRequestLog = (url, limit, skip, type = "client") => {
     }
 };
 
-export const updateRequestLog = (id, statusType) => {
+export const updateRequestLog = async (id, statusType) => {
     if (!id) return;
     try {
-        AppDetail.findOne({ key: "request_history" }).then(doc => {
-            if (!doc) return;
-            let history = doc.data;
-            const index = history.findIndex(h => h.id === id);
+        const doc = await AppDetail.findOne({ key: "request_history" });
+        if (!doc) return;
+        let history = doc.data;
+        const index = history.findIndex(h => h.id === id);
+        
+        if (index !== -1) {
+            if (statusType === "SUCCESS") history[index].success += 1;
+            else if (statusType === "ERROR") history[index].errors += 1;
+            else if (statusType === "SKIPPED") history[index].skipped += 1;
             
-            if (index !== -1) {
-                if (statusType === "SUCCESS") history[index].success += 1;
-                else if (statusType === "ERROR") history[index].errors += 1;
-                else if (statusType === "SKIPPED") history[index].skipped += 1;
-                
-                AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
-            }
-        }).catch(err => console.error(err));
+            await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true });
+        }
     } catch (err) {
         console.error("Failed to update request log:", err);
     }
 };
 
-export const setRequestCurrentItem = (id, title) => {
+export const setRequestCurrentItem = async (id, title) => {
     if (!id) return;
     try {
-        AppDetail.findOne({ key: "request_history" }).then(doc => {
-            if (!doc) return;
-            let history = doc.data;
-            const index = history.findIndex(h => h.id === id);
-            if (index !== -1) {
-                history[index].currentTitle = title;
-                AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
-            }
-        }).catch(err => console.error(err));
+        const doc = await AppDetail.findOne({ key: "request_history" });
+        if (!doc) return;
+        let history = doc.data;
+        const index = history.findIndex(h => h.id === id);
+        if (index !== -1) {
+            history[index].currentTitle = title;
+            await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true });
+        }
     } catch (err) {
         console.error("Failed to set request current item:", err);
     }
 };
 
-export const markRequestDone = (id) => {
+export const markRequestDone = async (id) => {
     if (!id) return;
     try {
-        AppDetail.findOne({ key: "request_history" }).then(doc => {
-            if (!doc) return;
-            let history = doc.data;
-            const index = history.findIndex(h => h.id === id);
-            if (index !== -1) {
-                history[index].status = "COMPLETED";
-                history[index].currentTitle = "Done";
-                AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true }).catch(err => console.error(err));
-            }
-        }).catch(err => console.error(err));
+        const doc = await AppDetail.findOne({ key: "request_history" });
+        if (!doc) return;
+        let history = doc.data;
+        const index = history.findIndex(h => h.id === id);
+        if (index !== -1) {
+            history[index].status = "COMPLETED";
+            history[index].currentTitle = "Done";
+            await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: history }, { upsert: true });
+        }
     } catch (err) {
         console.error("Failed to mark request as done:", err);
     }
