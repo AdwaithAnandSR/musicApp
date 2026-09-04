@@ -12,6 +12,9 @@ RUN pip3 install --break-system-packages -U yt-dlp
 
 COPY package*.json ./
 
+RUN ls -la
+RUN pwd
+
 RUN npm install
 
 COPY . .
