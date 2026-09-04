@@ -122,6 +122,28 @@ const CLIENT_SCRIPT = `
         return true;
     }
 
+    
+    function deleteRequestHistory(id) {
+        if (!confirm("Are you sure you want to delete this request log?")) return;
+        showMessage("Deleting request...");
+        fetch('/status/delete-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success) {
+                showMessage("Request deleted successfully.");
+                if (typeof pollStatus === 'function') pollStatus(); // trigger immediate refresh
+            } else showMessage("Failed: " + data.error, true);
+        })
+        .catch(function(err) {
+            console.error(err);
+            showMessage("Network error occurred.", true);
+        });
+    }
+
     function updateRecentRequestsUI(requestHistory) {
         var container = document.getElementById('recent-requests-list');
         if (!requestHistory || requestHistory.length === 0) {
@@ -150,6 +172,7 @@ const CLIENT_SCRIPT = `
             }
             
             html += '<div class="card" ' + (isRunning ? 'style="border: 1px solid var(--warning);"' : '') + '>';
+            if (!isRunning) html += '  <button class="btn-delete" onclick="deleteRequestHistory(\'' + req.id + '\')" style="position: absolute; top: 16px; right: 16px; margin: 0; display: inline-block;">Delete</button>';
             html += '  <div class="header-row">';
             html += '    <div style="display: flex; gap: 8px;">';
             html += '      <span class="badge ' + (req.type === "worker" ? "worker" : "client") + '">' + (req.type || "unknown") + '</span>';
@@ -460,6 +483,7 @@ router.get("/", async (req, res) => {
             
             return `
             <div class="card" ${isRunning ? 'style="border: 1px solid var(--warning);"' : ''}>
+                ${!isRunning ? `<button class="btn-delete" onclick="deleteRequestHistory('${req.id}')" style="position: absolute; top: 16px; right: 16px; margin: 0; display: inline-block;">Delete</button>` : ''}
                 <div class="header-row">
                     <div style="display: flex; gap: 8px;">
                         <span class="badge ${req.type === 'worker' ? 'worker' : 'client'}">${req.type || 'unknown'}</span>
@@ -780,6 +804,23 @@ router.get("/json", async (req, res) => {
         downloadHistory: await getFileContent("download_history"),
         syncStatus: await getFileContent("channel_sync_status")
     });
+});
+
+
+router.post("/delete-request", async (req, res) => {
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: "Missing request ID" });
+    try {
+        const doc = await AppDetail.findOne({ key: "request_history" });
+        if (doc && doc.data && Array.isArray(doc.data)) {
+            const newData = doc.data.filter(r => r.id !== id);
+            await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: newData });
+        }
+        res.json({ success: true });
+    } catch (e) {
+        console.error(e);
+        res.status(500).json({ error: e.message });
+    }
 });
 
 router.get("/trigger-sync", (req, res) => {
