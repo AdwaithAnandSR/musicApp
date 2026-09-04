@@ -1,17 +1,17 @@
 import express from "express";
-import fs from "fs";
-import path from "path";
 import { updateChannels } from "../scripts/channelWorker.js";
 import AppDetail from "../models/appDetails.js";
+import Music from "../models/musics.js";
+import User from "../models/users.js";
 
 const router = express.Router();
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 const getFileContent = async (key) => {
     try {
         const doc = await AppDetail.findOne({ key });
         let data = (doc && doc.data) ? doc.data : [];
-
-        
         if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
             return data;
         }
@@ -21,791 +21,1022 @@ const getFileContent = async (key) => {
     }
 };
 
-const CLIENT_SCRIPT = `
-    var timeEls = document.querySelectorAll('.client-time');
-    for (var i = 0; i < timeEls.length; i++) {
-        var el = timeEls[i];
-        var d = new Date(el.getAttribute('data-iso'));
-        if (!isNaN(d.getTime())) {
-            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            var month = months[d.getMonth()];
-            var day = d.getDate();
-            var hours = d.getHours();
-            var minutes = d.getMinutes().toString();
-            if (minutes.length < 2) minutes = '0' + minutes;
-            var ampm = hours >= 12 ? 'PM' : 'AM';
-            hours = hours % 12;
-            hours = hours ? hours : 12; 
-            el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
-        }
-    }
-
-    var pollingInterval = null;
-    
-    function showMessage(msg, isError) {
-        if (isError === undefined) isError = false;
-        var el = document.getElementById('actionMessage');
-        el.innerText = msg;
-        el.style.display = 'block';
-        el.style.backgroundColor = isError ? 'rgba(207, 102, 121, 0.2)' : 'rgba(3, 218, 198, 0.2)';
-        el.style.color = isError ? 'var(--error)' : 'var(--success)';
-        el.style.border = '1px solid ' + (isError ? 'var(--error)' : 'var(--success)');
-        setTimeout(function() { el.style.display = 'none'; }, 4000);
-    }
-
-    function updateProgressUI(status) {
-        var container = document.getElementById('sync-progress-container');
-        if (!status || !status.isSyncing) {
-            container.style.display = 'none';
-            return false;
-        }
-        
-        container.style.display = 'block';
-        var displayChannel = status.currentChannel || '...';
-        if (displayChannel !== '...') {
-            displayChannel = displayChannel.replace(/\\/videos\\/?$/, '');
-        }
-        document.getElementById('sync-channel').innerText = 'Channel: ' + displayChannel;
-        document.getElementById('sync-message').innerText = status.message || 'Processing...';
-        
-        var total = status.totalSongs || 0;
-        var current = status.currentSongIndex || 0;
-        document.getElementById('sync-progress').innerText = current + ' / ' + total;
-        
-        var pct = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
-        document.getElementById('sync-bar').style.width = pct + '%';
-        
-        document.getElementById('sync-success').innerText = '✓ ' + (status.successCount || 0);
-        document.getElementById('sync-error').innerText = '✗ ' + (status.errorCount || 0);
-        document.getElementById('sync-skipped').innerText = '⏭ ' + (status.skippedCount || 0);
-        document.getElementById('sync-title').innerText = 'Current: ' + (status.currentSongTitle || '...');
-        
-        return true;
-    }
-
-    function updateManualTasksUI(requestHistory) {
-        var container = document.getElementById('active-manual-container');
-        var tasksList = document.getElementById('active-manual-list');
-        
-        var runningTasks = (requestHistory || []).filter(function(r) { return r.status === 'RUNNING'; });
-        
-        if (runningTasks.length === 0) {
-            container.style.display = 'none';
-            return false;
-        }
-        
-        container.style.display = 'block';
-        var html = '';
-        runningTasks.forEach(function(req) {
-            var total = req.limit || 0;
-            var doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
-            var left = Math.max(0, total - doneSoFar);
-            var pct = total > 0 ? Math.min(100, Math.round((doneSoFar / total) * 100)) : 0;
-            
-            html += '<div style="margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">';
-            html += '  <div class="title">' + req.url + '</div>';
-            html += '  <div class="details" style="margin-bottom: 8px; font-style: italic;">Current: ' + (req.currentTitle || '...') + '</div>';
-            html += '  <div style="background: #333; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 8px;">';
-            html += '    <div style="background: #64b5f6; height: 100%; width: ' + pct + '%; transition: width 0.3s ease;"></div>';
-            html += '  </div>';
-            html += '  <div class="stats-row" style="margin-top: 0; padding-top: 0; border: none; justify-content: space-between;">';
-            html += '    <span class="stat s">✓ ' + (req.success || 0) + '</span>';
-            html += '    <span class="stat e">✗ ' + (req.errors || 0) + '</span>';
-            html += '    <span class="stat k">⏭ ' + (req.skipped || 0) + '</span>';
-            if (total > 0) {
-                html += '    <span class="stat" style="margin-left: auto;">' + doneSoFar + ' / ' + total + '</span>';
-            }
-            html += '  </div>';
-            html += '</div>';
-        });
-        tasksList.innerHTML = html;
-        return true;
-    }
-
-    
-    function deleteRequestHistory(id) {
-        if (!confirm("Are you sure you want to delete this request log?")) return;
-        showMessage("Deleting request...");
-        fetch('/status/delete-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: id })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showMessage("Request deleted successfully.");
-                if (typeof pollStatus === 'function') pollStatus(); // trigger immediate refresh
-            } else showMessage("Failed: " + data.error, true);
-        })
-        .catch(function(err) {
-            console.error(err);
-            showMessage("Network error occurred.", true);
-        });
-    }
-
-    function updateRecentRequestsUI(requestHistory) {
-        var container = document.getElementById('recent-requests-list');
-        if (!requestHistory || requestHistory.length === 0) {
-            container.innerHTML = '<div class="empty">No requests found.</div>';
-            return;
-        }
-        var html = '';
-        requestHistory.forEach(function(req) {
-            var isRunning = req.status === 'RUNNING';
-            var statusBadgeColor = isRunning ? 'warning' : 'success';
-            var statusText = req.status || 'COMPLETED';
-            var total = req.limit || 0;
-            var doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
-            var left = Math.max(0, total - doneSoFar);
-            
-            var durationText = '';
-            if (!isRunning && req.timestamp && req.completedAt && req.type === 'worker') {
-                var startMs = new Date(req.timestamp).getTime();
-                var endMs = new Date(req.completedAt).getTime();
-                if (!isNaN(startMs) && !isNaN(endMs) && startMs <= endMs) {
-                    var diffSecs = Math.floor((endMs - startMs) / 1000);
-                    var m = Math.floor(diffSecs / 60);
-                    var s = diffSecs % 60;
-                    durationText = ' (' + m + 'm ' + s + 's)';
-                }
-            }
-            
-            html += '<div class="card" ' + (isRunning ? 'style="border: 1px solid var(--warning);"' : '') + '>';
-            if (!isRunning) html += '  <button class="btn-delete" onclick="deleteRequestHistory(\'' + req.id + '\')" style="position: absolute; top: 16px; right: 16px; margin: 0; display: inline-block;">Delete</button>';
-            html += '  <div class="header-row">';
-            html += '    <div style="display: flex; gap: 8px;">';
-            html += '      <span class="badge ' + (req.type === "worker" ? "worker" : "client") + '">' + (req.type || "unknown") + '</span>';
-            html += '      <span class="badge ' + statusBadgeColor + '">' + statusText + durationText + '</span>';
-            html += '    </div>';
-            html += '    <span class="time">' + (req.timestamp ? '<span class="client-time" data-iso="'+req.timestamp+'">'+req.timestamp+'</span>' : 'N/A') + '</span>';
-            html += '  </div>';
-            html += '  <div class="title">' + req.url + '</div>';
-            if (req.currentTitle) html += '  <div class="details" style="margin-top: 8px; font-style: italic;">Current: ' + req.currentTitle + '</div>';
-            html += '  <div class="stats-row">';
-            html += '    <span class="stat s">✓ ' + (req.success || 0) + '</span>';
-            html += '    <span class="stat e">✗ ' + (req.errors || 0) + '</span>';
-            html += '    <span class="stat k">⏭ ' + (req.skipped || 0) + '</span>';
-            if (total > 0) html += '    <span class="stat" style="margin-left: auto;">' + doneSoFar + ' / ' + total + ' (Left: ' + left + ')</span>';
-            html += '  </div>';
-            html += '</div>';
-        });
-        container.innerHTML = html;
-        
-        // Re-run time parsing
-        var timeEls = container.querySelectorAll('.client-time');
-        for (var i = 0; i < timeEls.length; i++) {
-            var el = timeEls[i];
-            var d = new Date(el.getAttribute('data-iso'));
-            if (!isNaN(d.getTime())) {
-                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                var month = months[d.getMonth()];
-                var day = d.getDate();
-                var hours = d.getHours();
-                var minutes = d.getMinutes().toString();
-                if (minutes.length < 2) minutes = '0' + minutes;
-                var ampm = hours >= 12 ? 'PM' : 'AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; 
-                el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
-            }
-        }
-    }
-
-    function updateDownloadLogsUI(downloadHistory) {
-        var container = document.getElementById('download-logs-list');
-        if (!container) return;
-        if (!downloadHistory || downloadHistory.length === 0) {
-            container.innerHTML = '<div class="empty">No logs found.</div>';
-            return;
-        }
-        var html = '';
-        downloadHistory.forEach(function(dl) {
-            var badgeClass = dl.status === 'SUCCESS' ? 'success' : (dl.status === 'ERROR' ? 'error' : 'warning');
-            html += '<div class="card">';
-            html += '  <div class="header-row">';
-            html += '    <span class="badge ' + badgeClass + '">' + (dl.status || '') + '</span>';
-            html += '    <span class="time">' + (dl.timestamp ? '<span class="client-time" data-iso="'+dl.timestamp+'">'+dl.timestamp+'</span>' : 'N/A') + '</span>';
-            html += '  </div>';
-            html += '  <div class="title">' + (dl.title || '') + '</div>';
-            html += '  <div class="details">' + (dl.details || '') + '</div>';
-            html += '</div>';
-        });
-        container.innerHTML = html;
-        
-        var timeEls = container.querySelectorAll('.client-time');
-        for (var i = 0; i < timeEls.length; i++) {
-            var el = timeEls[i];
-            var d = new Date(el.getAttribute('data-iso'));
-            if (!isNaN(d.getTime())) {
-                var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                var month = months[d.getMonth()];
-                var day = d.getDate();
-                var hours = d.getHours();
-                var minutes = d.getMinutes().toString();
-                if (minutes.length < 2) minutes = '0' + minutes;
-                var ampm = hours >= 12 ? 'PM' : 'AM';
-                hours = hours % 12;
-                hours = hours ? hours : 12; 
-                el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
-            }
-        }
-    }
-
-    function pollStatus() {
-        fetch('/status/json')
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
-                var isSyncing = updateProgressUI(data.syncStatus);
-                var hasManualTasks = updateManualTasksUI(data.requestHistory);
-                updateRecentRequestsUI(data.requestHistory);
-                updateDownloadLogsUI(data.downloadHistory);
-                
-                if (!isSyncing && !hasManualTasks) {
-                    if (pollingInterval) {
-                        clearInterval(pollingInterval);
-                        pollingInterval = null;
-                    }
-                } else if (!pollingInterval) {
-                    pollingInterval = setInterval(pollStatus, 2000);
-                }
-            })
-            .catch(function(e) { console.error(e); });
-    }
-    
-    function triggerSync() {
-        showMessage("Background sync triggered!");
-        fetch('/status/trigger-sync')
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
-                console.log(data);
-                if (!pollingInterval) pollingInterval = setInterval(pollStatus, 2000);
-            })
-            .catch(function(err) {
-                console.error(err);
-                showMessage("Failed to trigger sync", true);
-            });
-    }
-    
-    function updateSyncTime() {
-        var timeInput = document.getElementById('newSyncTime').value;
-        if (!timeInput) return showMessage("Please select a time first.", true);
-        
-        var ms = new Date(timeInput).getTime();
-        if (isNaN(ms)) return showMessage("Invalid time.", true);
-        
-        fetch('/status/update-sync-time', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nextTime: ms })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.success) {
-                showMessage("Next sync time updated!");
-                setTimeout(function() { location.reload(); }, 1500);
-            } else showMessage("Failed: " + data.error, true);
-        })
-        .catch(function(err) {
-            console.error(err);
-            showMessage("Network error occurred.", true);
-        });
-    }
-    
-`;
-
-const formatDate = (isoString) => {
-    if (!isoString) return "N/A";
-    return `<span class="client-time" data-iso="${isoString}">${isoString}</span>`;
+const esc = (str) => {
+    if (str == null) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
 };
 
-router.get("/", async (req, res) => {
-    const downloadHistory = await getFileContent("download_history") || [];
-    const requestHistory = await getFileContent("request_history") || [];
-    const channelConfig = await getFileContent("channel_config") || [];
-    const syncStatus = await getFileContent("channel_sync_status") || { isSyncing: false };
-    
-    const nextSyncDoc = await AppDetail.findOne({ key: "next_daily_sync_time" });
-    let nextSyncTime = nextSyncDoc && nextSyncDoc.data ? new Date(Number(nextSyncDoc.data)).toISOString() : null;
-    
-    if (!nextSyncTime) {
-        const lastSyncDoc = await AppDetail.findOne({ key: "last_daily_sync_time" });
-        const lastSyncTime = lastSyncDoc && lastSyncDoc.data ? Number(lastSyncDoc.data) : null;
-        if (lastSyncTime) {
-            nextSyncTime = new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString();
-        }
+// ── SSE: Real-time Event Stream ──────────────────────────────────────────────
+
+const sseClients = new Set();
+
+router.get("/events", (req, res) => {
+    res.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+    });
+    res.write(":\n\n"); // comment to establish connection
+
+    sseClients.add(res);
+    ensureTicker();
+    req.on("close", () => sseClients.delete(res));
+});
+
+const broadcastSSE = (data) => {
+    const payload = `data: ${JSON.stringify(data)}\n\n`;
+    for (const client of sseClients) {
+        try { client.write(payload); } catch (_) { sseClients.delete(client); }
     }
+};
 
-    const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Server Status</title>
-        <style>
-            :root {
-                --bg: #121212;
-                --card-bg: #1e1e1e;
-                --text-main: #e0e0e0;
-                --text-muted: #9e9e9e;
-                --accent: #bb86fc;
-                --success: #03dac6;
-                --error: #cf6679;
-                --warning: #ffb74d;
-                --border: #333;
-            }
-            body { 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                margin: 0; padding: 16px; 
-                background: var(--bg); color: var(--text-main); 
-                line-height: 1.5;
-            }
-            h1 { color: var(--accent); font-size: 1.5rem; text-align: center; margin-bottom: 24px; }
-            h2 { color: #fff; font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; }
-            
-            .card {
-                background: var(--card-bg);
-                border-radius: 12px;
-                padding: 16px;
-                margin-bottom: 12px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                position: relative;
-            }
-            .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-            .time { font-size: 0.85rem; color: var(--text-muted); }
-            
-            .badge {
-                padding: 4px 8px; border-radius: 16px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;
-            }
-            .badge.success { background: rgba(3, 218, 198, 0.2); color: var(--success); }
-            .badge.error { background: rgba(207, 102, 121, 0.2); color: var(--error); }
-            .badge.warning { background: rgba(255, 183, 77, 0.2); color: var(--warning); }
-            .badge.worker { background: rgba(187, 134, 252, 0.2); color: var(--accent); }
-            .badge.client { background: rgba(33, 150, 243, 0.2); color: #64b5f6; }
-            
-            .title { font-size: 1rem; font-weight: 500; margin-bottom: 4px; word-break: break-all; }
-            .details { font-size: 0.85rem; color: var(--text-muted); word-break: break-all; }
-            
-            .stats-row { display: flex; gap: 16px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-            .stat { font-size: 0.85rem; display: flex; align-items: center; gap: 4px; }
-            .stat.s { color: var(--success); }
-            .stat.e { color: var(--error); }
-            .stat.k { color: var(--warning); }
+// Background ticker: pushes updates every 2s while there are connected clients
+let tickerInterval = null;
+const ensureTicker = () => {
+    if (tickerInterval) return;
+    tickerInterval = setInterval(async () => {
+        if (sseClients.size === 0) {
+            clearInterval(tickerInterval);
+            tickerInterval = null;
+            return;
+        }
+        try {
+            const [requestHistory, syncStatus, downloadHistory] = await Promise.all([
+                getFileContent("request_history"),
+                getFileContent("channel_sync_status"),
+                getFileContent("download_history"),
+            ]);
+            broadcastSSE({ requestHistory, syncStatus, downloadHistory });
+        } catch (_) { /* ignore */ }
+    }, 2000);
+};
 
-            .btn {
-                display: block; width: 100%; padding: 14px; margin-top: 32px;
-                background: var(--accent); color: #000; text-align: center;
-                border: none; border-radius: 8px; font-weight: bold; font-size: 1rem;
-                cursor: pointer; text-decoration: none;
-            }
-            .btn:active { opacity: 0.8; }
-            
-            .btn-delete {
-                position: absolute; top: 16px; right: 16px;
-                background: rgba(207, 102, 121, 0.2); color: var(--error);
-                border: 1px solid var(--error); border-radius: 4px;
-                padding: 4px 8px; font-size: 0.75rem; cursor: pointer;
-            }
-            .btn-delete:active { opacity: 0.8; }
-            
-            .empty { text-align: center; color: var(--text-muted); font-style: italic; padding: 20px 0; }
-        </style>
-    </head>
-    <body>
-        <h1>Server Status</h1>
-        
-        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 90%; max-width: 400px;"></div>
-        
-        <h2>Scheduled Cron Job</h2>
-        <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                <span class="title" style="margin: 0;">Next Scheduled Run:</span>
-                <span class="details" style="font-weight: bold; color: var(--accent);">${nextSyncTime ? formatDate(nextSyncTime) : 'Pending'}</span>
-            </div>
-            
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                <div style="display: flex; gap: 8px;">
-                    <input type="datetime-local" id="newSyncTime" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 1rem; color-scheme: dark;" />
-                    <button class="btn" style="width: auto; margin: 0; padding: 10px 20px;" onclick="updateSyncTime()">Set</button>
-                </div>
-                <button class="btn" style="margin: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent);" onclick="triggerSync()">Run Sync Now</button>
-            </div>
-        </div>
-        
-        <div id="sync-progress-container" style="display: none; background: rgba(187, 134, 252, 0.1); border: 1px solid var(--accent); padding: 16px; border-radius: 12px; margin-bottom: 24px;">
-            <h3 style="color: var(--accent); margin-top: 0;">Sync in Progress</h3>
-            <div id="sync-channel" class="title">Channel: -</div>
-            <div id="sync-message" class="details" style="margin-bottom: 12px; font-style: italic;">Initializing...</div>
-            <div style="background: #333; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 12px;">
-                <div id="sync-bar" style="background: var(--accent); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
-            </div>
-            <div class="stats-row" style="margin-top: 0; padding-top: 0; border: none; justify-content: space-between;">
-                <span id="sync-progress" class="stat">0 / 0</span>
-                <span id="sync-success" class="stat s">✓ 0</span>
-                <span id="sync-error" class="stat e">✗ 0</span>
-                <span id="sync-skipped" class="stat k">⏭ 0</span>
-            </div>
-            <div id="sync-title" class="details" style="margin-top: 12px; word-break: break-all;"></div>
-        </div>
+// ── CSS Styles ───────────────────────────────────────────────────────────────
 
-        <div id="active-manual-container" style="display: none; background: rgba(33, 150, 243, 0.1); border: 1px solid #64b5f6; padding: 16px; border-radius: 12px; margin-bottom: 24px;">
-            <h3 style="color: #64b5f6; margin-top: 0; margin-bottom: 12px;">Active Manual Tasks</h3>
-            <div id="active-manual-list"></div>
-        </div>
+const CSS = `
+:root {
+    --bg: #0a0a0f;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hover: rgba(255,255,255,0.07);
+    --glass: rgba(255,255,255,0.06);
+    --glass-border: rgba(255,255,255,0.08);
+    --text: #e8e8ed;
+    --text-secondary: #8e8e93;
+    --text-tertiary: #636366;
+    --accent: #7c6aef;
+    --accent-glow: rgba(124,106,239,0.15);
+    --accent-subtle: rgba(124,106,239,0.08);
+    --green: #30d158;
+    --green-bg: rgba(48,209,88,0.12);
+    --red: #ff453a;
+    --red-bg: rgba(255,69,58,0.12);
+    --orange: #ff9f0a;
+    --orange-bg: rgba(255,159,10,0.12);
+    --blue: #64d2ff;
+    --blue-bg: rgba(100,210,255,0.12);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+.bg-glow {
+    position: fixed; top: -200px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(124,106,239,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+}
+.container {
+    max-width: 720px; margin: 0 auto;
+    padding: 20px 16px 80px;
+    position: relative; z-index: 1;
+}
 
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; margin-bottom: 16px;">
-            <h2 style="border: none; padding-bottom: 0; margin-top: 0; margin-bottom: 0;">Active Channels</h2>
-            <a href="/status/channels" class="btn" style="display: inline-block; width: auto; margin-top: 0; padding: 6px 12px; font-size: 0.85rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);">Manage</a>
-        </div>
+/* ── Header ── */
+.page-header {
+    text-align: center; padding: 32px 0 24px;
+}
+.page-header h1 {
+    font-size: 1.75rem; font-weight: 700;
+    background: linear-gradient(135deg, #e8e8ed 0%, #7c6aef 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text; letter-spacing: -0.02em;
+}
+.page-header .subtitle {
+    font-size: 0.85rem; color: var(--text-tertiary); margin-top: 4px;
+}
+.live-dot {
+    display: inline-block; width: 7px; height: 7px;
+    background: var(--green); border-radius: 50%;
+    margin-right: 6px; animation: pulse-dot 2s infinite;
+    vertical-align: middle;
+}
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(48,209,88,0.5); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(48,209,88,0); }
+}
 
-        <h2>Recent Requests</h2>
-        <div id="recent-requests-list" style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
-        ${requestHistory.length === 0 ? '<div class="empty">No requests found.</div>' : requestHistory.map(req => {
-            const isRunning = req.status === 'RUNNING';
-            const statusBadgeColor = isRunning ? 'warning' : 'success';
-            const statusText = req.status || 'COMPLETED';
-            const total = req.limit || 0;
-            const doneSoFar = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
-            const left = Math.max(0, total - doneSoFar);
-            
-            let durationText = '';
-            if (!isRunning && req.timestamp && req.completedAt && req.type === 'worker') {
-                const startMs = new Date(req.timestamp).getTime();
-                const endMs = new Date(req.completedAt).getTime();
-                if (!isNaN(startMs) && !isNaN(endMs) && startMs <= endMs) {
-                    const diffSecs = Math.floor((endMs - startMs) / 1000);
-                    const m = Math.floor(diffSecs / 60);
-                    const s = diffSecs % 60;
-                    durationText = ` (${m}m ${s}s)`;
-                }
-            }
-            
-            return `
-            <div class="card" ${isRunning ? 'style="border: 1px solid var(--warning);"' : ''}>
-                ${!isRunning ? `<button class="btn-delete" onclick="deleteRequestHistory('${req.id}')" style="position: absolute; top: 16px; right: 16px; margin: 0; display: inline-block;">Delete</button>` : ''}
-                <div class="header-row">
-                    <div style="display: flex; gap: 8px;">
-                        <span class="badge ${req.type === 'worker' ? 'worker' : 'client'}">${req.type || 'unknown'}</span>
-                        <span class="badge ${statusBadgeColor}">${statusText}${durationText}</span>
-                    </div>
-                    <span class="time">${formatDate(req.timestamp)}</span>
-                </div>
-                <div class="title">${req.url}</div>
-                ${req.currentTitle ? `<div class="details" style="margin-top: 8px; font-style: italic;">Current: ${req.currentTitle}</div>` : ''}
-                <div class="stats-row">
-                    <span class="stat s">✓ ${req.success || 0}</span>
-                    <span class="stat e">✗ ${req.errors || 0}</span>
-                    <span class="stat k">⏭ ${req.skipped || 0}</span>
-                    ${total > 0 ? `<span class="stat" style="margin-left: auto;">${doneSoFar} / ${total} (Left: ${left})</span>` : ''}
-                </div>
-            </div>
-            `;
-        }).join('')}
-        </div>
+/* ── Stats Grid ── */
+.stats-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin-bottom: 24px;
+}
+.stat-card {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm); padding: 16px 12px;
+    text-align: center; backdrop-filter: blur(12px);
+    transition: var(--transition);
+}
+.stat-card:hover { background: var(--surface-hover); transform: translateY(-1px); }
+.stat-card .stat-value {
+    font-size: 1.5rem; font-weight: 700; color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+.stat-card .stat-label {
+    font-size: 0.7rem; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px;
+}
 
-        <h2>Download Logs</h2>
-        <div id="download-logs-list" style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
-        ${downloadHistory.length === 0 ? '<div class="empty">No logs found.</div>' : downloadHistory.map(dl => `
-            <div class="card">
-                <div class="header-row">
-                    <span class="badge ${dl.status === 'SUCCESS' ? 'success' : dl.status === 'ERROR' ? 'error' : 'warning'}">${dl.status}</span>
-                    <span class="time">${formatDate(dl.timestamp)}</span>
-                </div>
-                <div class="title">${dl.title}</div>
-                <div class="details">${dl.details}</div>
-            </div>
-        `).join('')}
-        </div>
+/* ── Toast ── */
+.toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+    padding: 12px 24px; border-radius: var(--radius-sm);
+    font-weight: 600; font-size: 0.85rem;
+    box-shadow: var(--shadow); z-index: 9999;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    backdrop-filter: blur(20px); max-width: 90%;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--green-bg); color: var(--green); border: 1px solid rgba(48,209,88,0.2); }
+.toast.error { background: var(--red-bg); color: var(--red); border: 1px solid rgba(255,69,58,0.2); }
 
-        <script>
-            ${CLIENT_SCRIPT}
-            var initialStatus = ${JSON.stringify(syncStatus || { isSyncing: false })};
-            var isSyncing = updateProgressUI(initialStatus);
-            var initialRequests = ${JSON.stringify(requestHistory || [])};
-            var hasManual = updateManualTasksUI(initialRequests);
-            
-            if (isSyncing || hasManual) {
-                pollingInterval = setInterval(pollStatus, 2000);
-            }
-        </script>
-    </body>
-    </html>
-    `;
-    
-    res.send(html);
-});
+/* ── Section ── */
+.section {
+    margin-bottom: 20px;
+}
+.section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0; cursor: pointer; user-select: none;
+}
+.section-header h2 {
+    font-size: 0.8rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+.section-header .section-badge {
+    font-size: 0.7rem; color: var(--text-tertiary);
+    background: var(--surface); padding: 3px 10px;
+    border-radius: 20px; font-variant-numeric: tabular-nums;
+}
+.section-content {
+    overflow: hidden;
+     transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+.section-content.collapsed { max-height: 0 !important; opacity: 0; }
+.chevron {
+    width: 16px; height: 16px; color: var(--text-tertiary);
+    transition: transform 0.25s ease;
+}
+.section-header.collapsed .chevron { transform: rotate(-90deg); }
 
-router.get("/channels", async (req, res) => {
-    const channelConfig = await getFileContent("channel_config") || [];
-    
-    const html = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Manage Channels</title>
-        <style>
-            :root {
-                --bg: #121212;
-                --card-bg: #1e1e1e;
-                --text-main: #e0e0e0;
-                --text-muted: #9e9e9e;
-                --accent: #bb86fc;
-                --success: #03dac6;
-                --error: #cf6679;
-                --warning: #ffb74d;
-                --border: #333;
-            }
-            body { 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                margin: 0; padding: 16px; 
-                background: var(--bg); color: var(--text-main); 
-                line-height: 1.5;
-            }
-            h1 { color: var(--accent); font-size: 1.5rem; text-align: center; margin-bottom: 24px; }
-            h2 { color: #fff; font-size: 1.2rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-top: 32px; }
-            
-            .card {
-                background: var(--card-bg);
-                border-radius: 12px;
-                padding: 16px;
-                margin-bottom: 12px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-                position: relative;
-            }
-            
-            .title { font-size: 1rem; font-weight: 500; margin-bottom: 4px; word-break: break-all; }
-            .details { font-size: 0.85rem; color: var(--text-muted); word-break: break-all; }
-            
-            .btn {
-                display: block; width: 100%; padding: 14px; margin-top: 32px;
-                background: var(--accent); color: #000; text-align: center;
-                border: none; border-radius: 8px; font-weight: bold; font-size: 1rem;
-                cursor: pointer; text-decoration: none;
-            }
-            .btn:active { opacity: 0.8; }
-            
-            .btn-delete {
-                position: absolute; top: 16px; right: 16px;
-                background: rgba(207, 102, 121, 0.2); color: var(--error);
-                border: 1px solid var(--error); border-radius: 4px;
-                padding: 4px 8px; font-size: 0.75rem; cursor: pointer;
-            }
-            .btn-delete:active { opacity: 0.8; }
-            
-            .empty { text-align: center; color: var(--text-muted); font-style: italic; padding: 20px 0; }
-            .back-link { color: var(--accent); text-decoration: none; display: inline-block; margin-bottom: 16px; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <a href="/status" class="back-link">&larr; Back to Status</a>
-        <h1>Manage Channels</h1>
-        
-        <div id="actionMessage" style="display: none; padding: 12px; border-radius: 8px; font-weight: bold; text-align: center; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 90%; max-width: 400px;"></div>
-        
-        <div class="card" style="margin-bottom: 24px;">
-            <div style="display: flex; gap: 8px;">
-                <input type="text" id="newChannelUrl" placeholder="Enter channel URL" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 1rem;" />
-                <button class="btn" style="width: auto; margin: 0; padding: 10px 20px;" onclick="addChannel()">Add Channel</button>
-            </div>
-        </div>
-        
-        <div style="padding-right: 8px;">
-        ${channelConfig.length === 0 ? '<div class="empty">No channels configured.</div>' : channelConfig.map((ch, index) => `
-            <div class="card">
-                <button class="btn-delete" onclick="deleteChannel('${encodeURIComponent(ch.channel)}')">Delete</button>
-                <div class="title">${ch.channel.replace('https://www.youtube.com/', '').replace(/\/videos\/?$/, '')}</div>
-                <div class="details" style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px; margin-top: 4px;">
-                    Last ID: 
-                    <input type="text" id="lastId-${index}" value="${ch.lastSongId || ''}" placeholder="None" style="flex: 1; padding: 6px; border-radius: 4px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 0.85rem;" />
-                    <button class="btn" style="margin: 0; padding: 6px 12px; width: auto; font-size: 0.85rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);" onclick="updateLastId('${encodeURIComponent(ch.channel)}', ${index})">Save</button>
-                </div>
-                <div class="details">Last Sync: <span class="client-time" data-iso="${ch.lastSongTimestamp || ''}">${ch.lastSongTimestamp || 'N/A'}</span></div>
-                <div class="details">Last Download Count: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
-                
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);">
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Exclude (comma separated):</label>
-                        <input type="text" id="exclude-${index}" value="${(ch.exclude || []).join(', ')}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 0.9rem; box-sizing: border-box;" />
-                    </div>
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Include (comma separated):</label>
-                        <input type="text" id="include-${index}" value="${(ch.include || []).join(', ')}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid var(--border); background: #2c2c2c; color: white; font-size: 0.9rem; box-sizing: border-box;" />
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button class="btn" style="margin: 0; padding: 8px; flex: 1; font-size: 0.9rem; background: transparent; border: 1px solid var(--accent); color: var(--accent);" onclick="applyFilters('${encodeURIComponent(ch.channel)}', ${index})">Apply</button>
-                        <button class="btn" style="margin: 0; padding: 8px; flex: 1; font-size: 0.9rem; background: var(--accent); color: #000;" onclick="applyAllFilters(${index})">Apply to All</button>
-                    </div>
-                </div>
-            </div>
-        `).join('')}
-        </div>
+/* ── Cards ── */
+.card {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 16px;
+    margin-bottom: 10px; position: relative;
+    backdrop-filter: blur(12px); transition: var(--transition);
+}
+.card:hover { background: var(--surface-hover); }
+.card-accent { border-left: 3px solid var(--accent); }
+.card-running { border: 1px solid rgba(255,159,10,0.3); background: var(--orange-bg); }
 
-        <script>
-            function showMessage(msg, isError) {
-                if (isError === undefined) isError = false;
-                var el = document.getElementById('actionMessage');
-                el.innerText = msg;
-                el.style.display = 'block';
-                el.style.backgroundColor = isError ? 'rgba(207, 102, 121, 0.2)' : 'rgba(3, 218, 198, 0.2)';
-                el.style.color = isError ? 'var(--error)' : 'var(--success)';
-                el.style.border = '1px solid ' + (isError ? 'var(--error)' : 'var(--success)');
-                setTimeout(function() { el.style.display = 'none'; }, 4000);
-            }
+.card .card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 8px; gap: 8px;
+}
+.card .card-title {
+    font-size: 0.9rem; font-weight: 500; word-break: break-all;
+}
+.card .card-subtitle {
+    font-size: 0.8rem; color: var(--text-secondary); word-break: break-all;
+    font-style: italic;
+}
+.card .card-meta {
+    font-size: 0.75rem; color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
 
-            var timeEls = document.querySelectorAll('.client-time');
-            for (var i = 0; i < timeEls.length; i++) {
-                var el = timeEls[i];
-                var iso = el.getAttribute('data-iso');
-                if (!iso) continue;
-                var d = new Date(iso);
-                if (!isNaN(d.getTime())) {
-                    var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    var month = months[d.getMonth()];
-                    var day = d.getDate();
-                    var hours = d.getHours();
-                    var minutes = d.getMinutes().toString();
-                    if (minutes.length < 2) minutes = '0' + minutes;
-                    var ampm = hours >= 12 ? 'PM' : 'AM';
-                    hours = hours % 12;
-                    hours = hours ? hours : 12; 
-                    el.innerText = month + ' ' + day + ', ' + hours + ':' + minutes + ' ' + ampm;
-                }
-            }
+/* ── Badges ── */
+.badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+.badge-success { background: var(--green-bg); color: var(--green); }
+.badge-error { background: var(--red-bg); color: var(--red); }
+.badge-warning { background: var(--orange-bg); color: var(--orange); }
+.badge-accent { background: var(--accent-subtle); color: var(--accent); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
 
-            function deleteChannel(encodedUrl) {
-                if (!confirm("Are you sure you want to delete this channel?")) return;
-                var channelUrl = decodeURIComponent(encodedUrl);
-                showMessage("Removing channel...");
-                fetch('/status/delete-channel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channel: channelUrl })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showMessage("Channel removed successfully.");
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else showMessage("Failed to remove channel: " + data.error, true);
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Error removing channel.", true);
-                });
-            }
+/* ── Progress Bar ── */
+.progress-track {
+    height: 5px; background: rgba(255,255,255,0.06);
+    border-radius: 3px; overflow: hidden; margin: 10px 0;
+}
+.progress-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), #a78bfa);
+    transition: width 0.4s ease;
+}
+.progress-fill.blue {
+    background: linear-gradient(90deg, #64d2ff, #5ac8fa);
+}
 
-            function addChannel() {
-                var channelInput = document.getElementById('newChannelUrl').value;
-                if (!channelInput) return showMessage("Please enter a channel URL.", true);
-                showMessage("Adding channel...");
-                fetch('/status/add-channel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channel: channelInput })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showMessage("Channel added successfully.");
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else showMessage("Failed: " + data.error, true);
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Network error occurred.", true);
-                });
-            }
+/* ── Stats Row ── */
+.stats-inline {
+    display: flex; gap: 14px; flex-wrap: wrap;
+    padding-top: 10px; margin-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+.stats-inline .si { font-size: 0.8rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stats-inline .si.green { color: var(--green); }
+.stats-inline .si.red { color: var(--red); }
+.stats-inline .si.orange { color: var(--orange); }
+.stats-inline .si.muted { color: var(--text-tertiary); margin-left: auto; }
 
-            function updateLastId(encodedUrl, index) {
-                var channelUrl = decodeURIComponent(encodedUrl);
-                var lastId = document.getElementById('lastId-' + index).value.trim();
-                showMessage("Updating Last ID...");
-                fetch('/status/update-last-id', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channel: channelUrl, lastSongId: lastId })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showMessage("Last ID updated successfully.");
-                    } else showMessage("Failed: " + data.error, true);
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Network error occurred.", true);
-                });
-            }
+/* ── Sync Panel ── */
+.sync-panel {
+    background: var(--accent-glow); border: 1px solid rgba(124,106,239,0.2);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 16px; display: none;
+    animation: slideDown 0.3s ease;
+}
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.sync-panel.visible { display: block; }
+.sync-panel h3 {
+    font-size: 0.85rem; font-weight: 600; color: var(--accent);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
 
-            function getFilters(idPrefix) {
-                var excludeStr = document.getElementById('exclude-' + idPrefix).value;
-                var includeStr = document.getElementById('include-' + idPrefix).value;
-                var exclude = excludeStr.split(',').map(s => s.trim()).filter(Boolean);
-                var include = includeStr.split(',').map(s => s.trim()).filter(Boolean);
-                return { exclude: exclude, include: include };
-            }
+/* ── Manual Tasks Panel ── */
+.manual-panel {
+    background: var(--blue-bg); border: 1px solid rgba(100,210,255,0.2);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 16px; display: none;
+    animation: slideDown 0.3s ease;
+}
+.manual-panel.visible { display: block; }
+.manual-panel h3 {
+    font-size: 0.85rem; font-weight: 600; color: var(--blue);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
 
-            function applyFilters(encodedUrl, index) {
-                var channelUrl = decodeURIComponent(encodedUrl);
-                var filters = getFilters(index);
-                showMessage("Updating filters...");
-                fetch('/status/update-filters', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ channel: channelUrl, exclude: filters.exclude, include: filters.include })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) showMessage("Filters updated successfully.");
-                    else showMessage("Failed: " + data.error, true);
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Network error occurred.", true);
-                });
-            }
+/* ── Cron Card ── */
+.cron-card {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 20px; backdrop-filter: blur(12px);
+}
+.cron-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+}
+.cron-label { font-size: 0.8rem; color: var(--text-secondary); }
+.cron-value { font-size: 0.85rem; color: var(--accent); font-weight: 600; }
+.input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+input[type="datetime-local"], input[type="text"] {
+    flex: 1; padding: 10px 14px; border-radius: var(--radius-xs);
+    border: 1px solid var(--glass-border); background: rgba(255,255,255,0.04);
+    color: var(--text); font-size: 0.85rem;
+    outline: none; transition: var(--transition);
+    color-scheme: dark;
+}
+input:focus { border-color: rgba(124,106,239,0.4); background: rgba(124,106,239,0.06); }
+input::placeholder { color: var(--text-tertiary); }
 
-            function applyAllFilters(index) {
-                var filters = getFilters(index);
-                if (!confirm("Are you sure you want to apply these filters to ALL channels?")) return;
-                showMessage("Updating filters for all channels...");
-                fetch('/status/update-all-filters', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ exclude: filters.exclude, include: filters.include })
-                })
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                    if (data.success) {
-                        showMessage("Filters applied to all channels.");
-                        setTimeout(function() { location.reload(); }, 1500);
-                    } else showMessage("Failed: " + data.error, true);
-                })
-                .catch(function(err) {
-                    console.error(err);
-                    showMessage("Network error occurred.", true);
-                });
-            }
-        </script>
-    </body>
-    </html>
-    `;
-    
-    res.send(html);
-});
+/* ── Buttons ── */
+.btn {
+    padding: 10px 20px; border-radius: var(--radius-xs);
+    font-weight: 600; font-size: 0.82rem; cursor: pointer;
+    border: none; transition: var(--transition);
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), #9b8afb);
+    color: #fff; box-shadow: 0 4px 14px rgba(124,106,239,0.25);
+}
+.btn-primary:hover { box-shadow: 0 4px 20px rgba(124,106,239,0.4); }
+.btn-outline {
+    background: transparent; color: var(--accent);
+    border: 1px solid rgba(124,106,239,0.3);
+}
+.btn-outline:hover { background: var(--accent-subtle); }
+.btn-danger {
+    background: transparent; color: var(--red);
+    border: 1px solid rgba(255,69,58,0.3);
+    font-size: 0.72rem; padding: 5px 12px;
+}
+.btn-danger:hover { background: var(--red-bg); }
+.btn-block { width: 100%; justify-content: center; }
 
-router.get("/json", async (req, res) => {
-    res.json({
-        requestHistory: await getFileContent("request_history"),
-        channelConfig: await getFileContent("channel_config"),
-        downloadHistory: await getFileContent("download_history"),
-        syncStatus: await getFileContent("channel_sync_status")
+/* ── Links ── */
+.back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--accent); text-decoration: none; font-weight: 600;
+    font-size: 0.85rem; margin-bottom: 20px;
+    transition: var(--transition);
+}
+.back-link:hover { opacity: 0.8; }
+
+/* ── Channel Card ── */
+.ch-card {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 16px;
+    margin-bottom: 10px; position: relative;
+    backdrop-filter: blur(12px); transition: var(--transition);
+}
+.ch-card:hover { background: var(--surface-hover); }
+.ch-meta { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 6px; }
+.filter-group { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
+.filter-label {
+    font-size: 0.72rem; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+}
+.filter-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* ── Empty State ── */
+.empty {
+    text-align: center; color: var(--text-tertiary);
+    font-style: italic; padding: 32px 0; font-size: 0.85rem;
+}
+
+/* ── Scrollable List ── */
+.scroll-list { max-height: 450px; overflow-y: auto; padding-right: 4px; }
+.scroll-list::-webkit-scrollbar { width: 4px; }
+.scroll-list::-webkit-scrollbar-track { background: transparent; }
+.scroll-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+/* ── Connection Status ── */
+.conn-status {
+    position: fixed; bottom: 16px; right: 16px;
+    padding: 8px 14px; border-radius: 20px;
+    font-size: 0.72rem; font-weight: 600;
+    backdrop-filter: blur(20px); z-index: 999;
+    transition: var(--transition);
+}
+.conn-status.connected { background: var(--green-bg); color: var(--green); border: 1px solid rgba(48,209,88,0.2); }
+.conn-status.disconnected { background: var(--red-bg); color: var(--red); border: 1px solid rgba(255,69,58,0.2); }
+
+@media (max-width: 480px) {
+    .container { padding: 12px 10px 60px; }
+    .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stat-card { padding: 12px 8px; }
+    .stat-card .stat-value { font-size: 1.2rem; }
+}
+`;
+
+// ── Client-side JS ───────────────────────────────────────────────────────────
+
+const CLIENT_JS = `
+// ── Utilities ──
+function formatTime(isoStr) {
+    if (!isoStr) return 'N/A';
+    var d = new Date(isoStr);
+    if (isNaN(d.getTime())) return isoStr;
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h = d.getHours(), m = d.getMinutes().toString().padStart(2,'0');
+    var ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + h + ':' + m + ' ' + ampm;
+}
+
+function escHtml(s) {
+    if (s == null) return '';
+    var div = document.createElement('div');
+    div.textContent = String(s);
+    return div.innerHTML;
+}
+
+function showToast(msg, isError) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (isError ? 'error' : 'success') + ' show';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(function() { t.classList.remove('show'); }, 3500);
+}
+
+// ── Format all time elements ──
+function formatAllTimes() {
+    document.querySelectorAll('.fmt-time').forEach(function(el) {
+        var iso = el.getAttribute('data-iso');
+        if (iso) el.textContent = formatTime(iso);
+    });
+}
+
+// ── Section toggle ──
+document.querySelectorAll('.section-header').forEach(function(h) {
+    h.addEventListener('click', function() {
+        var content = h.nextElementSibling;
+        h.classList.toggle('collapsed');
+        content.classList.toggle('collapsed');
     });
 });
 
+// ── SSE Real-time connection ──
+var connEl = document.getElementById('conn-status');
+var evtSource = null;
+
+function connectSSE() {
+    if (evtSource) { try { evtSource.close(); } catch(_) {} }
+    evtSource = new EventSource('/status/events');
+
+    evtSource.onopen = function() {
+        connEl.textContent = '● Live';
+        connEl.className = 'conn-status connected';
+    };
+
+    evtSource.onmessage = function(e) {
+        try {
+            var data = JSON.parse(e.data);
+            updateSyncPanel(data.syncStatus);
+            updateManualTasks(data.requestHistory);
+            updateRecentRequests(data.requestHistory);
+            updateDownloadLogs(data.downloadHistory);
+        } catch(_) {}
+    };
+
+    evtSource.onerror = function() {
+        connEl.textContent = '● Reconnecting…';
+        connEl.className = 'conn-status disconnected';
+        evtSource.close();
+        setTimeout(connectSSE, 3000);
+    };
+}
+connectSSE();
+
+// ── Sync Progress Panel ──
+function updateSyncPanel(status) {
+    var panel = document.getElementById('sync-panel');
+    if (!status || !status.isSyncing) {
+        panel.classList.remove('visible');
+        return;
+    }
+    panel.classList.add('visible');
+    var ch = status.currentChannel || '...';
+    ch = ch.replace(/\\/videos\\/?$/, '');
+    document.getElementById('sp-channel').textContent = ch;
+    document.getElementById('sp-message').textContent = status.message || 'Processing...';
+
+    var total = status.totalSongs || 0, cur = status.currentSongIndex || 0;
+    document.getElementById('sp-progress').textContent = cur + ' / ' + total;
+    var pct = total > 0 ? Math.min(100, Math.round((cur / total) * 100)) : 0;
+    document.getElementById('sp-bar').style.width = pct + '%';
+    document.getElementById('sp-ok').textContent = '✓ ' + (status.successCount || 0);
+    document.getElementById('sp-err').textContent = '✗ ' + (status.errorCount || 0);
+    document.getElementById('sp-skip').textContent = '⏭ ' + (status.skippedCount || 0);
+    document.getElementById('sp-title').textContent = status.currentSongTitle || '...';
+}
+
+// ── Manual Tasks Panel ──
+function updateManualTasks(history) {
+    var panel = document.getElementById('manual-panel');
+    var list = document.getElementById('manual-list');
+    var running = (history || []).filter(function(r) { return r.status === 'RUNNING'; });
+    if (running.length === 0) { panel.classList.remove('visible'); return; }
+    panel.classList.add('visible');
+
+    var html = '';
+    running.forEach(function(req) {
+        var total = req.limit || 0;
+        var done = (req.success||0) + (req.errors||0) + (req.skipped||0);
+        var pct = total > 0 ? Math.min(100, Math.round((done/total)*100)) : 0;
+        html += '<div style="margin-bottom:12px">';
+        html += '<div class="card-title">' + escHtml(req.url) + '</div>';
+        html += '<div class="card-subtitle" style="margin:4px 0">Current: ' + escHtml(req.currentTitle||'...') + '</div>';
+        html += '<div class="progress-track"><div class="progress-fill blue" style="width:' + pct + '%"></div></div>';
+        html += '<div class="stats-inline" style="border:none;margin:0;padding:0">';
+        html += '<span class="si green">✓ ' + (req.success||0) + '</span>';
+        html += '<span class="si red">✗ ' + (req.errors||0) + '</span>';
+        html += '<span class="si orange">⏭ ' + (req.skipped||0) + '</span>';
+        if (total > 0) html += '<span class="si muted">' + done + '/' + total + '</span>';
+        html += '</div></div>';
+    });
+    list.innerHTML = html;
+}
+
+// ── Recent Requests ──
+function updateRecentRequests(history) {
+    var el = document.getElementById('requests-list');
+    var badge = document.getElementById('requests-badge');
+    if (!history || history.length === 0) {
+        el.innerHTML = '<div class="empty">No requests yet</div>';
+        badge.textContent = '0';
+        return;
+    }
+    badge.textContent = history.length;
+    var html = '';
+    history.forEach(function(req) {
+        var isRunning = req.status === 'RUNNING';
+        var total = req.limit || 0;
+        var done = (req.success||0) + (req.errors||0) + (req.skipped||0);
+        var left = Math.max(0, total - done);
+        var dur = '';
+        if (!isRunning && req.timestamp && req.completedAt && req.type === 'worker') {
+            var ds = Math.floor((new Date(req.completedAt) - new Date(req.timestamp)) / 1000);
+            if (ds >= 0) dur = ' (' + Math.floor(ds/60) + 'm ' + (ds%60) + 's)';
+        }
+        html += '<div class="card' + (isRunning?' card-running':'') + '">';
+        html += '<div class="card-header">';
+        html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+        html += '<span class="badge ' + (req.type==='worker'?'badge-accent':'badge-blue') + '">' + escHtml(req.type||'unknown') + '</span>';
+        html += '<span class="badge ' + (isRunning?'badge-warning':'badge-success') + '">' + escHtml(req.status||'COMPLETED') + escHtml(dur) + '</span>';
+        html += '</div>';
+        html += '<span class="card-meta">' + formatTime(req.timestamp) + '</span>';
+        html += '</div>';
+        html += '<div class="card-title">' + escHtml(req.url) + '</div>';
+        if (req.currentTitle) html += '<div class="card-subtitle" style="margin-top:6px">Current: ' + escHtml(req.currentTitle) + '</div>';
+        html += '<div class="stats-inline">';
+        html += '<span class="si green">✓ ' + (req.success||0) + '</span>';
+        html += '<span class="si red">✗ ' + (req.errors||0) + '</span>';
+        html += '<span class="si orange">⏭ ' + (req.skipped||0) + '</span>';
+        if (total > 0) html += '<span class="si muted">' + done + '/' + total + ' · ' + left + ' left</span>';
+        html += '</div>';
+        if (!isRunning) html += '<button class="btn btn-danger" style="position:absolute;top:14px;right:14px" onclick="deleteReq(\\'' + escHtml(req.id) + '\\')">Delete</button>';
+        html += '</div>';
+    });
+    el.innerHTML = html;
+}
+
+// ── Download Logs ──
+function updateDownloadLogs(history) {
+    var el = document.getElementById('downloads-list');
+    var badge = document.getElementById('downloads-badge');
+    if (!history || history.length === 0) {
+        el.innerHTML = '<div class="empty">No download logs</div>';
+        badge.textContent = '0';
+        return;
+    }
+    badge.textContent = history.length;
+    var html = '';
+    history.forEach(function(dl) {
+        var bc = dl.status==='SUCCESS' ? 'badge-success' : (dl.status==='ERROR' ? 'badge-error' : 'badge-warning');
+        html += '<div class="card">';
+        html += '<div class="card-header">';
+        html += '<span class="badge ' + bc + '">' + escHtml(dl.status||'') + '</span>';
+        html += '<span class="card-meta">' + formatTime(dl.timestamp) + '</span>';
+        html += '</div>';
+        html += '<div class="card-title">' + escHtml(dl.title||'') + '</div>';
+        if (dl.details) html += '<div class="card-subtitle" style="margin-top:4px">' + escHtml(dl.details) + '</div>';
+        html += '</div>';
+    });
+    el.innerHTML = html;
+}
+
+// ── Actions ──
+function deleteReq(id) {
+    if (!confirm('Delete this request log?')) return;
+    showToast('Deleting…');
+    fetch('/status/delete-request', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({id:id})
+    }).then(function(r){return r.json()}).then(function(d){
+        if(d.success) showToast('Deleted');
+        else showToast('Failed: '+d.error, true);
+    }).catch(function(){showToast('Network error',true)});
+}
+
+function triggerSync() {
+    showToast('Sync triggered!');
+    fetch('/status/trigger-sync').then(function(r){return r.json()}).then(function(d){
+        console.log(d);
+    }).catch(function(){showToast('Failed to trigger sync',true)});
+}
+
+function updateSyncTime() {
+    var v = document.getElementById('newSyncTime').value;
+    if (!v) return showToast('Select a time first', true);
+    var ms = new Date(v).getTime();
+    if (isNaN(ms)) return showToast('Invalid time', true);
+    fetch('/status/update-sync-time', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({nextTime:ms})
+    }).then(function(r){return r.json()}).then(function(d){
+        if(d.success) { showToast('Sync time updated!'); setTimeout(function(){location.reload()},1500); }
+        else showToast('Failed: '+d.error, true);
+    }).catch(function(){showToast('Network error',true)});
+}
+`;
+
+// ── Main Status Page ─────────────────────────────────────────────────────────
+
+router.get("/", async (req, res) => {
+    try {
+        const [downloadHistory, requestHistory, channelConfig, syncStatus, songCount, userCount] = await Promise.all([
+            getFileContent("download_history"),
+            getFileContent("request_history"),
+            getFileContent("channel_config"),
+            getFileContent("channel_sync_status"),
+            Music.countDocuments().catch(() => 0),
+            User.countDocuments().catch(() => 0),
+        ]);
+
+        const nextSyncDoc = await AppDetail.findOne({ key: "next_daily_sync_time" });
+        let nextSyncTime = nextSyncDoc && nextSyncDoc.data ? new Date(Number(nextSyncDoc.data)).toISOString() : null;
+
+        if (!nextSyncTime) {
+            const lastSyncDoc = await AppDetail.findOne({ key: "last_daily_sync_time" });
+            const lastSyncTime = lastSyncDoc && lastSyncDoc.data ? Number(lastSyncDoc.data) : null;
+            if (lastSyncTime) {
+                nextSyncTime = new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString();
+            }
+        }
+
+        const channelCount = Array.isArray(channelConfig) ? channelConfig.length : 0;
+        const requestCount = Array.isArray(requestHistory) ? requestHistory.length : 0;
+        const downloadCount = Array.isArray(downloadHistory) ? downloadHistory.length : 0;
+
+        const initialSyncJSON = JSON.stringify(syncStatus && typeof syncStatus === "object" ? syncStatus : { isSyncing: false });
+        const initialRequestsJSON = JSON.stringify(Array.isArray(requestHistory) ? requestHistory : []);
+        const initialDownloadsJSON = JSON.stringify(Array.isArray(downloadHistory) ? downloadHistory : []);
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Server Status</title>
+    <style>${CSS}</style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>Server Status</h1>
+            <div class="subtitle"><span class="live-dot"></span>Real-time Dashboard</div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-songs">${songCount.toLocaleString()}</div>
+                <div class="stat-label">Songs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${userCount.toLocaleString()}</div>
+                <div class="stat-label">Users</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${channelCount}</div>
+                <div class="stat-label">Channels</div>
+            </div>
+        </div>
+
+        <!-- Sync Progress Panel (hidden by default) -->
+        <div id="sync-panel" class="sync-panel">
+            <h3><span class="live-dot"></span>Sync in Progress</h3>
+            <div class="card-title" id="sp-channel">Channel: —</div>
+            <div class="card-subtitle" id="sp-message" style="margin:6px 0">Initializing…</div>
+            <div class="progress-track"><div class="progress-fill" id="sp-bar" style="width:0%"></div></div>
+            <div class="stats-inline" style="border:none;margin:0;padding:0;justify-content:space-between">
+                <span class="si" id="sp-progress" style="color:var(--text-secondary)">0/0</span>
+                <span class="si green" id="sp-ok">✓ 0</span>
+                <span class="si red" id="sp-err">✗ 0</span>
+                <span class="si orange" id="sp-skip">⏭ 0</span>
+            </div>
+            <div class="card-subtitle" id="sp-title" style="margin-top:10px"></div>
+        </div>
+
+        <!-- Manual Tasks Panel (hidden by default) -->
+        <div id="manual-panel" class="manual-panel">
+            <h3><span class="live-dot" style="background:var(--blue)"></span>Active Manual Tasks</h3>
+            <div id="manual-list"></div>
+        </div>
+
+        <!-- Cron Job -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Scheduled Sync</h2>
+                <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="section-content">
+                <div class="cron-card">
+                    <div class="cron-row">
+                        <span class="cron-label">Next Run</span>
+                        <span class="cron-value fmt-time" data-iso="${esc(nextSyncTime || "")}">${nextSyncTime ? esc(nextSyncTime) : "Pending"}</span>
+                    </div>
+                    <div class="input-row">
+                        <input type="datetime-local" id="newSyncTime" />
+                        <button class="btn btn-primary" onclick="updateSyncTime()">Set</button>
+                    </div>
+                    <button class="btn btn-outline btn-block" onclick="triggerSync()">Run Sync Now</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Channels -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Active Channels</h2>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="section-badge">${channelCount}</span>
+                    <a href="/status/channels" class="btn btn-outline" style="padding:5px 14px;font-size:0.72rem">Manage</a>
+                </div>
+            </div>
+            <div class="section-content collapsed" style="max-height:0;opacity:0">
+                ${channelCount === 0 ? '<div class="empty">No channels configured</div>' :
+                    channelConfig.map(ch => {
+                        const name = ch.channel.replace("https://www.youtube.com/", "").replace(/\/videos\/?$/, "");
+                        return `<div class="card">
+                            <div class="card-title">${esc(name)}</div>
+                            <div class="ch-meta">Last Sync: <span class="fmt-time" data-iso="${esc(ch.lastSongTimestamp || "")}">${esc(ch.lastSongTimestamp || "N/A")}</span> · Downloads: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
+                        </div>`;
+                    }).join("")}
+            </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Recent Requests</h2>
+                <span class="section-badge" id="requests-badge">${requestCount}</span>
+            </div>
+            <div class="section-content">
+                <div class="scroll-list" id="requests-list">
+                    ${requestCount === 0 ? '<div class="empty">No requests yet</div>' :
+                        requestHistory.map(req => {
+                            const isRunning = req.status === "RUNNING";
+                            const total = req.limit || 0;
+                            const done = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
+                            const left = Math.max(0, total - done);
+                            let dur = "";
+                            if (!isRunning && req.timestamp && req.completedAt && req.type === "worker") {
+                                const ds = Math.floor((new Date(req.completedAt) - new Date(req.timestamp)) / 1000);
+                                if (ds >= 0) dur = ` (${Math.floor(ds / 60)}m ${ds % 60}s)`;
+                            }
+                            return `<div class="card${isRunning ? " card-running" : ""}">
+                                <div class="card-header">
+                                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                        <span class="badge ${req.type === "worker" ? "badge-accent" : "badge-blue"}">${esc(req.type || "unknown")}</span>
+                                        <span class="badge ${isRunning ? "badge-warning" : "badge-success"}">${esc(req.status || "COMPLETED")}${esc(dur)}</span>
+                                    </div>
+                                    <span class="card-meta fmt-time" data-iso="${esc(req.timestamp)}">${esc(req.timestamp || "N/A")}</span>
+                                </div>
+                                <div class="card-title">${esc(req.url)}</div>
+                                ${req.currentTitle ? `<div class="card-subtitle" style="margin-top:6px">Current: ${esc(req.currentTitle)}</div>` : ""}
+                                <div class="stats-inline">
+                                    <span class="si green">✓ ${req.success || 0}</span>
+                                    <span class="si red">✗ ${req.errors || 0}</span>
+                                    <span class="si orange">⏭ ${req.skipped || 0}</span>
+                                    ${total > 0 ? `<span class="si muted">${done}/${total} · ${left} left</span>` : ""}
+                                </div>
+                                ${!isRunning ? `<button class="btn btn-danger" style="position:absolute;top:14px;right:14px" onclick="deleteReq('${esc(req.id)}')">Delete</button>` : ""}
+                            </div>`;
+                        }).join("")}
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Logs -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Download Logs</h2>
+                <span class="section-badge" id="downloads-badge">${downloadCount}</span>
+            </div>
+            <div class="section-content">
+                <div class="scroll-list" id="downloads-list">
+                    ${downloadCount === 0 ? '<div class="empty">No download logs</div>' :
+                        downloadHistory.map(dl => {
+                            const bc = dl.status === "SUCCESS" ? "badge-success" : (dl.status === "ERROR" ? "badge-error" : "badge-warning");
+                            return `<div class="card">
+                                <div class="card-header">
+                                    <span class="badge ${bc}">${esc(dl.status)}</span>
+                                    <span class="card-meta fmt-time" data-iso="${esc(dl.timestamp)}">${esc(dl.timestamp || "N/A")}</span>
+                                </div>
+                                <div class="card-title">${esc(dl.title)}</div>
+                                ${dl.details ? `<div class="card-subtitle" style="margin-top:4px">${esc(dl.details)}</div>` : ""}
+                            </div>`;
+                        }).join("")}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="conn-status" class="conn-status disconnected">● Connecting…</div>
+
+    <script>
+        ${CLIENT_JS}
+        // Initialize with SSR data
+        formatAllTimes();
+        updateSyncPanel(${initialSyncJSON});
+        updateManualTasks(${initialRequestsJSON});
+    </script>
+</body>
+</html>`;
+
+        res.send(html);
+    } catch (err) {
+        console.error("[Status Page Error]", err);
+        res.status(500).send(`<h1>Error loading status page</h1><pre>${esc(err.message)}</pre>`);
+    }
+});
+
+// ── Manage Channels Page ─────────────────────────────────────────────────────
+
+router.get("/channels", async (req, res) => {
+    try {
+        const channelConfig = await getFileContent("channel_config") || [];
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Manage Channels</title>
+    <style>${CSS}</style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div id="toast" class="toast"></div>
+
+    <div class="container">
+        <a href="/status" class="back-link">← Back to Status</a>
+        <div class="page-header" style="padding-top:8px">
+            <h1>Manage Channels</h1>
+            <div class="subtitle">${channelConfig.length} channel${channelConfig.length !== 1 ? "s" : ""} configured</div>
+        </div>
+
+        <!-- Add Channel -->
+        <div class="cron-card" style="margin-bottom:24px">
+            <div class="input-row">
+                <input type="text" id="newChannelUrl" placeholder="https://youtube.com/@channel/videos" />
+                <button class="btn btn-primary" onclick="addChannel()">Add</button>
+            </div>
+        </div>
+
+        <!-- Channel List -->
+        <div id="channel-list">
+        ${channelConfig.length === 0 ? '<div class="empty">No channels configured</div>' :
+            channelConfig.map((ch, i) => {
+                const name = ch.channel.replace("https://www.youtube.com/", "").replace(/\/videos\/?$/, "");
+                return `<div class="ch-card">
+                    <button class="btn btn-danger" style="position:absolute;top:14px;right:14px" onclick="deleteChannel('${encodeURIComponent(ch.channel)}')">Remove</button>
+                    <div class="card-title">${esc(name)}</div>
+                    <div class="ch-meta" style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:4px">
+                        <span>Last ID:</span>
+                        <input type="text" id="lastId-${i}" value="${esc(ch.lastSongId || "")}" placeholder="None" style="font-size:0.78rem;padding:6px 10px" />
+                        <button class="btn btn-outline" style="padding:6px 14px;font-size:0.72rem" onclick="updateLastId('${encodeURIComponent(ch.channel)}',${i})">Save</button>
+                    </div>
+                    <div class="ch-meta">Last Sync: <span class="fmt-time" data-iso="${esc(ch.lastSongTimestamp || "")}">${esc(ch.lastSongTimestamp || "N/A")}</span></div>
+                    <div class="ch-meta">Downloads: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
+                    <div class="filter-group">
+                        <div class="filter-label">Exclude (comma separated)</div>
+                        <input type="text" id="exclude-${i}" value="${esc((ch.exclude || []).join(", "))}" style="width:100%;margin-bottom:8px;font-size:0.82rem;padding:8px 12px" />
+                        <div class="filter-label">Include (comma separated)</div>
+                        <input type="text" id="include-${i}" value="${esc((ch.include || []).join(", "))}" style="width:100%;font-size:0.82rem;padding:8px 12px" />
+                        <div class="filter-actions">
+                            <button class="btn btn-outline" style="flex:1;font-size:0.78rem;padding:8px" onclick="applyFilters('${encodeURIComponent(ch.channel)}',${i})">Apply</button>
+                            <button class="btn btn-primary" style="flex:1;font-size:0.78rem;padding:8px" onclick="applyAllFilters(${i})">Apply to All</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join("")}
+        </div>
+    </div>
+
+    <script>
+        function escHtml(s) { if(s==null)return''; var d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
+        function showToast(msg,isError) {
+            var t=document.getElementById('toast');
+            t.textContent=msg; t.className='toast '+(isError?'error':'success')+' show';
+            clearTimeout(t._tid); t._tid=setTimeout(function(){t.classList.remove('show')},3500);
+        }
+        function formatAllTimes() {
+            document.querySelectorAll('.fmt-time').forEach(function(el) {
+                var iso = el.getAttribute('data-iso');
+                if (!iso) return;
+                var d = new Date(iso);
+                if (isNaN(d.getTime())) return;
+                var months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                var h=d.getHours(),m=d.getMinutes().toString().padStart(2,'0');
+                var ampm=h>=12?'PM':'AM'; h=h%12||12;
+                el.textContent=months[d.getMonth()]+' '+d.getDate()+', '+h+':'+m+' '+ampm;
+            });
+        }
+        formatAllTimes();
+
+        function apiCall(url, body) {
+            return fetch(url, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(body)
+            }).then(function(r){return r.json()});
+        }
+
+        function deleteChannel(enc) {
+            if(!confirm('Remove this channel?'))return;
+            showToast('Removing…');
+            apiCall('/status/delete-channel',{channel:decodeURIComponent(enc)}).then(function(d){
+                if(d.success){showToast('Removed');setTimeout(function(){location.reload()},1200);}
+                else showToast('Failed: '+d.error,true);
+            }).catch(function(){showToast('Network error',true)});
+        }
+
+        function addChannel() {
+            var v=document.getElementById('newChannelUrl').value;
+            if(!v)return showToast('Enter a channel URL',true);
+            showToast('Adding…');
+            apiCall('/status/add-channel',{channel:v}).then(function(d){
+                if(d.success){showToast('Added');setTimeout(function(){location.reload()},1200);}
+                else showToast('Failed: '+d.error,true);
+            }).catch(function(){showToast('Network error',true)});
+        }
+
+        function updateLastId(enc,idx) {
+            var v=document.getElementById('lastId-'+idx).value.trim();
+            showToast('Saving…');
+            apiCall('/status/update-last-id',{channel:decodeURIComponent(enc),lastSongId:v}).then(function(d){
+                if(d.success) showToast('Saved');
+                else showToast('Failed: '+d.error,true);
+            }).catch(function(){showToast('Network error',true)});
+        }
+
+        function getFilters(idx) {
+            var ex=document.getElementById('exclude-'+idx).value;
+            var inc=document.getElementById('include-'+idx).value;
+            return {
+                exclude:ex.split(',').map(function(s){return s.trim()}).filter(Boolean),
+                include:inc.split(',').map(function(s){return s.trim()}).filter(Boolean)
+            };
+        }
+
+        function applyFilters(enc,idx) {
+            var f=getFilters(idx);
+            showToast('Updating filters…');
+            apiCall('/status/update-filters',{channel:decodeURIComponent(enc),exclude:f.exclude,include:f.include}).then(function(d){
+                if(d.success) showToast('Filters updated');
+                else showToast('Failed: '+d.error,true);
+            }).catch(function(){showToast('Network error',true)});
+        }
+
+        function applyAllFilters(idx) {
+            if(!confirm('Apply these filters to ALL channels?'))return;
+            var f=getFilters(idx);
+            showToast('Updating all filters…');
+            apiCall('/status/update-all-filters',{exclude:f.exclude,include:f.include}).then(function(d){
+                if(d.success){showToast('Applied to all');setTimeout(function(){location.reload()},1200);}
+                else showToast('Failed: '+d.error,true);
+            }).catch(function(){showToast('Network error',true)});
+        }
+    </script>
+</body>
+</html>`;
+
+        res.send(html);
+    } catch (err) {
+        console.error("[Channels Page Error]", err);
+        res.status(500).send(`<h1>Error loading channels page</h1><pre>${esc(err.message)}</pre>`);
+    }
+});
+
+// ── JSON API ─────────────────────────────────────────────────────────────────
+
+router.get("/json", async (req, res) => {
+    try {
+        const [requestHistory, channelConfig, downloadHistory, syncStatus] = await Promise.all([
+            getFileContent("request_history"),
+            getFileContent("channel_config"),
+            getFileContent("download_history"),
+            getFileContent("channel_sync_status"),
+        ]);
+        res.json({ requestHistory, channelConfig, downloadHistory, syncStatus });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Mutation Endpoints ───────────────────────────────────────────────────────
 
 router.post("/delete-request", async (req, res) => {
     const { id } = req.body;
@@ -824,7 +1055,7 @@ router.post("/delete-request", async (req, res) => {
 });
 
 router.get("/trigger-sync", (req, res) => {
-    console.log("[API] Triggered channel sync from public endpoint.");
+    console.log("[API] Triggered channel sync from status page.");
     updateChannels().catch(err => console.error("[API] Channel update failed:", err));
     res.json({ success: true, message: "Channel auto-update started in the background." });
 });
@@ -844,14 +1075,12 @@ router.post("/update-sync-time", async (req, res) => {
 router.post("/delete-channel", async (req, res) => {
     const { channel } = req.body;
     if (!channel) return res.status(400).json({ error: "Missing channel URL" });
-
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         if (doc && doc.data && Array.isArray(doc.data)) {
             const newData = doc.data.filter(c => c.channel !== channel);
             await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: newData });
         }
-
         res.json({ success: true });
     } catch (e) {
         console.error(e);
@@ -862,7 +1091,6 @@ router.post("/delete-channel", async (req, res) => {
 router.post("/add-channel", async (req, res) => {
     const { channel } = req.body;
     if (!channel) return res.status(400).json({ error: "Missing channel URL" });
-    
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         let channels = (doc && doc.data && Array.isArray(doc.data)) ? doc.data : [];
@@ -880,7 +1108,6 @@ router.post("/add-channel", async (req, res) => {
 router.post("/update-filters", async (req, res) => {
     const { channel, exclude, include } = req.body;
     if (!channel) return res.status(400).json({ error: "Missing channel URL" });
-    
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         if (doc && doc.data && Array.isArray(doc.data)) {
@@ -901,7 +1128,6 @@ router.post("/update-filters", async (req, res) => {
 
 router.post("/update-all-filters", async (req, res) => {
     const { exclude, include } = req.body;
-    
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         if (doc && doc.data && Array.isArray(doc.data)) {
@@ -922,7 +1148,6 @@ router.post("/update-all-filters", async (req, res) => {
 router.post("/update-last-id", async (req, res) => {
     const { channel, lastSongId } = req.body;
     if (!channel) return res.status(400).json({ error: "Missing channel URL" });
-    
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         if (doc && doc.data && Array.isArray(doc.data)) {
