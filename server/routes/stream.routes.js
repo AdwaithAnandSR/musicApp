@@ -1,6 +1,7 @@
 import express from "express";
 import { spawn } from "child_process";
 import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
@@ -8,13 +9,30 @@ router.get("/:ytId", (req, res) => {
     const ytId = req.params.ytId;
     const url = `https://www.youtube.com/watch?v=${ytId}`;
 
-    const ytdlpPath = path.resolve(process.cwd(), "bin", "yt-dlp");
-    const ytdlp = spawn("python3", [
-        ytdlpPath,
+    let command = "python3";
+    let args = [];
+    let env = undefined;
+
+    const renderPath = "/opt/render/project/src/yt-dlp-package";
+    const binPath = path.resolve(process.cwd(), "bin", "yt-dlp");
+
+    if (fs.existsSync(renderPath)) {
+        command = "python3";
+        args = ["-m", "yt_dlp"];
+        env = { ...process.env, PYTHONPATH: renderPath };
+    } else if (fs.existsSync(binPath)) {
+        command = "python3";
+        args = [binPath];
+    } else {
+        command = "yt-dlp";
+    }
+
+    const ytdlp = spawn(command, [
+        ...args,
         url,
         "-f", "bestaudio/best",
         "-o", "-"
-    ]);
+    ], env ? { env } : undefined);
 
     res.setHeader("Content-Type", "audio/mpeg");
 

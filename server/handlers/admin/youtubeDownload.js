@@ -76,6 +76,15 @@ const createCookieFile = cookiesInput => {
 };
 
 const getYtDlpRunner = () => {
+    const renderPath = "/opt/render/project/src/yt-dlp-package";
+    if (fs.existsSync(renderPath)) {
+        return { 
+            command: "python3", 
+            prefix: ["-m", "yt_dlp"],
+            env: { ...process.env, PYTHONPATH: renderPath }
+        };
+    }
+
     const currentDir = path.dirname(new URL(import.meta.url).pathname);
     const candidatePaths = [
         path.resolve(process.cwd(), "bin", "yt-dlp"),
@@ -92,9 +101,9 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
-const runCommand = (command, args, ignoreOutput = false) => {
+const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
     return new Promise((resolve, reject) => {
-        const proc = spawn(command, args);
+        const proc = spawn(command, args, env ? { env } : undefined);
         let stdout = "";
         let stderr = "";
 
@@ -153,7 +162,7 @@ const extractVideoId = inputUrl => {
 };
 
 export const processBackgroundDownload = async (url, skip, limit, cookieFile, reqId) => {
-    const { command, prefix } = getYtDlpRunner();
+    const { command, prefix, env } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
     if (!fs.existsSync(downloadDir)) {
         fs.mkdirSync(downloadDir, { recursive: true });
@@ -200,7 +209,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
             // Cookies are deliberately not passed to avoid skipping the android client, which leads to 403s.
             argsList.push(directVideoUrl);
 
-            const infoOutput = await runCommand(command, argsList);
+            const infoOutput = await runCommand(command, argsList, false, env);
             const videoData = JSON.parse(infoOutput.trim());
             videos = [
                 {
@@ -238,7 +247,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
             // Cookies are deliberately not passed to avoid skipping the android client, which leads to 403s.
             argsList.push(url);
 
-            const listOutput = await runCommand(command, argsList);
+            const listOutput = await runCommand(command, argsList, false, env);
             videos = listOutput
                 .split("\n")
                 .map(line => line.trim())
@@ -324,7 +333,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 ];
                 // Cookies are deliberately not passed to avoid skipping the android client
 
-                await runCommand(command, dlArgs, true);
+                await runCommand(command, dlArgs, true, env);
 
                 // 3. Find the downloaded files
                 const files = fs.readdirSync(downloadDir);
