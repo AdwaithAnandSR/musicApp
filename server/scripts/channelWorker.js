@@ -21,6 +21,15 @@ if (!process.env.VERCEL && !fs.existsSync(downloadDir)) {
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const getYtDlpRunner = () => {
+    const renderPath = "/opt/render/project/src/yt-dlp-package";
+    if (fs.existsSync(renderPath)) {
+        return { 
+            command: "python3", 
+            prefix: ["-m", "yt_dlp"],
+            env: { ...process.env, PYTHONPATH: renderPath }
+        };
+    }
+
     const candidatePaths = [
         path.resolve(process.cwd(), "bin", "yt-dlp"),
         path.resolve(process.cwd(), "server", "bin", "yt-dlp")
@@ -33,9 +42,9 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
-const runCommand = (command, args, ignoreOutput = false) => {
+const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
     return new Promise((resolve, reject) => {
-        const proc = spawn(command, args);
+        const proc = spawn(command, args, env ? { env } : undefined);
         let stdout = "";
         let stderr = "";
         proc.stdout.on("data", data => {
@@ -88,11 +97,11 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
 };
 
 const fetchVideoMetadata = async (ytId, cookieFile) => {
-    const { command, prefix } = getYtDlpRunner();
+    const { command, prefix, env } = getYtDlpRunner();
     const args = [...prefix, "-j", "--no-playlist", "--js-runtimes", "node"];
     // Cookies are deliberately not passed to avoid skipping the android client
     args.push(`https://www.youtube.com/watch?v=${ytId}`);
-    const out = await runCommand(command, args);
+    const out = await runCommand(command, args, false, env);
     return JSON.parse(out.trim());
 };
 
@@ -126,7 +135,7 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
             if (f.startsWith(ytId)) fs.unlinkSync(path.join(downloadDir, f));
         });
     } catch (cleanupErr) {}
-    const { command, prefix } = getYtDlpRunner();
+    const { command, prefix, env } = getYtDlpRunner();
     const dlArgs = [
         ...prefix,
         "--extract-audio",
@@ -143,7 +152,7 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
     ];
     // Cookies are deliberately not passed to avoid skipping the android client
     dlArgs.push(`https://www.youtube.com/watch?v=${ytId}`);
-    await runCommand(command, dlArgs, true);
+    await runCommand(command, dlArgs, true, env);
 
     const files = fs.readdirSync(downloadDir);
     const audioFile = files.find(f => f.startsWith(ytId) && f.endsWith(".mp3"));
@@ -297,7 +306,7 @@ const _runUpdateChannels = async () => {
         return;
     }
 
-    const { command, prefix } = getYtDlpRunner();
+    const { command, prefix, env } = getYtDlpRunner();
 
     for (let i = 0; i < channels.length; i++) {
         const channelEntry = channels[i];
@@ -334,7 +343,7 @@ const _runUpdateChannels = async () => {
             ];
             // Cookies are deliberately not passed to avoid skipping the android client
             argsList.push(channelUrl);
-            listOutput = await runCommand(command, argsList);
+            listOutput = await runCommand(command, argsList, false, env);
         } catch (e) {
             console.error(
                 `Failed to fetch channel playlist for ${channelUrl}:`,

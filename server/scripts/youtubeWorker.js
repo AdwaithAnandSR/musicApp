@@ -39,6 +39,15 @@ const extractVideoId = inputUrl => {
 };
 
 const getYtDlpRunner = () => {
+    const renderPath = "/opt/render/project/src/yt-dlp-package";
+    if (fs.existsSync(renderPath)) {
+        return { 
+            command: "python3", 
+            prefix: ["-m", "yt_dlp"],
+            env: { ...process.env, PYTHONPATH: renderPath }
+        };
+    }
+
     const currentDir = path.dirname(new URL(import.meta.url).pathname);
     const candidatePaths = [
         path.resolve(process.cwd(), "bin", "yt-dlp"),
@@ -55,9 +64,9 @@ const getYtDlpRunner = () => {
     return { command: "yt-dlp", prefix: [] };
 };
 
-const runCommand = (command, args, ignoreOutput = false) => {
+const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
     return new Promise((resolve, reject) => {
-        const proc = spawn(command, args);
+        const proc = spawn(command, args, env ? { env } : undefined);
         let stdout = "";
         let stderr = "";
 
@@ -212,7 +221,7 @@ const main = async () => {
         fs.mkdirSync(downloadDir, { recursive: true });
     }
 
-    const { command, prefix } = getYtDlpRunner();
+    const { command, prefix, env } = getYtDlpRunner();
 
     try {
         await connectDB();
@@ -255,7 +264,7 @@ const main = async () => {
             // Cookies are deliberately not passed to avoid skipping the android client
             argsList.push(directVideoUrl);
 
-            const infoOutput = await runCommand(command, argsList);
+            const infoOutput = await runCommand(command, argsList, false, env);
             const videoData = JSON.parse(infoOutput.trim());
             videos = [
                 {
@@ -292,7 +301,7 @@ const main = async () => {
             // Cookies are deliberately not passed to avoid skipping the android client
             argsList.push(url);
 
-            const listOutput = await runCommand(command, argsList);
+            const listOutput = await runCommand(command, argsList, false, env);
             videos = listOutput
                 .split("\n")
                 .map(line => line.trim())
@@ -371,7 +380,7 @@ const main = async () => {
                 ];
                 // Cookies are deliberately not passed to avoid skipping the android client
 
-                await runCommand(command, dlArgs, true);
+                await runCommand(command, dlArgs, true, env);
 
                 const files = fs.readdirSync(downloadDir);
                 const audioFile = files.find(
