@@ -89,7 +89,7 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
 
 const fetchVideoMetadata = async (ytId, cookieFile) => {
     const { command, prefix } = getYtDlpRunner();
-    const args = [...prefix, "-j", "--no-playlist", "--js-runtimes", "node"];
+    const args = [...prefix, "-j", "--no-playlist", "--extractor-args", "youtube:player_client=ios,android,web", "--js-runtimes", "node"];
     if (cookieFile) args.push("--cookies", cookieFile);
     args.push(`https://www.youtube.com/watch?v=${ytId}`);
     const out = await runCommand(command, args);
@@ -136,6 +136,8 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
         "0",
         "--write-thumbnail",
         "--no-playlist",
+        "--extractor-args",
+        "youtube:player_client=ios,android,web",
         "--js-runtimes",
         "node",
         "-o",
@@ -330,7 +332,7 @@ const _runUpdateChannels = async () => {
                 "-j",
                 "--flat-playlist",
                 "--extractor-args",
-                "youtubetab:skip=authcheck",
+                "youtubetab:skip=authcheck;youtube:player_client=ios,android,web",
                 "--js-runtimes",
                 "node"
             ];
