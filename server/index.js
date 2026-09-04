@@ -115,7 +115,7 @@ app.use("/users", requireAuth, requireAdmin, userRoutes);
 
 import { resumePendingTasks } from "./scripts/resumeTasks.js";
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running at http://localhost:${PORT}`);
     if (!process.env.VERCEL) {
         setTimeout(resumePendingTasks, 3000);
