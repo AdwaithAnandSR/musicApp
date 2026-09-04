@@ -1,5 +1,6 @@
 FROM node:22-bookworm
-WORKDIR /server
+
+WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
     python3 \
@@ -12,17 +13,12 @@ RUN pip3 install --break-system-packages -U yt-dlp
 
 COPY package*.json ./
 
-COPY server/ .
-
-RUN ls -la
-RUN pwd
-
 RUN npm install
 
 COPY . .
 
 ENV NODE_ENV=production
 
-EXPOSE 8000
+EXPOSE 5000
 
 CMD ["npm", "start"]
