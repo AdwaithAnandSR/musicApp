@@ -1,6 +1,5 @@
 FROM node:22-bookworm
-
-WORKDIR /app
+WORKDIR /server
 
 RUN apt-get update && apt-get install -y \
     python3 \
