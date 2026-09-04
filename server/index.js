@@ -90,6 +90,8 @@ app.use("/temp", temp);
 app.use("/auth", authRoutes);
 app.use("/stream", streamRoutes);
 
+app.use("/admin", admin);
+
 app.use("/status", statusRoutes);
 
 app.use("/", requireAuth, indexRoutes);
