@@ -197,9 +197,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 "--js-runtimes",
                 "node"
             ];
-            if (cookieFile) {
-                argsList.push("--cookies", cookieFile);
-            }
+            // Cookies are deliberately not passed to avoid skipping the android client, which leads to 403s.
             argsList.push(directVideoUrl);
 
             const infoOutput = await runCommand(command, argsList);
@@ -237,9 +235,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                 "--js-runtimes",
                 "node"
             ];
-            if (cookieFile) {
-                argsList.push("--cookies", cookieFile);
-            }
+            // Cookies are deliberately not passed to avoid skipping the android client, which leads to 403s.
             argsList.push(url);
 
             const listOutput = await runCommand(command, argsList);
@@ -326,9 +322,7 @@ export const processBackgroundDownload = async (url, skip, limit, cookieFile, re
                     path.join(downloadDir, `${ytId}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
                 ];
-                if (cookieFile) {
-                    dlArgs.push("--cookies", cookieFile);
-                }
+                // Cookies are deliberately not passed to avoid skipping the android client
 
                 await runCommand(command, dlArgs, true);
 
