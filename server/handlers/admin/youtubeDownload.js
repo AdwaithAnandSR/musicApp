@@ -201,18 +201,19 @@ const getYtDlpRunner = () => {
 const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
     return new Promise((resolve, reject) => {
         const proc = spawn(command, args, env ? { env } : undefined);
+
         let stdout = "";
         let stderr = "";
 
         proc.stdout.on("data", data => {
-            if (ignoreOutput) return;
-            stdout += data.toString();
-            if (stdout.length > MAX_LOG_CHARS * 4) {
-                stdout = stdout.slice(-MAX_LOG_CHARS * 4);
+            if (!ignoreOutput) {
+                stdout += data.toString();
             }
         });
+
         proc.stderr.on("data", data => {
             stderr += data.toString();
+
             if (stderr.length > MAX_LOG_CHARS * 2) {
                 stderr = stderr.slice(-MAX_LOG_CHARS * 2);
             }
@@ -233,7 +234,6 @@ const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
         proc.on("error", err => reject(err));
     });
 };
-
 const uploadToCloudinary = async (filePath, resourceType, folder) => {
     try {
         const result = await cloudinary.uploader.upload(filePath, {
@@ -324,7 +324,41 @@ export const processBackgroundDownload = async (
             ];
 
             const infoOutput = await runCommand(command, argsList, false, env);
-            const videoData = JSON.parse(infoOutput.trim());
+
+            console.log(
+                "[YouTube Download] yt-dlp metadata output length:",
+                infoOutput.length
+            );
+
+            const jsonLine = infoOutput
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .find(line => line.startsWith("{") && line.endsWith("}"));
+
+            if (!jsonLine) {
+                console.error(
+                    "[YouTube Download] yt-dlp returned no valid JSON object."
+                );
+                console.error(
+                    "[YouTube Download] Output:",
+                    infoOutput.slice(-MAX_LOG_CHARS)
+                );
+                throw new Error("yt-dlp did not return valid video metadata");
+            }
+
+            let videoData;
+
+            try {
+                videoData = JSON.parse(jsonLine);
+            } catch (parseError) {
+                console.error(
+                    "[YouTube Download] Failed to parse yt-dlp metadata:",
+                    parseError.message
+                );
+                console.error("[YouTube Download] JSON line:", jsonLine);
+                throw parseError;
+            }
+
             videos = [
                 {
                     id: videoData.id || videoId,
@@ -585,6 +619,28 @@ export const youtubeDownload = async (req, res) => {
         console.log("Skip:", skip);
         console.log("Limit:", limit);
         console.log("Cookies present:", !!cookies);
+
+        const response = await fetch(
+            "https://p01--musicapp--87699hjhjdrd.code.run/admin/youtubeDownload",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    url,
+                    skip,
+                    limit,
+                    cookies
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        console.log(data);
+
+        return;
 
         // 1. Validation
         if (!url || typeof url !== "string" || !url.trim()) {
