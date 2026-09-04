@@ -255,7 +255,7 @@ const Youtube = () => {
 const styles = StyleSheet.create({
     fab: {
         position: "absolute",
-        bottom: 150,
+        bottom: 100,
         right: 20,
         backgroundColor: "#ff0000",
         width: 56,
