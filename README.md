@@ -69,56 +69,6 @@
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
-- [Expo Go](https://expo.dev/client) app installed on your physical device OR an iOS Simulator / Android Emulator.
-
----
-
-### 📥 Installation & Setup
-
-#### 1. Clone the repository
-```bash
-git clone https://github.com/AdwaithAnandSR/musicApp.git
-cd musicApp
-```
-
-#### 2. Setup the Backend Server
-```bash
-cd server
-npm install
-```
-
-Configure your environment variables by creating a `.env` file inside `server/`:
-```env
-PORT=5000
-MONGO_URI=your_mongodb_atlas_connection_string
-CLOUDINARY_URL=your_cloudinary_url
-```
-
-Start the development server:
-```bash
-npm run dev
-```
-
-#### 3. Setup the Mobile Client
-Open a new terminal tab and navigate to `client/`:
-```bash
-cd client
-npm install
-```
-
-Start the Expo development server:
-```bash
-npm start
-```
-> Scan the QR code displayed in your terminal using the **Expo Go** app (Android) or Camera app (iOS) to launch vividMusic on your device.
-
----
-
 ## 📁 Project Structure
 
 ```text
@@ -145,15 +95,3 @@ musicApp/
 ```
 
 ---
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!  
-Feel free to check the [issues page](https://github.com/AdwaithAnandSR/musicApp/issues) if you want to contribute or report a bug.
-
----
-
-<div align="center">
-  Crafted with ❤️ for music lovers.
-</div>
-
