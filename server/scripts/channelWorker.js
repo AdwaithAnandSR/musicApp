@@ -235,12 +235,43 @@ const connectDB = async () => {
 };
 
 let isUpdateChannelsRunning = false;
+const CLOUDINARY_CREDIT_LIMIT = 20; // block sync if used credits exceed this (out of 25)
 
 export const updateChannels = async () => {
     if (isUpdateChannelsRunning) {
         console.log("[Worker] A sync is already in progress. Ignoring duplicate trigger.");
         return;
     }
+
+    // ── Cloudinary credit guard ──
+    try {
+        const usage = await cloudinary.api.usage();
+        const creditsUsed = usage?.credits?.usage ?? 0;
+        const creditsLimit = usage?.credits?.limit ?? 25;
+        const remaining = creditsLimit - creditsUsed;
+
+        if (creditsUsed >= CLOUDINARY_CREDIT_LIMIT) {
+            const msg = `[Worker] Sync BLOCKED — Cloudinary credits ${creditsUsed.toFixed(2)}/${creditsLimit} used (${remaining.toFixed(2)} remaining). Min 5 credits must be reserved for bandwidth.`;
+            console.warn(msg);
+            // Store blocked status so the UI can show an alert
+            await AppDetail.findOneAndUpdate(
+                { key: "channel_sync_status" },
+                { data: {
+                    isSyncing: false,
+                    blocked: true,
+                    blockedReason: `Cloudinary credits exceeded (${creditsUsed.toFixed(2)}/${creditsLimit} used, ${remaining.toFixed(2)} left). Min 5 credits reserved for bandwidth.`,
+                    blockedAt: new Date().toISOString(),
+                    message: msg,
+                }},
+                { upsert: true }
+            ).catch(() => {});
+            return;
+        }
+        console.log(`[Worker] Cloudinary credits OK: ${creditsUsed.toFixed(2)}/${creditsLimit} used (${remaining.toFixed(2)} remaining).`);
+    } catch (err) {
+        console.error("[Worker] Failed to check Cloudinary credits, proceeding anyway:", err.message);
+    }
+
     isUpdateChannelsRunning = true;
     
     try {

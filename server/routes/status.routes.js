@@ -9,11 +9,16 @@ const router = express.Router();
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const getFileContent = async (key) => {
+const getFileContent = async key => {
     try {
         const doc = await AppDetail.findOne({ key });
-        let data = (doc && doc.data) ? doc.data : [];
-        if (data && (Array.isArray(data) ? data.length > 0 : Object.keys(data).length > 0)) {
+        let data = doc && doc.data ? doc.data : [];
+        if (
+            data &&
+            (Array.isArray(data)
+                ? data.length > 0
+                : Object.keys(data).length > 0)
+        ) {
             return data;
         }
         return [];
@@ -22,7 +27,7 @@ const getFileContent = async (key) => {
     }
 };
 
-const esc = (str) => {
+const esc = str => {
     if (str == null) return "";
     return String(str)
         .replace(/&/g, "&amp;")
@@ -40,12 +45,12 @@ const CLOUDINARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 const getCloudinaryUsage = async () => {
     const now = Date.now();
-    if (_cloudinaryCache && (now - _cloudinaryCacheTime) < CLOUDINARY_CACHE_TTL) {
+    if (_cloudinaryCache && now - _cloudinaryCacheTime < CLOUDINARY_CACHE_TTL) {
         return _cloudinaryCache;
     }
     try {
         const usage = await cloudinary.api.usage();
-        const formatBytes = (b) => {
+        const formatBytes = b => {
             if (!b || b === 0) return "0 B";
             const units = ["B", "KB", "MB", "GB", "TB"];
             const i = Math.floor(Math.log(b) / Math.log(1024));
@@ -57,29 +62,29 @@ const getCloudinaryUsage = async () => {
             credits: {
                 used: usage.credits?.usage ?? 0,
                 limit: usage.credits?.limit ?? 25,
-                usedPercent: usage.credits?.used_percent ?? 0,
+                usedPercent: usage.credits?.used_percent ?? 0
             },
             storage: {
                 usedBytes: usage.storage?.usage ?? 0,
-                limitBytes: usage.storage?.limit ?? 0,
+                limitBytes: usage.storage?.limit ?? 20,
                 usedFormatted: formatBytes(usage.storage?.usage ?? 0),
                 limitFormatted: formatBytes(usage.storage?.limit ?? 0),
-                usedPercent: usage.storage?.used_percent ?? 0,
+                usedPercent: usage.storage?.credits_usage / 20 * 100
             },
             bandwidth: {
                 usedBytes: usage.bandwidth?.usage ?? 0,
                 limitBytes: usage.bandwidth?.limit ?? 0,
                 usedFormatted: formatBytes(usage.bandwidth?.usage ?? 0),
                 limitFormatted: formatBytes(usage.bandwidth?.limit ?? 0),
-                usedPercent: usage.bandwidth?.used_percent ?? 0,
+                usedPercent: parseInt(usage.bandwidth?.used_percent ?? 0)
             },
             transformations: {
                 used: usage.transformations?.usage ?? 0,
                 limit: usage.transformations?.limit ?? 0,
-                usedPercent: usage.transformations?.used_percent ?? 0,
+                usedPercent: usage.transformations?.used_percent ?? 0
             },
             resources: usage.resources ?? 0,
-            lastUpdated: usage.last_updated || null,
+            lastUpdated: usage.last_updated || null
         };
         _cloudinaryCache = result;
         _cloudinaryCacheTime = now;
@@ -99,7 +104,7 @@ router.get("/events", (req, res) => {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
-        "X-Accel-Buffering": "no",
+        "X-Accel-Buffering": "no"
     });
     res.write(":\n\n"); // comment to establish connection
 
@@ -108,10 +113,14 @@ router.get("/events", (req, res) => {
     req.on("close", () => sseClients.delete(res));
 });
 
-const broadcastSSE = (data) => {
+const broadcastSSE = data => {
     const payload = `data: ${JSON.stringify(data)}\n\n`;
     for (const client of sseClients) {
-        try { client.write(payload); } catch (_) { sseClients.delete(client); }
+        try {
+            client.write(payload);
+        } catch (_) {
+            sseClients.delete(client);
+        }
     }
 };
 
@@ -126,13 +135,16 @@ const ensureTicker = () => {
             return;
         }
         try {
-            const [requestHistory, syncStatus, downloadHistory] = await Promise.all([
-                getFileContent("request_history"),
-                getFileContent("channel_sync_status"),
-                getFileContent("download_history"),
-            ]);
+            const [requestHistory, syncStatus, downloadHistory] =
+                await Promise.all([
+                    getFileContent("request_history"),
+                    getFileContent("channel_sync_status"),
+                    getFileContent("download_history")
+                ]);
             broadcastSSE({ requestHistory, syncStatus, downloadHistory });
-        } catch (_) { /* ignore */ }
+        } catch (_) {
+            /* ignore */
+        }
     }, 2000);
 };
 
@@ -426,6 +438,13 @@ body {
     margin-top: 10px; text-align: right;
     font-variant-numeric: tabular-nums;
 }
+.alert-banner {
+    padding: 12px 16px; border-radius: var(--radius-xs);
+    background: var(--red-bg); border: 1px solid rgba(255,69,58,0.2);
+    color: var(--red); font-size: 0.8rem; font-weight: 600;
+    margin-bottom: 20px; display: flex; align-items: center; gap: 10px;
+}
+.alert-banner.hidden { display: none; }
 
 /* ── Manual Tasks Panel ── */
 .manual-panel {
@@ -659,6 +678,21 @@ var syncDurationTimer = null;
 function updateSyncPanel(status) {
     var panel = document.getElementById('sync-panel');
     var schedHeader = document.getElementById('sched-sync-header');
+    var alertBanner = document.getElementById('global-alert');
+    var alertMsg = document.getElementById('global-alert-msg');
+    
+    // Check if blocked
+    if (status && status.blocked) {
+        if (alertBanner && alertBanner.classList.contains('hidden')) {
+            alertBanner.classList.remove('hidden');
+            if (alertMsg) alertMsg.textContent = status.blockedReason || 'Sync blocked.';
+        }
+    } else {
+        if (alertBanner && !alertBanner.classList.contains('hidden')) {
+            alertBanner.classList.add('hidden');
+        }
+    }
+
     if (!status || !status.isSyncing) {
         if (panel.classList.contains('visible')) {
             panel.classList.remove('visible');
@@ -894,34 +928,68 @@ setInterval(refreshCloudinary, 5 * 60 * 1000);
 
 router.get("/", async (req, res) => {
     try {
-        const [downloadHistory, requestHistory, channelConfig, syncStatus, songCount, userCount, cloudinaryUsage] = await Promise.all([
+        const [
+            downloadHistory,
+            requestHistory,
+            channelConfig,
+            syncStatus,
+            songCount,
+            userCount,
+            cloudinaryUsage
+        ] = await Promise.all([
             getFileContent("download_history"),
             getFileContent("request_history"),
             getFileContent("channel_config"),
             getFileContent("channel_sync_status"),
             Music.countDocuments().catch(() => 0),
             User.countDocuments().catch(() => 0),
-            getCloudinaryUsage(),
+            getCloudinaryUsage()
         ]);
 
-        const nextSyncDoc = await AppDetail.findOne({ key: "next_daily_sync_time" });
-        let nextSyncTime = nextSyncDoc && nextSyncDoc.data ? new Date(Number(nextSyncDoc.data)).toISOString() : null;
+        const nextSyncDoc = await AppDetail.findOne({
+            key: "next_daily_sync_time"
+        });
+        let nextSyncTime =
+            nextSyncDoc && nextSyncDoc.data
+                ? new Date(Number(nextSyncDoc.data)).toISOString()
+                : null;
 
         if (!nextSyncTime) {
-            const lastSyncDoc = await AppDetail.findOne({ key: "last_daily_sync_time" });
-            const lastSyncTime = lastSyncDoc && lastSyncDoc.data ? Number(lastSyncDoc.data) : null;
+            const lastSyncDoc = await AppDetail.findOne({
+                key: "last_daily_sync_time"
+            });
+            const lastSyncTime =
+                lastSyncDoc && lastSyncDoc.data
+                    ? Number(lastSyncDoc.data)
+                    : null;
             if (lastSyncTime) {
-                nextSyncTime = new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString();
+                nextSyncTime = new Date(
+                    lastSyncTime + 24 * 60 * 60 * 1000
+                ).toISOString();
             }
         }
 
-        const channelCount = Array.isArray(channelConfig) ? channelConfig.length : 0;
-        const requestCount = Array.isArray(requestHistory) ? requestHistory.length : 0;
-        const downloadCount = Array.isArray(downloadHistory) ? downloadHistory.length : 0;
+        const channelCount = Array.isArray(channelConfig)
+            ? channelConfig.length
+            : 0;
+        const requestCount = Array.isArray(requestHistory)
+            ? requestHistory.length
+            : 0;
+        const downloadCount = Array.isArray(downloadHistory)
+            ? downloadHistory.length
+            : 0;
 
-        const initialSyncJSON = JSON.stringify(syncStatus && typeof syncStatus === "object" ? syncStatus : { isSyncing: false });
-        const initialRequestsJSON = JSON.stringify(Array.isArray(requestHistory) ? requestHistory : []);
-        const initialDownloadsJSON = JSON.stringify(Array.isArray(downloadHistory) ? downloadHistory : []);
+        const initialSyncJSON = JSON.stringify(
+            syncStatus && typeof syncStatus === "object"
+                ? syncStatus
+                : { isSyncing: false }
+        );
+        const initialRequestsJSON = JSON.stringify(
+            Array.isArray(requestHistory) ? requestHistory : []
+        );
+        const initialDownloadsJSON = JSON.stringify(
+            Array.isArray(downloadHistory) ? downloadHistory : []
+        );
 
         const html = `<!DOCTYPE html>
 <html lang="en">
@@ -939,6 +1007,12 @@ router.get("/", async (req, res) => {
         <div class="page-header">
             <h1>Server Status</h1>
             <div class="subtitle"><span class="live-dot"></span>Real-time Dashboard</div>
+        </div>
+
+        <!-- Global Alert -->
+        <div id="global-alert" class="alert-banner ${syncStatus && syncStatus.blocked ? "" : "hidden"}">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            <span id="global-alert-msg">${syncStatus && syncStatus.blockedReason ? esc(syncStatus.blockedReason) : ""}</span>
         </div>
 
         <!-- Stats -->
@@ -966,48 +1040,10 @@ router.get("/", async (req, res) => {
                     <a href="/status/cloudinary-usage" class="btn btn-outline" style="padding:4px 12px;font-size:0.68rem">View Details</a>
                 </div>
             </div>
-            ${cloudinaryUsage ? `
-            <div class="cld-row">
-                <div class="cld-row-header">
-                    <span class="cld-row-label">Credits</span>
-                    <span class="cld-row-value" id="cld-credits-val">${cloudinaryUsage.credits.used.toFixed(2)} / ${cloudinaryUsage.credits.limit} used</span>
-                </div>
                 <div class="cld-bar-track">
-                    <div class="cld-bar-fill ${cloudinaryUsage.credits.usedPercent > 80 ? "danger" : cloudinaryUsage.credits.usedPercent > 60 ? "warn" : "ok"}" id="cld-credits-bar" style="width:${Math.min(100, cloudinaryUsage.credits.usedPercent)}%"></div>
+                    <div class="cld-bar-fill ${cloudinaryUsage?.credits?.usedPercent > 80 ? "danger" : cloudinaryUsage?.credits?.usedPercent > 60 ? "warn" : "ok"}" id="cld-credits-bar" style="width:${Math.min(100, cloudinaryUsage.credits.usedPercent)}%"></div>
                 </div>
-            </div>
-            <div class="cld-row">
-                <div class="cld-row-header">
-                    <span class="cld-row-label">Storage</span>
-                    <span class="cld-row-value" id="cld-storage-val">${esc(cloudinaryUsage.storage.usedFormatted)} / ${esc(cloudinaryUsage.storage.limitFormatted)}</span>
-                </div>
-                <div class="cld-bar-track">
-                    <div class="cld-bar-fill ${cloudinaryUsage.storage.usedPercent > 80 ? "danger" : cloudinaryUsage.storage.usedPercent > 60 ? "warn" : "ok"}" id="cld-storage-bar" style="width:${Math.min(100, cloudinaryUsage.storage.usedPercent)}%"></div>
-                </div>
-            </div>
-            <div class="cld-row">
-                <div class="cld-row-header">
-                    <span class="cld-row-label">Bandwidth</span>
-                    <span class="cld-row-value" id="cld-bw-val">${esc(cloudinaryUsage.bandwidth.usedFormatted)} / ${esc(cloudinaryUsage.bandwidth.limitFormatted)}</span>
-                </div>
-                <div class="cld-bar-track">
-                    <div class="cld-bar-fill ${cloudinaryUsage.bandwidth.usedPercent > 80 ? "danger" : cloudinaryUsage.bandwidth.usedPercent > 60 ? "warn" : "ok"}" id="cld-bw-bar" style="width:${Math.min(100, cloudinaryUsage.bandwidth.usedPercent)}%"></div>
-                </div>
-            </div>
-            <div class="cld-row">
-                <div class="cld-row-header">
-                    <span class="cld-row-label">Transformations</span>
-                    <span class="cld-row-value" id="cld-tx-val">${cloudinaryUsage.transformations.used.toLocaleString()} / ${cloudinaryUsage.transformations.limit.toLocaleString()}</span>
-                </div>
-                <div class="cld-bar-track">
-                    <div class="cld-bar-fill ${cloudinaryUsage.transformations.usedPercent > 80 ? "danger" : cloudinaryUsage.transformations.usedPercent > 60 ? "warn" : "ok"}" id="cld-tx-bar" style="width:${Math.min(100, cloudinaryUsage.transformations.usedPercent)}%"></div>
-                </div>
-            </div>
-            <div class="cld-warn-banner${(cloudinaryUsage.credits.limit - cloudinaryUsage.credits.used) < 5 ? " visible" : ""}" id="cld-warn">
-                ⚠ Low bandwidth! Less than 5 credits remaining (${(cloudinaryUsage.credits.limit - cloudinaryUsage.credits.used).toFixed(2)} left of ${cloudinaryUsage.credits.limit})
-            </div>
-            <div class="cld-meta" id="cld-updated">Updated: ${esc(cloudinaryUsage.lastUpdated || "—")}</div>
-            ` : '<div class="empty">Cloudinary not configured or unreachable</div>'}
+            
         </div>
 
         <!-- Sync Progress Panel (hidden by default) -->
@@ -1063,37 +1099,61 @@ router.get("/", async (req, res) => {
                 </div>
             </div>
             <div class="section-content collapsed" style="max-height:0;opacity:0">
-                ${channelCount === 0 ? '<div class="empty">No channels configured</div>' :
-                    channelConfig.map(ch => {
-                        const name = ch.channel.replace("https://www.youtube.com/", "").replace(/\/videos\/?$/, "");
-                        return `<div class="card">
+                ${
+                    channelCount === 0
+                        ? '<div class="empty">No channels configured</div>'
+                        : channelConfig
+                              .map(ch => {
+                                  const name = ch.channel
+                                      .replace("https://www.youtube.com/", "")
+                                      .replace(/\/videos\/?$/, "");
+                                  return `<div class="card">
                             <div class="card-title">${esc(name)}</div>
                             <div class="ch-meta">Last Sync: <span class="fmt-time" data-iso="${esc(ch.lastSongTimestamp || "")}">${esc(ch.lastSongTimestamp || "N/A")}</span> · Downloads: ${ch.lastSyncCount !== undefined ? ch.lastSyncCount : 0}</div>
                         </div>`;
-                    }).join("")}
+                              })
+                              .join("")
+                }
             </div>
         </div>
 
         <!-- Recent Requests -->
         <div class="section">
-            <div class="section-header">
+            <div class="section-header" collapsed>
                 <h2>Recent Requests</h2>
                 <span class="section-badge" id="requests-badge">${requestCount}</span>
             </div>
-            <div class="section-content">
+            <div class="section-content" collapsed>
                 <div class="scroll-list" id="requests-list">
-                    ${requestCount === 0 ? '<div class="empty">No requests yet</div>' :
-                        requestHistory.map(req => {
-                            const isRunning = req.status === "RUNNING";
-                            const total = req.limit || 0;
-                            const done = (req.success || 0) + (req.errors || 0) + (req.skipped || 0);
-                            const left = Math.max(0, total - done);
-                            let dur = "";
-                            if (!isRunning && req.timestamp && req.completedAt && req.type === "worker") {
-                                const ds = Math.floor((new Date(req.completedAt) - new Date(req.timestamp)) / 1000);
-                                if (ds >= 0) dur = ` (${Math.floor(ds / 60)}m ${ds % 60}s)`;
-                            }
-                            return `<div class="card${isRunning ? " card-running" : ""}">
+                    ${
+                        requestCount === 0
+                            ? '<div class="empty">No requests yet</div>'
+                            : requestHistory
+                                  .map(req => {
+                                      const isRunning =
+                                          req.status === "RUNNING";
+                                      const total = req.limit || 0;
+                                      const done =
+                                          (req.success || 0) +
+                                          (req.errors || 0) +
+                                          (req.skipped || 0);
+                                      const left = Math.max(0, total - done);
+                                      let dur = "";
+                                      if (
+                                          !isRunning &&
+                                          req.timestamp &&
+                                          req.completedAt &&
+                                          req.type === "worker"
+                                      ) {
+                                          const ds = Math.floor(
+                                              (new Date(req.completedAt) -
+                                                  new Date(req.timestamp)) /
+                                                  1000
+                                          );
+                                          if (ds >= 0)
+                                              dur = ` (${Math.floor(ds / 60)}m ${ds % 60}s)`;
+                                      }
+                                      return `<div class="card${isRunning ? " card-running" : ""}">
                                 <div class="card-header">
                                     <div style="display:flex;gap:6px;flex-wrap:wrap">
                                         <span class="badge ${req.type === "worker" ? "badge-accent" : "badge-blue"}">${esc(req.type || "unknown")}</span>
@@ -1111,7 +1171,9 @@ router.get("/", async (req, res) => {
                                 </div>
                                 ${!isRunning ? `<div class="card-actions"><button class="btn btn-danger" onclick="deleteReq('${esc(req.id)}')">Delete</button></div>` : ""}
                             </div>`;
-                        }).join("")}
+                                  })
+                                  .join("")
+                    }
                 </div>
             </div>
         </div>
@@ -1124,10 +1186,18 @@ router.get("/", async (req, res) => {
             </div>
             <div class="section-content">
                 <div class="scroll-list" id="downloads-list">
-                    ${downloadCount === 0 ? '<div class="empty">No download logs</div>' :
-                        downloadHistory.map(dl => {
-                            const bc = dl.status === "SUCCESS" ? "badge-success" : (dl.status === "ERROR" ? "badge-error" : "badge-warning");
-                            return `<div class="card">
+                    ${
+                        downloadCount === 0
+                            ? '<div class="empty">No download logs</div>'
+                            : downloadHistory
+                                  .map(dl => {
+                                      const bc =
+                                          dl.status === "SUCCESS"
+                                              ? "badge-success"
+                                              : dl.status === "ERROR"
+                                                ? "badge-error"
+                                                : "badge-warning";
+                                      return `<div class="card">
                                 <div class="card-header">
                                     <span class="badge ${bc}">${esc(dl.status)}</span>
                                     <span class="card-meta fmt-time" data-iso="${esc(dl.timestamp)}">${esc(dl.timestamp || "N/A")}</span>
@@ -1135,7 +1205,9 @@ router.get("/", async (req, res) => {
                                 <div class="card-title">${esc(dl.title)}</div>
                                 ${dl.details ? `<div class="card-subtitle" style="margin-top:4px">${esc(dl.details)}</div>` : ""}
                             </div>`;
-                        }).join("")}
+                                  })
+                                  .join("")
+                    }
                 </div>
             </div>
         </div>
@@ -1156,7 +1228,9 @@ router.get("/", async (req, res) => {
         res.send(html);
     } catch (err) {
         console.error("[Status Page Error]", err);
-        res.status(500).send(`<h1>Error loading status page</h1><pre>${esc(err.message)}</pre>`);
+        res.status(500).send(
+            `<h1>Error loading status page</h1><pre>${esc(err.message)}</pre>`
+        );
     }
 });
 
@@ -1164,7 +1238,7 @@ router.get("/", async (req, res) => {
 
 router.get("/channels", async (req, res) => {
     try {
-        const channelConfig = await getFileContent("channel_config") || [];
+        const channelConfig = (await getFileContent("channel_config")) || [];
 
         const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1195,10 +1269,15 @@ router.get("/channels", async (req, res) => {
 
         <!-- Channel List -->
         <div id="channel-list">
-        ${channelConfig.length === 0 ? '<div class="empty">No channels configured</div>' :
-            channelConfig.map((ch, i) => {
-                const name = ch.channel.replace("https://www.youtube.com/", "").replace(/\/videos\/?$/, "");
-                return `<div class="ch-card">
+        ${
+            channelConfig.length === 0
+                ? '<div class="empty">No channels configured</div>'
+                : channelConfig
+                      .map((ch, i) => {
+                          const name = ch.channel
+                              .replace("https://www.youtube.com/", "")
+                              .replace(/\/videos\/?$/, "");
+                          return `<div class="ch-card">
                     <button class="btn btn-danger" style="position:absolute;top:14px;right:14px" onclick="deleteChannel('${encodeURIComponent(ch.channel)}')">Remove</button>
                     <div class="card-title">${esc(name)}</div>
                     <div class="ch-meta" style="display:flex;align-items:center;gap:8px;margin-top:8px;margin-bottom:4px">
@@ -1219,7 +1298,9 @@ router.get("/channels", async (req, res) => {
                         </div>
                     </div>
                 </div>`;
-            }).join("")}
+                      })
+                      .join("")
+        }
         </div>
     </div>
 
@@ -1313,7 +1394,9 @@ router.get("/channels", async (req, res) => {
         res.send(html);
     } catch (err) {
         console.error("[Channels Page Error]", err);
-        res.status(500).send(`<h1>Error loading channels page</h1><pre>${esc(err.message)}</pre>`);
+        res.status(500).send(
+            `<h1>Error loading channels page</h1><pre>${esc(err.message)}</pre>`
+        );
     }
 });
 
@@ -1321,13 +1404,19 @@ router.get("/channels", async (req, res) => {
 
 router.get("/json", async (req, res) => {
     try {
-        const [requestHistory, channelConfig, downloadHistory, syncStatus] = await Promise.all([
-            getFileContent("request_history"),
-            getFileContent("channel_config"),
-            getFileContent("download_history"),
-            getFileContent("channel_sync_status"),
-        ]);
-        res.json({ requestHistory, channelConfig, downloadHistory, syncStatus });
+        const [requestHistory, channelConfig, downloadHistory, syncStatus] =
+            await Promise.all([
+                getFileContent("request_history"),
+                getFileContent("channel_config"),
+                getFileContent("download_history"),
+                getFileContent("channel_sync_status")
+            ]);
+        res.json({
+            requestHistory,
+            channelConfig,
+            downloadHistory,
+            syncStatus
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -1339,8 +1428,9 @@ router.get("/cloudinary-usage", async (req, res) => {
     try {
         const d = await getCloudinaryUsage();
 
-        const barColor = (pct) => pct > 80 ? "danger" : pct > 60 ? "warn" : "ok";
-        const creditsLeft = d ? (d.credits.limit - d.credits.used) : 0;
+        const barColor = pct =>
+            pct > 80 ? "danger" : pct > 60 ? "warn" : "ok";
+        const creditsLeft = d ? d.credits.limit - d.credits.used : 0;
 
         const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1359,7 +1449,9 @@ router.get("/cloudinary-usage", async (req, res) => {
             <div class="subtitle">${d ? esc(d.plan) + " Plan" : "Unavailable"}</div>
         </div>
 
-        ${d ? `
+        ${
+            d
+                ? `
         <!-- Credits -->
         <div class="cld-widget">
             <div class="cld-header">
@@ -1385,23 +1477,28 @@ router.get("/cloudinary-usage", async (req, res) => {
                     <div class="stat-label">Used</div>
                 </div>
             </div>
-            ${creditsLeft < 5 ? `
+            ${
+                creditsLeft < 5
+                    ? `
             <div class="cld-warn-banner visible" style="margin-top:14px">
                 ⚠ Low credits! Only ${creditsLeft.toFixed(2)} of ${d.credits.limit} remaining — min 5 required for bandwidth
-            </div>` : ""}
+            </div>`
+                    : ""
+            }
         </div>
 
         <!-- Storage -->
         <div class="cld-widget">
             <div class="cld-header">
                 <span class="cld-title">Storage</span>
-                <span class="cld-plan">${esc(d.storage.usedFormatted)} / ${esc(d.storage.limitFormatted)}</span>
+                <span class="cld-plan">${esc(d.storage.usedFormatted)} / 20 GB</span>
             </div>
             <div class="cld-row">
                 <div class="cld-row-header">
                     <span class="cld-row-label">Used</span>
                     <span class="cld-row-value">${d.storage.usedPercent.toFixed(1)}%</span>
                 </div>
+                
                 <div class="cld-bar-track" style="height:10px">
                     <div class="cld-bar-fill ${barColor(d.storage.usedPercent)}" style="width:${Math.min(100, d.storage.usedPercent)}%"></div>
                 </div>
@@ -1412,33 +1509,16 @@ router.get("/cloudinary-usage", async (req, res) => {
         <div class="cld-widget">
             <div class="cld-header">
                 <span class="cld-title">Bandwidth</span>
-                <span class="cld-plan">${esc(d.bandwidth.usedFormatted)} / ${esc(d.bandwidth.limitFormatted)}</span>
+                <span class="cld-plan">${esc(d.bandwidth.usedFormatted)}</span>
             </div>
-            <div class="cld-row">
-                <div class="cld-row-header">
-                    <span class="cld-row-label">Used</span>
-                    <span class="cld-row-value">${d.bandwidth.usedPercent.toFixed(1)}%</span>
-                </div>
-                <div class="cld-bar-track" style="height:10px">
-                    <div class="cld-bar-fill ${barColor(d.bandwidth.usedPercent)}" style="width:${Math.min(100, d.bandwidth.usedPercent)}%"></div>
-                </div>
-            </div>
+            
         </div>
 
         <!-- Transformations -->
         <div class="cld-widget">
             <div class="cld-header">
                 <span class="cld-title">Transformations</span>
-                <span class="cld-plan">${d.transformations.used.toLocaleString()} / ${d.transformations.limit.toLocaleString()}</span>
-            </div>
-            <div class="cld-row">
-                <div class="cld-row-header">
-                    <span class="cld-row-label">Used</span>
-                    <span class="cld-row-value">${d.transformations.usedPercent.toFixed(1)}%</span>
-                </div>
-                <div class="cld-bar-track" style="height:10px">
-                    <div class="cld-bar-fill ${barColor(d.transformations.usedPercent)}" style="width:${Math.min(100, d.transformations.usedPercent)}%"></div>
-                </div>
+                <span class="cld-plan">${d.transformations.used.toLocaleString()}</span>
             </div>
         </div>
 
@@ -1451,7 +1531,9 @@ router.get("/cloudinary-usage", async (req, res) => {
         </div>
 
         <div class="cld-meta" style="text-align:center;margin-top:4px">Last updated: ${esc(d.lastUpdated || "—")} · Cached for 5 min</div>
-        ` : '<div class="empty">Cloudinary not configured or unreachable</div>'}
+        `
+                : '<div class="empty">Cloudinary not configured or unreachable</div>'
+        }
     </div>
 </body>
 </html>`;
@@ -1465,7 +1547,8 @@ router.get("/cloudinary-usage", async (req, res) => {
 router.get("/cloudinary-json", async (req, res) => {
     try {
         const usage = await getCloudinaryUsage();
-        if (!usage) return res.status(503).json({ error: "Cloudinary unavailable" });
+        if (!usage)
+            return res.status(503).json({ error: "Cloudinary unavailable" });
         res.json(usage);
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -1481,7 +1564,10 @@ router.post("/delete-request", async (req, res) => {
         const doc = await AppDetail.findOne({ key: "request_history" });
         if (doc && doc.data && Array.isArray(doc.data)) {
             const newData = doc.data.filter(r => r.id !== id);
-            await AppDetail.findOneAndUpdate({ key: "request_history" }, { data: newData });
+            await AppDetail.findOneAndUpdate(
+                { key: "request_history" },
+                { data: newData }
+            );
         }
         res.json({ success: true });
     } catch (e) {
@@ -1492,15 +1578,25 @@ router.post("/delete-request", async (req, res) => {
 
 router.get("/trigger-sync", (req, res) => {
     console.log("[API] Triggered channel sync from status page.");
-    updateChannels().catch(err => console.error("[API] Channel update failed:", err));
-    res.json({ success: true, message: "Channel auto-update started in the background." });
+    updateChannels().catch(err =>
+        console.error("[API] Channel update failed:", err)
+    );
+    res.json({
+        success: true,
+        message: "Channel auto-update started in the background."
+    });
 });
 
 router.post("/update-sync-time", async (req, res) => {
     try {
         const { nextTime } = req.body;
-        if (!nextTime) return res.status(400).json({ error: "Missing nextTime" });
-        await AppDetail.findOneAndUpdate({ key: "next_daily_sync_time" }, { data: nextTime }, { upsert: true });
+        if (!nextTime)
+            return res.status(400).json({ error: "Missing nextTime" });
+        await AppDetail.findOneAndUpdate(
+            { key: "next_daily_sync_time" },
+            { data: nextTime },
+            { upsert: true }
+        );
         res.json({ success: true });
     } catch (e) {
         console.error(e);
@@ -1515,7 +1611,10 @@ router.post("/delete-channel", async (req, res) => {
         const doc = await AppDetail.findOne({ key: "channel_config" });
         if (doc && doc.data && Array.isArray(doc.data)) {
             const newData = doc.data.filter(c => c.channel !== channel);
-            await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: newData });
+            await AppDetail.findOneAndUpdate(
+                { key: "channel_config" },
+                { data: newData }
+            );
         }
         res.json({ success: true });
     } catch (e) {
@@ -1529,10 +1628,21 @@ router.post("/add-channel", async (req, res) => {
     if (!channel) return res.status(400).json({ error: "Missing channel URL" });
     try {
         const doc = await AppDetail.findOne({ key: "channel_config" });
-        let channels = (doc && doc.data && Array.isArray(doc.data)) ? doc.data : [];
+        let channels =
+            doc && doc.data && Array.isArray(doc.data) ? doc.data : [];
         if (!channels.some(c => c.channel === channel)) {
-            channels.push({ channel, lastSongId: "", lastSongTimestamp: "", exclude: [], include: [] });
-            await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels }, { upsert: true });
+            channels.push({
+                channel,
+                lastSongId: "",
+                lastSongTimestamp: "",
+                exclude: [],
+                include: []
+            });
+            await AppDetail.findOneAndUpdate(
+                { key: "channel_config" },
+                { data: channels },
+                { upsert: true }
+            );
         }
         res.json({ success: true });
     } catch (e) {
@@ -1552,7 +1662,10 @@ router.post("/update-filters", async (req, res) => {
             if (idx !== -1) {
                 channels[idx].exclude = exclude || [];
                 channels[idx].include = include || [];
-                await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels });
+                await AppDetail.findOneAndUpdate(
+                    { key: "channel_config" },
+                    { data: channels }
+                );
             }
         }
         res.json({ success: true });
@@ -1572,7 +1685,10 @@ router.post("/update-all-filters", async (req, res) => {
                 ch.exclude = exclude || [];
                 ch.include = include || [];
             });
-            await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels });
+            await AppDetail.findOneAndUpdate(
+                { key: "channel_config" },
+                { data: channels }
+            );
         }
         res.json({ success: true });
     } catch (e) {
@@ -1591,7 +1707,10 @@ router.post("/update-last-id", async (req, res) => {
             const idx = channels.findIndex(c => c.channel === channel);
             if (idx !== -1) {
                 channels[idx].lastSongId = lastSongId || "";
-                await AppDetail.findOneAndUpdate({ key: "channel_config" }, { data: channels });
+                await AppDetail.findOneAndUpdate(
+                    { key: "channel_config" },
+                    { data: channels }
+                );
             }
         }
         res.json({ success: true });
