@@ -255,6 +255,7 @@ const _runUpdateChannels = async () => {
 
     let syncStatus = {
         isSyncing: true,
+        startedAt: new Date().toISOString(),
         currentChannel: null,
         totalSongs: 0,
         currentSongIndex: 0,

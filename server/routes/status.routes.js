@@ -3,6 +3,7 @@ import { updateChannels } from "../scripts/channelWorker.js";
 import AppDetail from "../models/appDetails.js";
 import Music from "../models/musics.js";
 import User from "../models/users.js";
+import cloudinary from "../config/cloudinary.js";
 
 const router = express.Router();
 
@@ -29,6 +30,64 @@ const esc = (str) => {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+};
+
+// ── Cloudinary Usage (cached 5 min) ──────────────────────────────────────────
+
+let _cloudinaryCache = null;
+let _cloudinaryCacheTime = 0;
+const CLOUDINARY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const getCloudinaryUsage = async () => {
+    const now = Date.now();
+    if (_cloudinaryCache && (now - _cloudinaryCacheTime) < CLOUDINARY_CACHE_TTL) {
+        return _cloudinaryCache;
+    }
+    try {
+        const usage = await cloudinary.api.usage();
+        const formatBytes = (b) => {
+            if (!b || b === 0) return "0 B";
+            const units = ["B", "KB", "MB", "GB", "TB"];
+            const i = Math.floor(Math.log(b) / Math.log(1024));
+            return (b / Math.pow(1024, i)).toFixed(2) + " " + units[i];
+        };
+
+        const result = {
+            plan: usage.plan || "Free",
+            credits: {
+                used: usage.credits?.usage ?? 0,
+                limit: usage.credits?.limit ?? 25,
+                usedPercent: usage.credits?.used_percent ?? 0,
+            },
+            storage: {
+                usedBytes: usage.storage?.usage ?? 0,
+                limitBytes: usage.storage?.limit ?? 0,
+                usedFormatted: formatBytes(usage.storage?.usage ?? 0),
+                limitFormatted: formatBytes(usage.storage?.limit ?? 0),
+                usedPercent: usage.storage?.used_percent ?? 0,
+            },
+            bandwidth: {
+                usedBytes: usage.bandwidth?.usage ?? 0,
+                limitBytes: usage.bandwidth?.limit ?? 0,
+                usedFormatted: formatBytes(usage.bandwidth?.usage ?? 0),
+                limitFormatted: formatBytes(usage.bandwidth?.limit ?? 0),
+                usedPercent: usage.bandwidth?.used_percent ?? 0,
+            },
+            transformations: {
+                used: usage.transformations?.usage ?? 0,
+                limit: usage.transformations?.limit ?? 0,
+                usedPercent: usage.transformations?.used_percent ?? 0,
+            },
+            resources: usage.resources ?? 0,
+            lastUpdated: usage.last_updated || null,
+        };
+        _cloudinaryCache = result;
+        _cloudinaryCacheTime = now;
+        return result;
+    } catch (err) {
+        console.error("[Cloudinary Usage] Error:", err.message);
+        return _cloudinaryCache || null;
+    }
 };
 
 // ── SSE: Real-time Event Stream ──────────────────────────────────────────────
@@ -191,7 +250,7 @@ body {
 }
 .section-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 0; cursor: pointer; user-select: none;
+    padding: 12px; user-select: none;
 }
 .section-header h2 {
     font-size: 0.8rem; font-weight: 600;
@@ -205,12 +264,17 @@ body {
 }
 .section-content {
     overflow: hidden;
-     transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, padding 0.3s ease;
+    opacity: 1;
 }
-.section-content.collapsed { max-height: 0 !important; opacity: 0; }
+.section-content.collapsed {
+    max-height: 0 !important; opacity: 0;
+    padding-top: 0; padding-bottom: 0;
+}
 .chevron {
     width: 16px; height: 16px; color: var(--text-tertiary);
-    transition: transform 0.25s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
 }
 .section-header.collapsed .chevron { transform: rotate(-90deg); }
 
@@ -221,7 +285,6 @@ body {
     margin-bottom: 10px; position: relative;
     backdrop-filter: blur(12px); transition: var(--transition);
 }
-.card:hover { background: var(--surface-hover); }
 .card-accent { border-left: 3px solid var(--accent); }
 .card-running { border: 1px solid rgba(255,159,10,0.3); background: var(--orange-bg); }
 
@@ -238,7 +301,11 @@ body {
 }
 .card .card-meta {
     font-size: 0.75rem; color: var(--text-tertiary);
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.card .card-actions {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
+    justify-content: flex-end;
 }
 
 /* ── Badges ── */
@@ -296,6 +363,68 @@ body {
 .sync-panel h3 {
     font-size: 0.85rem; font-weight: 600; color: var(--accent);
     margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.sync-duration {
+    font-size: 0.78rem; color: var(--text-secondary);
+    margin-top: 8px; font-variant-numeric: tabular-nums;
+}
+
+/* ── Cloudinary Widget ── */
+.cld-widget {
+    background: var(--glass); border: 1px solid var(--glass-border);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 20px; backdrop-filter: blur(12px);
+}
+.cld-widget .cld-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+}
+.cld-widget .cld-title {
+    font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-secondary);
+}
+.cld-widget .cld-plan {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    padding: 3px 10px; border-radius: 20px;
+    background: var(--accent-subtle); color: var(--accent);
+}
+.cld-row {
+    margin-bottom: 14px;
+}
+.cld-row:last-child { margin-bottom: 0; }
+.cld-row-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 6px;
+}
+.cld-row-label {
+    font-size: 0.78rem; font-weight: 500; color: var(--text);
+}
+.cld-row-value {
+    font-size: 0.72rem; color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+}
+.cld-bar-track {
+    height: 8px; background: rgba(255,255,255,0.06);
+    border-radius: 4px; overflow: hidden;
+}
+.cld-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 0.6s ease;
+}
+.cld-bar-fill.ok { background: linear-gradient(90deg, var(--green), #34c759); }
+.cld-bar-fill.warn { background: linear-gradient(90deg, var(--orange), #ffcc02); }
+.cld-bar-fill.danger { background: linear-gradient(90deg, var(--red), #ff6961); }
+.cld-warn-banner {
+    display: none; margin-top: 12px; padding: 10px 14px;
+    border-radius: var(--radius-xs);
+    background: var(--red-bg); border: 1px solid rgba(255,69,58,0.2);
+    color: var(--red); font-size: 0.78rem; font-weight: 600;
+}
+.cld-warn-banner.visible { display: flex; align-items: center; gap: 8px; }
+.cld-meta {
+    font-size: 0.68rem; color: var(--text-tertiary);
+    margin-top: 10px; text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ── Manual Tasks Panel ── */
@@ -376,7 +505,6 @@ input::placeholder { color: var(--text-tertiary); }
     margin-bottom: 10px; position: relative;
     backdrop-filter: blur(12px); transition: var(--transition);
 }
-.ch-card:hover { background: var(--surface-hover); }
 .ch-meta { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 6px; }
 .filter-group { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
 .filter-label {
@@ -454,14 +582,45 @@ function formatAllTimes() {
     });
 }
 
-// ── Section toggle ──
-document.querySelectorAll('.section-header').forEach(function(h) {
-    h.addEventListener('click', function() {
+// ── Section toggle with smooth animation ──
+function initSections() {
+    document.querySelectorAll('.section-header').forEach(function(h) {
         var content = h.nextElementSibling;
-        h.classList.toggle('collapsed');
-        content.classList.toggle('collapsed');
+        // Set initial max-height for open sections
+        if (!content.classList.contains('collapsed')) {
+            content.style.maxHeight = content.scrollHeight + 'px';
+        }
+        h.addEventListener('click', function(e) {
+            // Don't toggle if clicking a link/button inside the header
+            if (e.target.closest('a, button')) return;
+            toggleSection(h);
+        });
     });
-});
+}
+function toggleSection(header, forceOpen) {
+    var content = header.nextElementSibling;
+    var isCollapsed = header.classList.contains('collapsed');
+    if (forceOpen && !isCollapsed) return; // already open
+    if (forceOpen === false && isCollapsed) return; // already closed
+
+    if (isCollapsed) {
+        // Expand
+        header.classList.remove('collapsed');
+        content.classList.remove('collapsed');
+        content.style.maxHeight = content.scrollHeight + 'px';
+        // After transition, set to none so inner content can grow
+        setTimeout(function() { if (!content.classList.contains('collapsed')) content.style.maxHeight = 'none'; }, 400);
+    } else {
+        // Collapse: first set explicit height, then trigger animation
+        content.style.maxHeight = content.scrollHeight + 'px';
+        // Force reflow
+        content.offsetHeight;
+        header.classList.add('collapsed');
+        content.classList.add('collapsed');
+        content.style.maxHeight = '0';
+    }
+}
+initSections();
 
 // ── SSE Real-time connection ──
 var connEl = document.getElementById('conn-status');
@@ -496,13 +655,25 @@ function connectSSE() {
 connectSSE();
 
 // ── Sync Progress Panel ──
+var syncDurationTimer = null;
 function updateSyncPanel(status) {
     var panel = document.getElementById('sync-panel');
+    var schedHeader = document.getElementById('sched-sync-header');
     if (!status || !status.isSyncing) {
-        panel.classList.remove('visible');
+        if (panel.classList.contains('visible')) {
+            panel.classList.remove('visible');
+            // Clear duration timer
+            if (syncDurationTimer) { clearInterval(syncDurationTimer); syncDurationTimer = null; }
+        }
         return;
     }
     panel.classList.add('visible');
+
+    // Auto-expand Scheduled Sync section when sync is running
+    if (schedHeader && schedHeader.classList.contains('collapsed')) {
+        toggleSection(schedHeader, true);
+    }
+
     var ch = status.currentChannel || '...';
     ch = ch.replace(/\\/videos\\/?$/, '');
     document.getElementById('sp-channel').textContent = ch;
@@ -516,6 +687,30 @@ function updateSyncPanel(status) {
     document.getElementById('sp-err').textContent = '✗ ' + (status.errorCount || 0);
     document.getElementById('sp-skip').textContent = '⏭ ' + (status.skippedCount || 0);
     document.getElementById('sp-title').textContent = status.currentSongTitle || '...';
+
+    // Duration display
+    var durEl = document.getElementById('sp-duration');
+    if (status.startedAt) {
+        var startMs = new Date(status.startedAt).getTime();
+        function updateDuration() {
+            var elapsed = Math.floor((Date.now() - startMs) / 1000);
+            if (elapsed < 0) elapsed = 0;
+            var h = Math.floor(elapsed / 3600);
+            var m = Math.floor((elapsed % 3600) / 60);
+            var s = elapsed % 60;
+            var parts = [];
+            if (h > 0) parts.push(h + 'h');
+            parts.push(m + 'm');
+            parts.push(s + 's');
+            durEl.textContent = '⏱ Elapsed: ' + parts.join(' ');
+        }
+        updateDuration();
+        if (syncDurationTimer) clearInterval(syncDurationTimer);
+        syncDurationTimer = setInterval(updateDuration, 1000);
+    } else {
+        durEl.textContent = '';
+        if (syncDurationTimer) { clearInterval(syncDurationTimer); syncDurationTimer = null; }
+    }
 }
 
 // ── Manual Tasks Panel ──
@@ -582,7 +777,7 @@ function updateRecentRequests(history) {
         html += '<span class="si orange">⏭ ' + (req.skipped||0) + '</span>';
         if (total > 0) html += '<span class="si muted">' + done + '/' + total + ' · ' + left + ' left</span>';
         html += '</div>';
-        if (!isRunning) html += '<button class="btn btn-danger" style="position:absolute;top:14px;right:14px" onclick="deleteReq(\\'' + escHtml(req.id) + '\\')">Delete</button>';
+        if (!isRunning) html += '<div class="card-actions"><button class="btn btn-danger" onclick="deleteReq(\\'' + escHtml(req.id) + '\\')">Delete</button></div>';
         html += '</div>';
     });
     el.innerHTML = html;
@@ -646,19 +841,67 @@ function updateSyncTime() {
         else showToast('Failed: '+d.error, true);
     }).catch(function(){showToast('Network error',true)});
 }
+
+// ── Cloudinary Usage Live Update ──
+function barClass(pct) { return pct > 80 ? 'danger' : pct > 60 ? 'warn' : 'ok'; }
+
+function updateCloudinaryUI(d) {
+    if (!d) return;
+    var plan = document.getElementById('cld-plan');
+    if (plan) plan.textContent = d.plan || '—';
+
+    function setBar(barId, valId, pct, valText) {
+        var bar = document.getElementById(barId);
+        var val = document.getElementById(valId);
+        if (bar) { bar.style.width = Math.min(100, pct) + '%'; bar.className = 'cld-bar-fill ' + barClass(pct); }
+        if (val) val.textContent = valText;
+    }
+
+    setBar('cld-credits-bar', 'cld-credits-val', d.credits.usedPercent,
+        d.credits.used.toFixed(2) + ' / ' + d.credits.limit + ' used');
+    setBar('cld-storage-bar', 'cld-storage-val', d.storage.usedPercent,
+        d.storage.usedFormatted + ' / ' + d.storage.limitFormatted);
+    setBar('cld-bw-bar', 'cld-bw-val', d.bandwidth.usedPercent,
+        d.bandwidth.usedFormatted + ' / ' + d.bandwidth.limitFormatted);
+    setBar('cld-tx-bar', 'cld-tx-val', d.transformations.usedPercent,
+        d.transformations.used.toLocaleString() + ' / ' + d.transformations.limit.toLocaleString());
+
+    var warn = document.getElementById('cld-warn');
+    var remaining = d.credits.limit - d.credits.used;
+    if (warn) {
+        if (remaining < 5) {
+            warn.textContent = '⚠ Low bandwidth! Less than 5 credits remaining (' + remaining.toFixed(2) + ' left of ' + d.credits.limit + ')';
+            warn.classList.add('visible');
+        } else {
+            warn.classList.remove('visible');
+        }
+    }
+    var upd = document.getElementById('cld-updated');
+    if (upd) upd.textContent = 'Updated: ' + (d.lastUpdated || '—');
+}
+
+function refreshCloudinary() {
+    fetch('/status/cloudinary-json')
+        .then(function(r) { return r.json(); })
+        .then(function(d) { if (d && !d.error) updateCloudinaryUI(d); })
+        .catch(function() {});
+}
+// Refresh Cloudinary data every 5 minutes
+setInterval(refreshCloudinary, 5 * 60 * 1000);
 `;
 
 // ── Main Status Page ─────────────────────────────────────────────────────────
 
 router.get("/", async (req, res) => {
     try {
-        const [downloadHistory, requestHistory, channelConfig, syncStatus, songCount, userCount] = await Promise.all([
+        const [downloadHistory, requestHistory, channelConfig, syncStatus, songCount, userCount, cloudinaryUsage] = await Promise.all([
             getFileContent("download_history"),
             getFileContent("request_history"),
             getFileContent("channel_config"),
             getFileContent("channel_sync_status"),
             Music.countDocuments().catch(() => 0),
             User.countDocuments().catch(() => 0),
+            getCloudinaryUsage(),
         ]);
 
         const nextSyncDoc = await AppDetail.findOne({ key: "next_daily_sync_time" });
@@ -714,6 +957,59 @@ router.get("/", async (req, res) => {
             </div>
         </div>
 
+        <!-- Cloudinary Usage -->
+        <div class="cld-widget" id="cld-widget">
+            <div class="cld-header">
+                <span class="cld-title">☁ Cloudinary</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                    <span class="cld-plan" id="cld-plan">${cloudinaryUsage ? esc(cloudinaryUsage.plan) : "—"}</span>
+                    <a href="/status/cloudinary-usage" class="btn btn-outline" style="padding:4px 12px;font-size:0.68rem">View Details</a>
+                </div>
+            </div>
+            ${cloudinaryUsage ? `
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Credits</span>
+                    <span class="cld-row-value" id="cld-credits-val">${cloudinaryUsage.credits.used.toFixed(2)} / ${cloudinaryUsage.credits.limit} used</span>
+                </div>
+                <div class="cld-bar-track">
+                    <div class="cld-bar-fill ${cloudinaryUsage.credits.usedPercent > 80 ? "danger" : cloudinaryUsage.credits.usedPercent > 60 ? "warn" : "ok"}" id="cld-credits-bar" style="width:${Math.min(100, cloudinaryUsage.credits.usedPercent)}%"></div>
+                </div>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Storage</span>
+                    <span class="cld-row-value" id="cld-storage-val">${esc(cloudinaryUsage.storage.usedFormatted)} / ${esc(cloudinaryUsage.storage.limitFormatted)}</span>
+                </div>
+                <div class="cld-bar-track">
+                    <div class="cld-bar-fill ${cloudinaryUsage.storage.usedPercent > 80 ? "danger" : cloudinaryUsage.storage.usedPercent > 60 ? "warn" : "ok"}" id="cld-storage-bar" style="width:${Math.min(100, cloudinaryUsage.storage.usedPercent)}%"></div>
+                </div>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Bandwidth</span>
+                    <span class="cld-row-value" id="cld-bw-val">${esc(cloudinaryUsage.bandwidth.usedFormatted)} / ${esc(cloudinaryUsage.bandwidth.limitFormatted)}</span>
+                </div>
+                <div class="cld-bar-track">
+                    <div class="cld-bar-fill ${cloudinaryUsage.bandwidth.usedPercent > 80 ? "danger" : cloudinaryUsage.bandwidth.usedPercent > 60 ? "warn" : "ok"}" id="cld-bw-bar" style="width:${Math.min(100, cloudinaryUsage.bandwidth.usedPercent)}%"></div>
+                </div>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Transformations</span>
+                    <span class="cld-row-value" id="cld-tx-val">${cloudinaryUsage.transformations.used.toLocaleString()} / ${cloudinaryUsage.transformations.limit.toLocaleString()}</span>
+                </div>
+                <div class="cld-bar-track">
+                    <div class="cld-bar-fill ${cloudinaryUsage.transformations.usedPercent > 80 ? "danger" : cloudinaryUsage.transformations.usedPercent > 60 ? "warn" : "ok"}" id="cld-tx-bar" style="width:${Math.min(100, cloudinaryUsage.transformations.usedPercent)}%"></div>
+                </div>
+            </div>
+            <div class="cld-warn-banner${(cloudinaryUsage.credits.limit - cloudinaryUsage.credits.used) < 5 ? " visible" : ""}" id="cld-warn">
+                ⚠ Low bandwidth! Less than 5 credits remaining (${(cloudinaryUsage.credits.limit - cloudinaryUsage.credits.used).toFixed(2)} left of ${cloudinaryUsage.credits.limit})
+            </div>
+            <div class="cld-meta" id="cld-updated">Updated: ${esc(cloudinaryUsage.lastUpdated || "—")}</div>
+            ` : '<div class="empty">Cloudinary not configured or unreachable</div>'}
+        </div>
+
         <!-- Sync Progress Panel (hidden by default) -->
         <div id="sync-panel" class="sync-panel">
             <h3><span class="live-dot"></span>Sync in Progress</h3>
@@ -727,6 +1023,7 @@ router.get("/", async (req, res) => {
                 <span class="si orange" id="sp-skip">⏭ 0</span>
             </div>
             <div class="card-subtitle" id="sp-title" style="margin-top:10px"></div>
+            <div class="sync-duration" id="sp-duration"></div>
         </div>
 
         <!-- Manual Tasks Panel (hidden by default) -->
@@ -737,11 +1034,11 @@ router.get("/", async (req, res) => {
 
         <!-- Cron Job -->
         <div class="section">
-            <div class="section-header">
+            <div class="section-header${syncStatus && syncStatus.isSyncing ? "" : " collapsed"}" id="sched-sync-header">
                 <h2>Scheduled Sync</h2>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-content">
+            <div class="section-content${syncStatus && syncStatus.isSyncing ? "" : " collapsed"}" style="${syncStatus && syncStatus.isSyncing ? "" : "max-height:0;opacity:0"}">
                 <div class="cron-card">
                     <div class="cron-row">
                         <span class="cron-label">Next Run</span>
@@ -758,7 +1055,7 @@ router.get("/", async (req, res) => {
 
         <!-- Active Channels -->
         <div class="section">
-            <div class="section-header">
+            <div class="section-header collapsed">
                 <h2>Active Channels</h2>
                 <div style="display:flex;align-items:center;gap:8px">
                     <span class="section-badge">${channelCount}</span>
@@ -812,7 +1109,7 @@ router.get("/", async (req, res) => {
                                     <span class="si orange">⏭ ${req.skipped || 0}</span>
                                     ${total > 0 ? `<span class="si muted">${done}/${total} · ${left} left</span>` : ""}
                                 </div>
-                                ${!isRunning ? `<button class="btn btn-danger" style="position:absolute;top:14px;right:14px" onclick="deleteReq('${esc(req.id)}')">Delete</button>` : ""}
+                                ${!isRunning ? `<div class="card-actions"><button class="btn btn-danger" onclick="deleteReq('${esc(req.id)}')">Delete</button></div>` : ""}
                             </div>`;
                         }).join("")}
                 </div>
@@ -1033,6 +1330,145 @@ router.get("/json", async (req, res) => {
         res.json({ requestHistory, channelConfig, downloadHistory, syncStatus });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Cloudinary Usage Page ────────────────────────────────────────────────────
+
+router.get("/cloudinary-usage", async (req, res) => {
+    try {
+        const d = await getCloudinaryUsage();
+
+        const barColor = (pct) => pct > 80 ? "danger" : pct > 60 ? "warn" : "ok";
+        const creditsLeft = d ? (d.credits.limit - d.credits.used) : 0;
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Cloudinary Usage</title>
+    <style>${CSS}</style>
+</head>
+<body>
+    <div class="bg-glow"></div>
+    <div class="container">
+        <a href="/status" class="back-link">← Back to Status</a>
+        <div class="page-header" style="padding-top:8px">
+            <h1>☁ Cloudinary Usage</h1>
+            <div class="subtitle">${d ? esc(d.plan) + " Plan" : "Unavailable"}</div>
+        </div>
+
+        ${d ? `
+        <!-- Credits -->
+        <div class="cld-widget">
+            <div class="cld-header">
+                <span class="cld-title">Credits</span>
+                <span class="cld-plan">${d.credits.used.toFixed(2)} / ${d.credits.limit}</span>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Used</span>
+                    <span class="cld-row-value">${d.credits.usedPercent.toFixed(1)}%</span>
+                </div>
+                <div class="cld-bar-track" style="height:10px">
+                    <div class="cld-bar-fill ${barColor(d.credits.usedPercent)}" style="width:${Math.min(100, d.credits.usedPercent)}%"></div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:12px">
+                <div class="stat-card" style="flex:1;margin-right:8px">
+                    <div class="stat-value" style="font-size:1.2rem;color:var(--green)">${creditsLeft.toFixed(2)}</div>
+                    <div class="stat-label">Remaining</div>
+                </div>
+                <div class="stat-card" style="flex:1;margin-left:8px">
+                    <div class="stat-value" style="font-size:1.2rem;color:var(--accent)">${d.credits.used.toFixed(2)}</div>
+                    <div class="stat-label">Used</div>
+                </div>
+            </div>
+            ${creditsLeft < 5 ? `
+            <div class="cld-warn-banner visible" style="margin-top:14px">
+                ⚠ Low credits! Only ${creditsLeft.toFixed(2)} of ${d.credits.limit} remaining — min 5 required for bandwidth
+            </div>` : ""}
+        </div>
+
+        <!-- Storage -->
+        <div class="cld-widget">
+            <div class="cld-header">
+                <span class="cld-title">Storage</span>
+                <span class="cld-plan">${esc(d.storage.usedFormatted)} / ${esc(d.storage.limitFormatted)}</span>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Used</span>
+                    <span class="cld-row-value">${d.storage.usedPercent.toFixed(1)}%</span>
+                </div>
+                <div class="cld-bar-track" style="height:10px">
+                    <div class="cld-bar-fill ${barColor(d.storage.usedPercent)}" style="width:${Math.min(100, d.storage.usedPercent)}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bandwidth -->
+        <div class="cld-widget">
+            <div class="cld-header">
+                <span class="cld-title">Bandwidth</span>
+                <span class="cld-plan">${esc(d.bandwidth.usedFormatted)} / ${esc(d.bandwidth.limitFormatted)}</span>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Used</span>
+                    <span class="cld-row-value">${d.bandwidth.usedPercent.toFixed(1)}%</span>
+                </div>
+                <div class="cld-bar-track" style="height:10px">
+                    <div class="cld-bar-fill ${barColor(d.bandwidth.usedPercent)}" style="width:${Math.min(100, d.bandwidth.usedPercent)}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transformations -->
+        <div class="cld-widget">
+            <div class="cld-header">
+                <span class="cld-title">Transformations</span>
+                <span class="cld-plan">${d.transformations.used.toLocaleString()} / ${d.transformations.limit.toLocaleString()}</span>
+            </div>
+            <div class="cld-row">
+                <div class="cld-row-header">
+                    <span class="cld-row-label">Used</span>
+                    <span class="cld-row-value">${d.transformations.usedPercent.toFixed(1)}%</span>
+                </div>
+                <div class="cld-bar-track" style="height:10px">
+                    <div class="cld-bar-fill ${barColor(d.transformations.usedPercent)}" style="width:${Math.min(100, d.transformations.usedPercent)}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resources -->
+        <div class="cld-widget">
+            <div class="cld-header">
+                <span class="cld-title">Resources</span>
+                <span class="cld-plan">${d.resources.toLocaleString()} assets</span>
+            </div>
+        </div>
+
+        <div class="cld-meta" style="text-align:center;margin-top:4px">Last updated: ${esc(d.lastUpdated || "—")} · Cached for 5 min</div>
+        ` : '<div class="empty">Cloudinary not configured or unreachable</div>'}
+    </div>
+</body>
+</html>`;
+        res.send(html);
+    } catch (err) {
+        console.error("[Cloudinary Page Error]", err);
+        res.status(500).send(`<h1>Error</h1><pre>${esc(err.message)}</pre>`);
+    }
+});
+
+router.get("/cloudinary-json", async (req, res) => {
+    try {
+        const usage = await getCloudinaryUsage();
+        if (!usage) return res.status(503).json({ error: "Cloudinary unavailable" });
+        res.json(usage);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
     }
 });
 
