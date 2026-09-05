@@ -435,6 +435,8 @@ export const processBackgroundDownload = async (
             const title = video.title || `Video ${ytId}`;
             const duration = video.duration || 0;
             const uploader = video.uploader || video.channel || "Unknown";
+            const jobId = Math.random().toString(36).slice(2, 9);
+            const filePrefix = `${ytId}_${jobId}`;
 
             console.log(`------------------------------------------`);
             console.log(`Processing: "${title}" [${ytId}]`);
@@ -467,7 +469,7 @@ export const processBackgroundDownload = async (
                 try {
                     const currentFiles = fs.readdirSync(downloadDir);
                     currentFiles.forEach(f => {
-                        if (f.startsWith(ytId)) {
+                        if (f.startsWith(filePrefix)) {
                             fs.unlinkSync(path.join(downloadDir, f));
                         }
                     });
@@ -495,7 +497,7 @@ export const processBackgroundDownload = async (
                     "30",
                     ...cookieArgs,
                     "-o",
-                    path.join(downloadDir, `${ytId}.%(ext)s`),
+                    path.join(downloadDir, `${filePrefix}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
                 ];
 
@@ -507,11 +509,11 @@ export const processBackgroundDownload = async (
                 // 3. Find the downloaded files
                 const files = fs.readdirSync(downloadDir);
                 const audioFile = files.find(
-                    f => f.startsWith(ytId) && f.endsWith(".mp3")
+                    f => f.startsWith(filePrefix) && f.endsWith(".mp3")
                 );
                 const coverFile = files.find(
                     f =>
-                        f.startsWith(ytId) &&
+                        f.startsWith(filePrefix) &&
                         !f.endsWith(".mp3") &&
                         !f.endsWith(".webm") &&
                         !f.endsWith(".m4a") &&
@@ -524,6 +526,18 @@ export const processBackgroundDownload = async (
                     throw new Error(
                         `Audio file not found for ${ytId} after download`
                     );
+                }
+
+                // 3.5. Double check before Cloudinary upload
+                const doubleCheck = await musicModel.findOne({
+                    $or: [{ ytId }, { title }]
+                });
+
+                if (doubleCheck) {
+                    console.log(
+                        `[SKIPPED] Song was saved by another job in the meantime: "${title}" (${ytId})`
+                    );
+                    continue; // skip upload and save, finally block will clean up files
                 }
 
                 // 4. Upload to Cloudinary. Audio and cover are uploaded concurrently —
@@ -586,7 +600,7 @@ export const processBackgroundDownload = async (
                 try {
                     const currentFiles = fs.readdirSync(downloadDir);
                     currentFiles.forEach(f => {
-                        if (f.startsWith(ytId)) {
+                        if (f.startsWith(filePrefix)) {
                             fs.unlinkSync(path.join(downloadDir, f));
                         }
                     });
