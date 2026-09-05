@@ -17,7 +17,6 @@ import adminRoutes from "./routes/admin.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import lyrics from "./routes/lyrics.js";
 import temp from "./routes/temp.routes.js";
-import yt from "./routes/yt.routes.js";
 import streamRoutes from "./routes/stream.routes.js";
 import statusRoutes from "./routes/status.routes.js";
 import AppDetail from "./models/appDetails.js";
@@ -44,7 +43,6 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/temp", temp);
-app.use("/admin", yt);
 app.use("/auth", authRoutes);
 app.use("/stream", streamRoutes);
 
