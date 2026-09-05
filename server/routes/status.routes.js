@@ -1074,7 +1074,7 @@ router.get("/", async (req, res) => {
                 <h2>Scheduled Sync</h2>
                 <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
-            <div class="section-content${syncStatus && syncStatus.isSyncing ? "" : " collapsed"}" style="${syncStatus && syncStatus.isSyncing ? "" : "max-height:0;opacity:0"}">
+            <div class="section-content${syncStatus && syncStatus.isSyncing ? "" : " collapsed"}" style="${syncStatus && syncStatus.isSyncing ? "" : "max-height:0"}">
                 <div class="cron-card">
                     <div class="cron-row">
                         <span class="cron-label">Next Run</span>
@@ -1098,7 +1098,7 @@ router.get("/", async (req, res) => {
                     <a href="/status/channels" class="btn btn-outline" style="padding:5px 14px;font-size:0.72rem">Manage</a>
                 </div>
             </div>
-            <div class="section-content collapsed" style="max-height:0;opacity:0">
+            <div class="section-content collapsed" style="max-height:0">
                 ${
                     channelCount === 0
                         ? '<div class="empty">No channels configured</div>'
@@ -1119,11 +1119,11 @@ router.get("/", async (req, res) => {
 
         <!-- Recent Requests -->
         <div class="section">
-            <div class="section-header" collapsed>
+            <div class="section-header collapsed" >
                 <h2>Recent Requests</h2>
                 <span class="section-badge" id="requests-badge">${requestCount}</span>
             </div>
-            <div class="section-content" collapsed>
+            <div class="section-content collapsed" >
                 <div class="scroll-list" id="requests-list">
                     ${
                         requestCount === 0
@@ -1180,11 +1180,11 @@ router.get("/", async (req, res) => {
 
         <!-- Download Logs -->
         <div class="section">
-            <div class="section-header">
+            <div class="section-header collapsed" >
                 <h2>Download Logs</h2>
                 <span class="section-badge" id="downloads-badge">${downloadCount}</span>
             </div>
-            <div class="section-content">
+            <div class="section-content collapsed">
                 <div class="scroll-list" id="downloads-list">
                     ${
                         downloadCount === 0
