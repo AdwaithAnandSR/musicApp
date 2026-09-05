@@ -620,27 +620,7 @@ export const youtubeDownload = async (req, res) => {
         console.log("Limit:", limit);
         console.log("Cookies present:", !!cookies);
 
-        const response = await fetch(
-            "https://p01--musicapp--87699hjhjdrd.code.run/admin/youtubeDownload",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    url,
-                    skip,
-                    limit,
-                    cookies
-                })
-            }
-        );
-
-        const data = await response.json();
-
-        console.log(data);
-
-        return;
+        
 
         // 1. Validation
         if (!url || typeof url !== "string" || !url.trim()) {
