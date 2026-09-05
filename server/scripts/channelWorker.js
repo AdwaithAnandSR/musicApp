@@ -6,7 +6,12 @@ import mongoose from "mongoose";
 import musicModel from "../models/musics.js";
 import { v2 as cloudinary } from "cloudinary";
 import { fileURLToPath } from "url";
-import { createRequestLog, updateRequestLog, setRequestCurrentItem, markRequestDone } from "../utils/requestLogger.js";
+import {
+    createRequestLog,
+    updateRequestLog,
+    setRequestCurrentItem,
+    markRequestDone
+} from "../utils/requestLogger.js";
 import AppDetail from "../models/appDetails.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -23,8 +28,8 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const getYtDlpRunner = () => {
     const renderPath = "/opt/render/project/src/yt-dlp-package";
     if (fs.existsSync(renderPath)) {
-        return { 
-            command: "python3", 
+        return {
+            command: "python3",
             prefix: ["-m", "yt_dlp"],
             env: { ...process.env, PYTHONPATH: renderPath }
         };
@@ -239,7 +244,9 @@ const CLOUDINARY_CREDIT_LIMIT = 20; // block sync if used credits exceed this (o
 
 export const updateChannels = async () => {
     if (isUpdateChannelsRunning) {
-        console.log("[Worker] A sync is already in progress. Ignoring duplicate trigger.");
+        console.log(
+            "[Worker] A sync is already in progress. Ignoring duplicate trigger."
+        );
         return;
     }
 
@@ -256,24 +263,31 @@ export const updateChannels = async () => {
             // Store blocked status so the UI can show an alert
             await AppDetail.findOneAndUpdate(
                 { key: "channel_sync_status" },
-                { data: {
-                    isSyncing: false,
-                    blocked: true,
-                    blockedReason: `Cloudinary credits exceeded (${creditsUsed.toFixed(2)}/${creditsLimit} used, ${remaining.toFixed(2)} left). Min 5 credits reserved for bandwidth.`,
-                    blockedAt: new Date().toISOString(),
-                    message: msg,
-                }},
+                {
+                    data: {
+                        isSyncing: false,
+                        blocked: true,
+                        blockedReason: `Cloudinary credits exceeded (${creditsUsed.toFixed(2)}/${creditsLimit} used, ${remaining.toFixed(2)} left). Min 5 credits reserved for bandwidth.`,
+                        blockedAt: new Date().toISOString(),
+                        message: msg
+                    }
+                },
                 { upsert: true }
             ).catch(() => {});
             return;
         }
-        console.log(`[Worker] Cloudinary credits OK: ${creditsUsed.toFixed(2)}/${creditsLimit} used (${remaining.toFixed(2)} remaining).`);
+        console.log(
+            `[Worker] Cloudinary credits OK: ${creditsUsed.toFixed(2)}/${creditsLimit} used (${remaining.toFixed(2)} remaining | ALLOWED ONLY ${CLOUDINARY_CREDIT_LIMIT}).`
+        );
     } catch (err) {
-        console.error("[Worker] Failed to check Cloudinary credits, proceeding anyway:", err.message);
+        console.error(
+            "[Worker] Failed to check Cloudinary credits, proceeding anyway:",
+            err.message
+        );
     }
 
     isUpdateChannelsRunning = true;
-    
+
     try {
         await _runUpdateChannels();
     } finally {
@@ -282,7 +296,7 @@ export const updateChannels = async () => {
 };
 
 const _runUpdateChannels = async () => {
-    const reqId = createRequestLog("Channel Worker Sync", 0, 0, "worker");
+    const reqId = await createRequestLog("Channel Worker Sync", 0, 0, "worker");
 
     let syncStatus = {
         isSyncing: true,
@@ -310,7 +324,6 @@ const _runUpdateChannels = async () => {
     try {
         const cookieDoc = await AppDetail.findOne({ key: "youtube_cookies" });
         if (cookieDoc && cookieDoc.data) {
-            
             cookieFile = path.resolve(
                 process.cwd(),
                 `cookies-${Date.now()}.txt`
@@ -328,13 +341,17 @@ const _runUpdateChannels = async () => {
         if (doc && doc.data && doc.data.length > 0) {
             channels = doc.data;
         }
-        
+
         if (channels.length === 0) {
             console.log("No channel config found in DB. Exiting.");
+            await updateSyncStatus({ isSyncing: false, message: "Sync complete." });
+            if (reqId) await markRequestDone(reqId);
             return;
         }
     } catch (e) {
         console.error("Error reading channel config:", e);
+        await updateSyncStatus({ isSyncing: false, message: "Sync complete." });
+        if (reqId) await markRequestDone(reqId);
         return;
     }
 
@@ -500,7 +517,7 @@ const _runUpdateChannels = async () => {
             const titleLower = title.toLowerCase();
             const excludeArr = channelEntry.exclude || [];
             const includeArr = channelEntry.include || [];
-            
+
             let excluded = false;
             for (const term of excludeArr) {
                 if (titleLower.includes(term.toLowerCase())) {
@@ -508,7 +525,7 @@ const _runUpdateChannels = async () => {
                     break;
                 }
             }
-            
+
             let included = true;
             if (includeArr.length > 0) {
                 included = false;
@@ -521,7 +538,9 @@ const _runUpdateChannels = async () => {
             }
 
             if (excluded || !included) {
-                console.log(`[SKIPPED] Title filtered out by exclude/include rules:\n"${title}"`);
+                console.log(
+                    `[SKIPPED] Title filtered out by exclude/include rules:\n"${title}"`
+                );
                 logHistory(
                     title,
                     ytId,
@@ -625,7 +644,7 @@ const _runUpdateChannels = async () => {
     }
 
     await updateSyncStatus({ isSyncing: false, message: "Sync complete." });
-    if (reqId) markRequestDone(reqId);
+    if (reqId) await markRequestDone(reqId);
     if (cookieFile && fs.existsSync(cookieFile)) {
         try {
             fs.unlinkSync(cookieFile);

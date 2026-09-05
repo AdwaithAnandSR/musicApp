@@ -17,6 +17,7 @@ import { WebView } from "react-native-webview";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "@services/axios.js";
 import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import CookieManager from "@preeternal/react-native-cookie-manager";
 import { getToken } from "@services/storage.js";
 
@@ -146,6 +147,7 @@ const Youtube = () => {
 
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
+            <StatusBar hidden />
             <WebView
                 ref={webviewRef}
                 source={{ uri: "https://m.youtube.com/" }}

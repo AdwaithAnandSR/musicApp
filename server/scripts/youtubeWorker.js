@@ -159,7 +159,7 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
 };
 
 const main = async () => {
-    const reqId = createRequestLog(process.env.URL || process.argv[2] || "unknown", process.env.LIMIT || process.argv[4] || 1, process.env.SKIP || process.argv[3] || 0, "cli");
+    const reqId = await createRequestLog(process.env.URL || process.argv[2] || "unknown", process.env.LIMIT || process.argv[4] || 1, process.env.SKIP || process.argv[3] || 0, "cli");
     const url = process.env.URL || process.argv[2];
     const skip = process.env.SKIP || process.argv[3] || "0";
     const limit = process.env.LIMIT || process.argv[4] || "1";
@@ -494,7 +494,7 @@ const main = async () => {
     } catch (err) {
         console.error("Worker error:", err);
     } finally {
-        if (reqId) markRequestDone(reqId);
+        if (reqId) await markRequestDone(reqId);
         if (cookieFile && fs.existsSync(cookieFile)) {
             try {
                 fs.unlinkSync(cookieFile);
