@@ -304,10 +304,10 @@ body {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 8px; gap: 8px;
 }
-.card .card-title {
-    font-size: 0.9rem; font-weight: 500; word-break: break-all;
+.card-title {
+    font-size: 0.6rem; font-weight: 500; word-break: break-all; 
 }
-.card .card-subtitle {
+.card-subtitle {
     font-size: 0.8rem; color: var(--text-secondary); word-break: break-all;
     font-style: italic;
 }
