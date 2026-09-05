@@ -250,6 +250,10 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
 const extractVideoId = inputUrl => {
     try {
         const parsed = new URL(inputUrl);
+        // If it's a playlist URL, we shouldn't treat it as a single video
+        // even if it has a 'v' parameter.
+        if (parsed.searchParams.has("list")) return null;
+        
         const v = parsed.searchParams.get("v");
         if (v) return v;
         if (parsed.hostname.includes("youtu.be")) {
@@ -257,6 +261,8 @@ const extractVideoId = inputUrl => {
             if (pathname) return pathname.split("/")[0];
         }
     } catch {
+        // Fallback regex checks
+        if (inputUrl.includes("list=")) return null;
         const match =
             inputUrl.match(/[?&]v=([a-zA-Z0-9_-]{11})/) ||
             inputUrl.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
@@ -647,11 +653,12 @@ export const youtubeDownload = async (req, res) => {
         }
 
         // 3. Start background download process on Render server
+        const reqType = (trimmedUrl.includes("list=") || safeLimit > 1) ? "playlist" : "single";
         const reqId = await createRequestLog(
             trimmedUrl,
             safeLimit,
             safeSkip,
-            "single"
+            reqType
         );
         processBackgroundDownload(
             trimmedUrl,
