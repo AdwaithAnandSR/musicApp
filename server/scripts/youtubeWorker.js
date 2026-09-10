@@ -261,7 +261,7 @@ const main = async () => {
                 "--js-runtimes",
                 "node"
             ];
-            // Cookies are deliberately not passed to avoid skipping the android client
+            if (cookieFile) argsList.push("--cookies", cookieFile);
             argsList.push(directVideoUrl);
 
             const infoOutput = await runCommand(command, argsList, false, env);
@@ -298,7 +298,7 @@ const main = async () => {
                 "--js-runtimes",
                 "node"
             ];
-            // Cookies are deliberately not passed to avoid skipping the android client
+            if (cookieFile) argsList.push("--cookies", cookieFile);
             argsList.push(url);
 
             const listOutput = await runCommand(command, argsList, false, env);
@@ -380,7 +380,7 @@ const main = async () => {
                     path.join(downloadDir, `${filePrefix}.%(ext)s`),
                     `https://www.youtube.com/watch?v=${ytId}`
                 ];
-                // Cookies are deliberately not passed to avoid skipping the android client
+                if (cookieFile) dlArgs.push("--cookies", cookieFile);
 
                 await runCommand(command, dlArgs, true, env);
 
