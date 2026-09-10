@@ -104,7 +104,7 @@ const uploadToCloudinary = async (filePath, resourceType, folder) => {
 const fetchVideoMetadata = async (ytId, cookieFile) => {
     const { command, prefix, env } = getYtDlpRunner();
     const args = [...prefix, "-j", "--no-playlist", "--js-runtimes", "node"];
-    // Cookies are deliberately not passed to avoid skipping the android client
+    if (cookieFile) args.push("--cookies", cookieFile);
     args.push(`https://www.youtube.com/watch?v=${ytId}`);
     const out = await runCommand(command, args, false, env);
     return JSON.parse(out.trim());
@@ -155,7 +155,7 @@ const downloadAndSaveVideo = async (ytId, videoData, reqId, cookieFile) => {
         "-o",
         path.join(downloadDir, `${ytId}.%(ext)s`)
     ];
-    // Cookies are deliberately not passed to avoid skipping the android client
+    if (cookieFile) dlArgs.push("--cookies", cookieFile);
     dlArgs.push(`https://www.youtube.com/watch?v=${ytId}`);
     await runCommand(command, dlArgs, true, env);
 
@@ -390,7 +390,7 @@ const _runUpdateChannels = async () => {
                 "--js-runtimes",
                 "node"
             ];
-            // Cookies are deliberately not passed to avoid skipping the android client
+            if (cookieFile) argsList.push("--cookies", cookieFile);
             argsList.push(channelUrl);
             listOutput = await runCommand(command, argsList, false, env);
         } catch (e) {
