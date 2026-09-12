@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 
@@ -25,6 +25,18 @@ const LyricsView = ({ track = {} }) => {
     let currentTime = usePlayer(state => state.position);
 
     const lyricsRef = useRef();
+    const lastIndexRef = useRef(-1);
+
+    // Memoize the data array so FlashList doesn't re-diff on every render
+    const syncedData = useMemo(() => {
+        if (!track?.lyrics) return [];
+        return [{ end: -1, start: -1, line: "" }, ...track.lyrics, { end: -1, start: -1, line: "" }];
+    }, [track?.lyrics]);
+
+    const textData = useMemo(() => {
+        if (!track?.lyricsAsText) return [];
+        return ["", ...track.lyricsAsText, ""];
+    }, [track?.lyricsAsText]);
 
     useEffect(() => {
         if (
@@ -33,14 +45,38 @@ const LyricsView = ({ track = {} }) => {
             track?.lyrics?.length === 0
         ) return;
 
-        const index = track.lyrics.findIndex((item, i) => {
-            const nextItem = track.lyrics[i + 1];
+        const lyrics = track.lyrics;
+        let index = -1;
+
+        // Start searching from the last known index for O(1) in normal playback
+        const start = Math.max(0, lastIndexRef.current);
+        for (let i = start; i < lyrics.length; i++) {
+            const item = lyrics[i];
+            const nextItem = lyrics[i + 1];
             const startTime = (item.start ?? 0) - 0.5;
             const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
-            return currentTime >= startTime && currentTime < endTime;
-        });
+            if (currentTime >= startTime && currentTime < endTime) {
+                index = i;
+                break;
+            }
+        }
+
+        // If not found forward (e.g. user seeked backward), search from start
+        if (index === -1 && start > 0) {
+            for (let i = 0; i < start; i++) {
+                const item = lyrics[i];
+                const nextItem = lyrics[i + 1];
+                const startTime = (item.start ?? 0) - 0.5;
+                const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
+                if (currentTime >= startTime && currentTime < endTime) {
+                    index = i;
+                    break;
+                }
+            }
+        }
 
         if (index !== -1 && index !== currentLyricIndex) {
+            lastIndexRef.current = index;
             setCurrentLyricIndex(index);
         }
     }, [currentTime, track, showSyncedLyric, currentLyricIndex, setCurrentLyricIndex]);
@@ -62,21 +98,17 @@ const LyricsView = ({ track = {} }) => {
 
     if (!showLyrics1 && !showLyrics2 && !showSyncedLyric) return;
 
+    const data = (showLyrics1 || showSyncedLyric)
+        ? syncedData
+        : showLyrics2
+          ? textData
+          : [];
+
     return (
         <View style={styles.container}>
             <FlashList
                 ref={lyricsRef}
-                data={
-                    showLyrics1 || showSyncedLyric
-                        ? [
-                              { end: -1, start: -1, line: "" },
-                              ...(track?.lyrics || []),
-                              { end: -1, start: -1, line: "" }
-                          ]
-                        : showLyrics2
-                          ? ["", ...(track?.lyricsAsText || []), ""]
-                          : []
-                }
+                data={data}
                 estimatedItemSize={100}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={(item, index) =>

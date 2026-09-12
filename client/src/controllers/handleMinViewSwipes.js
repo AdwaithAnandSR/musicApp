@@ -12,7 +12,7 @@ const handleSwipeEnd = async (e, swipeStartPos) => {
     if (diffX > 100) usePlayer.getState().next();
     else if (diffX < -100) usePlayer.getState().prev();
     else if (diffX === 0) router.push("secure/TrackControllerFullView");
-    else if (diffY > 45) {
+    else if (diffY > 120) {
         usePlayer.getState().clearPlayer();
     }
 };
