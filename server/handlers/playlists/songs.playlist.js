@@ -109,14 +109,16 @@ export const getSongs = async (req, res) => {
         // =========================
         let nextCursor = null;
 
-        if (isSpecialPlaylist)
+        if (isSpecialPlaylist) {
             if (songs.length === parsedLimit)
                 nextCursor = songs[songs.length - 1].createdAt.getTime();
-            else if (isRandom)
-                if (mappings.length === parsedLimit)
-                    nextCursor = mappings[mappings.length - 1].stableRandom;
-                else if (mappings.length === parsedLimit)
-                    nextCursor = mappings[mappings.length - 1].order;
+        } else if (isRandom) {
+            if (mappings.length === parsedLimit)
+                nextCursor = mappings[mappings.length - 1].stableRandom;
+        } else {
+            if (mappings.length === parsedLimit)
+                nextCursor = mappings[mappings.length - 1].order;
+        }
 
         res.json({
             musics: songs,
