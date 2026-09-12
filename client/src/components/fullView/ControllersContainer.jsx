@@ -39,7 +39,7 @@ const ControllersContainer = () => {
         holdTimerRef.current = setTimeout(() => {
             isHoldingRef.current = true;
             setSpeedLabel(direction === "next" ? "2x" : "0.5x");
-            setRate(2.0);
+            setRate(direction === "next" ? 2.0 : 0.5);
         }, 220);
     };
 
