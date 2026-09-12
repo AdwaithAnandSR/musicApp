@@ -12,15 +12,18 @@ let showToast;
 const ToastManager = () => {
     const [message, setMessage] = useState("");
     const [type, setType] = useState("");
-    const [visible, setVisible] = useState(true);
+    const [visible, setVisible] = useState(false);
+    const [_key, setKey] = useState(0);
 
     const translateY = useSharedValue(-120);
+    const hideTimerRef = React.useRef(null);
 
     useEffect(() => {
         showToast = (text, toastType = "") => {
             setMessage(text);
             setType(toastType);
             setVisible(true);
+            setKey(k => k + 1);
         };
         return () => {
             showToast = null;
@@ -32,16 +35,21 @@ const ToastManager = () => {
 
         translateY.value = withTiming(0, { duration: 350 });
 
+        if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+
         const timer = setTimeout(() => {
             translateY.value = withTiming(-120, { duration: 250 });
 
-            setTimeout(() => {
+            hideTimerRef.current = setTimeout(() => {
                 setVisible(false);
             }, 250);
         }, 2200);
 
-        return () => clearTimeout(timer);
-    }, [visible, translateY]);
+        return () => {
+            clearTimeout(timer);
+            if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+        };
+    }, [_key, translateY]);
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: translateY.value }]

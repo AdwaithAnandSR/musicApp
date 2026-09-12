@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { useAppStatus, useMultiSelect } from "../store/appState.store.js";
@@ -187,7 +187,7 @@ const PopUpOptions = () => {
 
     return (
         <>
-        <View style={[styles.container, { top: Math.max(10, options.y) }]}>
+        <View style={[styles.container, { top: Math.max(10, Math.min(options.y, Dimensions.get("window").height - 250)) }]}>
             {isMultiSelecting ? (
                 <>
                     {!isRecentlyList && isPlaylist && (
