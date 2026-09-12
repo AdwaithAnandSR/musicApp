@@ -1,6 +1,7 @@
 import axios from "@services/axios";
 import Toast from "@services/Toast.js";
 import { useMultiSelect } from "@store/appState.store.js";
+import queryClient from "@services/queryClient.js";
 
 const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
     try {
@@ -19,6 +20,7 @@ const addSongsToPlaylist = async ({ id, selectedSongs, reset }) => {
             useMultiSelect.getState().reset();
             if (typeof reset === "function") reset();
             Toast.show("Songs Added", "success");
+            queryClient.invalidateQueries({ queryKey: [id] });
         }
     } catch (error) {
         console.log(error);

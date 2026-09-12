@@ -28,6 +28,7 @@ export const usePlayer = create((set, get) => ({
     progress: 0,
     hasEnded: false,
     error: null,
+    _playSeqId: 0,
 
     playlistControllers: {},
 
@@ -67,9 +68,10 @@ export const usePlayer = create((set, get) => ({
 
         const track = queue[index];
         if (!track) return;
-        
-        // Optimistically set the track index so concurrent calls are visible
-        set({ currentTrackIndex: index, currentTrackId: track._id || track.id, currentTrack: track });
+
+        // Increment sequence ID to invalidate any in-flight calls
+        const seqId = get()._playSeqId + 1;
+        set({ _playSeqId: seqId });
 
         let trackUrl = track.url;
 
@@ -87,9 +89,12 @@ export const usePlayer = create((set, get) => ({
         }
 
         // If another playByIndex was called while we were waiting, abort
-        if (get().currentTrackIndex !== index) {
+        if (get()._playSeqId !== seqId) {
             return;
         }
+
+        // Only update metadata after we've confirmed this is still the active request
+        set({ currentTrackIndex: index, currentTrackId: track._id || track.id, currentTrack: track });
 
         const player = get().player;
         let newPlayer = player;
@@ -175,7 +180,11 @@ export const usePlayer = create((set, get) => ({
         } = get();
 
         if (repeatMode === "one") {
-            get().playByIndex(currentTrackIndex);
+            const player = get().player;
+            if (player) {
+                player.seekTo(0);
+                player.play();
+            }
             return;
         }
 
@@ -247,7 +256,11 @@ export const usePlayer = create((set, get) => ({
         const { currentTrackIndex, queue, repeatMode } = get();
 
         if (repeatMode === "one") {
-            get().playByIndex(currentTrackIndex);
+            const player = get().player;
+            if (player) {
+                player.seekTo(0);
+                player.play();
+            }
             return;
         }
 

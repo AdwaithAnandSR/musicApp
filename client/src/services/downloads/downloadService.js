@@ -4,6 +4,14 @@ import { useDownloadStatus } from "../../store/appState.store.js";
 
 const storage = new MMKV({ id: "downloads-storage" });
 
+// Global mutex for all meta.json read-modify-write operations
+let _metaMutex = Promise.resolve();
+const withMetaLock = (fn) => {
+    const result = _metaMutex.then(fn, fn);
+    _metaMutex = result.then(() => {}, () => {});
+    return result;
+};
+
 const getMetaFile = () => {
     const downloadsDir = new Directory(Paths.document, "downloads");
     if (!downloadsDir.exists) downloadsDir.create();
@@ -14,9 +22,6 @@ const getMeta = async () => {
     try {
         const file = getMetaFile();
         if (!file.exists) return { playlists: {}, songs: {} };
-        const text = file.text(); // Assuming text() is sync or returns a promise, wait, in Expo next API file.text() might be sync? If it returns a promise, await it.
-        // Actually, in expo-file-system/next, file.text() returns a string! Wait, no, it's file.text() -> string? Let's await just in case, or use readAsStringAsync if it was legacy.
-        // Wait, standard Expo SDK 57 File has .text() which is a string. But wait, we can just use `file.text()` if it's sync. If it's a promise, we should await.
         const content = await file.text();
         return JSON.parse(content);
     } catch (e) {
@@ -44,12 +49,14 @@ export const getDownloadedSongs = async playlistId => {
 };
 
 export const saveDownloadedPlaylist = async playlist => {
-    const meta = await getMeta();
-    meta.playlists[playlist.id] = {
-        ...(meta.playlists[playlist.id] || {}),
-        ...playlist
-    };
-    await saveMeta(meta);
+    return withMetaLock(async () => {
+        const meta = await getMeta();
+        meta.playlists[playlist.id] = {
+            ...(meta.playlists[playlist.id] || {}),
+            ...playlist
+        };
+        await saveMeta(meta);
+    });
 };
 
 export const deleteDownloadedPlaylist = async playlistId => {
@@ -89,10 +96,12 @@ export const deleteDownloadedPlaylist = async playlistId => {
     }
 
     // 3. Clear state from storage
-    const meta = await getMeta();
-    delete meta.playlists[playlistId];
-    delete meta.songs[playlistId];
-    await saveMeta(meta);
+    await withMetaLock(async () => {
+        const meta = await getMeta();
+        delete meta.playlists[playlistId];
+        delete meta.songs[playlistId];
+        await saveMeta(meta);
+    });
 };
 
 export const deleteDownloadedSong = async (playlistId, songId) => {

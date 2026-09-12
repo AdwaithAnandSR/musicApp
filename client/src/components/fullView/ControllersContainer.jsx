@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { FontAwesome5, AntDesign } from "@expo/vector-icons";
 
@@ -21,6 +21,16 @@ const ControllersContainer = () => {
     const [speedLabel, setSpeedLabel] = useState(null);
     const holdTimerRef = useRef(null);
     const isHoldingRef = useRef(false);
+
+    useEffect(() => {
+        return () => {
+            if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+            if (isHoldingRef.current) {
+                setRate(1.0);
+                isHoldingRef.current = false;
+            }
+        };
+    }, [setRate]);
 
     const handlePressIn = direction => {
         isHoldingRef.current = false;
