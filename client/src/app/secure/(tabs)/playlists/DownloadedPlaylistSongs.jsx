@@ -1,39 +1,28 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, Animated, Alert } from "react-native";
-import { FlashList } from "@shopify/flash-list";
-import { useLocalSearchParams, router } from "expo-router";
-import { useFocusEffect } from "expo-router";
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, Animated, Alert } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { useLocalSearchParams, router } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 
 import Header from "@components/ListHeader.jsx";
-import Loader from "@components/Loader.tsx";
 import ListItem from "@components/ListItem.jsx";
 import PopUpOptions from "@components/PopUpOptions.jsx";
-import {
-    getDownloadedSongs,
-    deleteDownloadedPlaylist
-} from "@services/downloads/downloadService.js";
+import { getDownloadedSongs, deleteDownloadedPlaylist } from "@services/downloads/downloadService.js";
 import { usePlayer } from "@store/player.js";
 import { useDownloadStatus } from "@store/appState.store.js";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
 const EMPTY_ARRAY = [];
-const PAGE_SIZE = 50;
 
 const DownloadedPlaylistSongs = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
     const { playlistId, playlistName } = useLocalSearchParams();
     const [downloadedSongsState, setDownloadedSongsState] = useState([]);
-    const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
-    const allSongsRef = useRef([]);
-
-    const downloadingPlaylistSongs = useDownloadStatus(
-        state => state.downloadingPlaylists[playlistId] ?? EMPTY_ARRAY
-    );
-    const [syncedDownloading, setSyncedDownloading] = useState(
-        downloadingPlaylistSongs
-    );
+    
+    const downloadingPlaylistSongs = useDownloadStatus(state => state.downloadingPlaylists[playlistId] ?? EMPTY_ARRAY);
+    const [syncedDownloading, setSyncedDownloading] = useState(downloadingPlaylistSongs);
 
     const loadSongs = useCallback(async () => {
         const fetched = await getDownloadedSongs(playlistId);
@@ -52,7 +41,7 @@ const DownloadedPlaylistSongs = () => {
             setSyncedDownloading(downloadingPlaylistSongs);
             return;
         }
-
+        
         let isMounted = true;
         getDownloadedSongs(playlistId).then(fetched => {
             if (!isMounted) return;
@@ -62,27 +51,11 @@ const DownloadedPlaylistSongs = () => {
             });
             setSyncedDownloading(downloadingPlaylistSongs);
         });
-
-        return () => {
-            isMounted = false;
-        };
+        
+        return () => { isMounted = false; };
     }, [downloadingPlaylistSongs, syncedDownloading, playlistId]);
-
-    // All songs = downloaded + currently downloading
-    const allSongs = [...downloadedSongsState, ...syncedDownloading];
-    allSongsRef.current = allSongs;
-
-    // Paginated slice for the FlashList
-    const songs = allSongs.slice(0, displayCount);
-    const hasMore = displayCount < allSongs.length;
-
-    const loadMore = useCallback(() => {
-        if (hasMore) {
-            setDisplayCount(prev =>
-                Math.min(prev + PAGE_SIZE, allSongsRef.current.length)
-            );
-        }
-    }, [hasMore]);
+    
+    const songs = [...downloadedSongsState, ...syncedDownloading];
 
     useFocusEffect(
         useCallback(() => {
@@ -96,36 +69,22 @@ const DownloadedPlaylistSongs = () => {
         if (index === 0)
             flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
         else
-            flashListRef.current?.scrollToIndex({
-                index,
-                animated: true,
-                viewPosition: 0.3
-            });
+            flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
     };
 
     const handleDeletePlaylist = () => {
-        Alert.alert(
-            "Delete Download",
-            "Remove this playlist and all downloaded songs from device?",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: async () => {
-                        await deleteDownloadedPlaylist(playlistId);
-                        router.back();
-                    }
-                }
-            ]
-        );
+        Alert.alert("Delete Download", "Remove this playlist and all downloaded songs from device?", [
+            { text: "Cancel", style: "cancel" },
+            { text: "Delete", style: "destructive", onPress: async () => {
+                await deleteDownloadedPlaylist(playlistId);
+                router.back();
+            }}
+        ]);
     };
-
+    
     const handlePlayShuffled = () => {
-        if (!allSongsRef.current.length) return;
-        const targetTracks = [...allSongsRef.current].sort(
-            () => Math.random() - 0.5
-        );
+        if (!songs.length) return;
+        const targetTracks = [...songs].sort(() => Math.random() - 0.5);
         usePlayer.getState().changePlaylistAndPlay({
             playlistId: `local-${playlistId}`,
             trackId: targetTracks[0].id || targetTracks[0]._id,
@@ -144,28 +103,15 @@ const DownloadedPlaylistSongs = () => {
                 onPlayShuffled={handlePlayShuffled}
                 onDelete={handleDeletePlaylist}
             />
-
+            
             <AnimatedFlashList
                 ref={flashListRef}
                 data={songs}
                 estimatedItemSize={70}
-                renderItem={({ item }) => (
-                    <ListItem ID={playlistId} item={item} />
-                )}
+                renderItem={({ item }) => <ListItem ID={playlistId} item={item} />}
                 showsVerticalScrollIndicator={false}
-                onEndReachedThreshold={0.5}
-                onEndReached={loadMore}
-                ListFooterComponent={
-                    hasMore ? (
-                        <View style={{ padding: 20, alignItems: "center" }}>
-                            <Loader size="large" />
-                        </View>
-                    ) : null
-                }
                 ListEmptyComponent={
-                    <Text style={styles.emptyText}>
-                        No songs in this downloaded playlist.
-                    </Text>
+                    <Text style={styles.emptyText}>No songs in this downloaded playlist.</Text>
                 }
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT + 10,
@@ -184,11 +130,11 @@ const DownloadedPlaylistSongs = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black"
+        backgroundColor: 'black'
     },
     emptyText: {
-        color: "white",
-        textAlign: "center",
+        color: 'white',
+        textAlign: 'center',
         marginTop: 20
     }
 });
