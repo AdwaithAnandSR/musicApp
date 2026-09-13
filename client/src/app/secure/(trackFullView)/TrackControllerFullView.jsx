@@ -127,7 +127,7 @@ const TrackControllerFullView = () => {
                         </Text>
                     </View>
 
-                    <OptionsContainer />
+                    <OptionsContainer lightVibrant={colors?.lightVibrant} />
 
                     <View
                         style={[
