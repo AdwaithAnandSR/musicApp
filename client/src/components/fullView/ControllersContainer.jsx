@@ -4,6 +4,7 @@ import { FontAwesome5, AntDesign } from "@expo/vector-icons";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
+import * as Haptics from "expo-haptics";
 
 const playPauseIconSize = 28,
     nextPrevIconSize = 33;
@@ -38,6 +39,7 @@ const ControllersContainer = () => {
 
         holdTimerRef.current = setTimeout(() => {
             isHoldingRef.current = true;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             setSpeedLabel(direction === "next" ? "2x" : "0.5x");
             setRate(direction === "next" ? 2.0 : 0.5);
         }, 220);
@@ -55,12 +57,18 @@ const ControllersContainer = () => {
             isHoldingRef.current = false;
         } else {
             resetShowLyrics();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
             if (direction === "next") {
                 next();
             } else {
                 prev();
             }
         }
+    };
+
+    const handlePlayPause = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        playPause();
     };
 
     return (
@@ -85,7 +93,7 @@ const ControllersContainer = () => {
                 </TouchableOpacity>
                 {isPlaying || isBuffering ? (
                     <TouchableOpacity
-                        onPress={playPause}
+                        onPress={handlePlayPause}
                         style={styles.btnContainer}
                     >
                         <FontAwesome5
@@ -96,7 +104,7 @@ const ControllersContainer = () => {
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
-                        onPress={playPause}
+                        onPress={handlePlayPause}
                         style={styles.btnContainer}
                     >
                         <FontAwesome5
