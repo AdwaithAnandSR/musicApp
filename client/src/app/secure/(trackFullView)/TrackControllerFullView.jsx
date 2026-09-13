@@ -147,7 +147,7 @@ const TrackControllerFullView = () => {
                             filter="contrast(1.25) brightness(0.8)"
                             style={{ width: "100%", height: "100%" }}
                         />
-                        {showLyrics && <Lyrics track={track} />}
+                        {showLyrics && <Lyrics track={track} lightVibrant={colors?.lightVibrant} />}
                     </View>
 
                     {/* slider */}
