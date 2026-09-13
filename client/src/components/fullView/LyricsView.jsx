@@ -29,12 +29,12 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
 
     // Memoize the data array so FlashList doesn't re-diff on every render
     const syncedData = useMemo(() => {
-        if (!track?.lyrics) return [];
+        if (!track?.lyrics || track.lyrics.length === 0) return [];
         return [{ end: -1, start: -1, line: "" }, ...track.lyrics, { end: -1, start: -1, line: "" }];
     }, [track?.lyrics]);
 
     const textData = useMemo(() => {
-        if (!track?.lyricsAsText) return [];
+        if (!track?.lyricsAsText || track.lyricsAsText.length === 0) return [];
         return ["", ...track.lyricsAsText, ""];
     }, [track?.lyricsAsText]);
 
@@ -52,6 +52,7 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
         const start = Math.max(0, lastIndexRef.current);
         for (let i = start; i < lyrics.length; i++) {
             const item = lyrics[i];
+            if (!item) continue;
             const nextItem = lyrics[i + 1];
             const startTime = (item.start ?? 0) - 0.5;
             const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
@@ -65,6 +66,7 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
         if (index === -1 && start > 0) {
             for (let i = 0; i < start; i++) {
                 const item = lyrics[i];
+                if (!item) continue;
                 const nextItem = lyrics[i + 1];
                 const startTime = (item.start ?? 0) - 0.5;
                 const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
@@ -103,6 +105,8 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
         : showLyrics2
           ? textData
           : [];
+
+    if (data.length === 0) return null;
 
     return (
         <View style={styles.container}>

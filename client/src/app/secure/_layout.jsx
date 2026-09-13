@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { setAudioModeAsync } from "expo-audio";
 
 import Toast from "@services/Toast.js";
+import PopUpOptions from "@components/PopUpOptions.jsx";
 
 setAudioModeAsync({
     playsInSilentMode: true,
@@ -43,6 +44,7 @@ const _layout = () => {
                     }}
                 />
             </Stack>
+            <PopUpOptions />
             <Toast />
         </View>
     );

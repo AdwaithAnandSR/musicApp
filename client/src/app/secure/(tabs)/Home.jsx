@@ -111,7 +111,6 @@ const Home = () => {
                 refreshing={isFetching && !isFetchingNextPage && !isLoading}
                 onRefresh={handleRefresh}
             />
-            <PopUpOptions />
         </View>
     );
 };
