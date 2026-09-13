@@ -1,15 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Text,
     StyleSheet,
     TouchableOpacity,
     Dimensions
 } from "react-native";
-import LottieView from "lottie-react-native";
 import { Image } from "expo-image";
+import { getColors } from "react-native-image-colors";
 
 import handleSwipe from "@controllers/handleMinViewSwipes.js";
 import { usePlayer } from "@store/player";
+import Equalizer from "./Equalizer.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -19,12 +20,26 @@ const IMG_RADIUS = IMG_SIZE / 2;
 const TrackControllerMinView = ({ tabBarHeight }) => {
     const playPause = usePlayer(state => state.playPause);
     const [swipeStartPos, setSwipeStartPos] = useState({});
+    const [colors, setColors] = useState(null);
 
     const track = usePlayer(state => state.currentTrack);
     const isStopped = usePlayer(state => state.isStopped);
     const isPlaying = usePlayer(state => state.isPlaying || state.isBuffering);
 
+    useEffect(() => {
+        const url = track?.cover || track?.artwork;
+        if (url) {
+            getColors(url, {
+                fallback: "#ffffff",
+                cache: true,
+                key: url
+            }).then(c => setColors(c));
+        }
+    }, [track?.cover, track?.artwork]);
+
     if (!track || !track.url || isStopped) return null;
+
+    const eqColor = colors?.lightVibrant || colors?.dominant || "white";
 
     return (
         <TouchableOpacity
@@ -61,14 +76,10 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                     contentFit="cover"
                     transition={1000}
                 />
-                {isPlaying && (
-                    <LottieView
-                        source={require("../assets/animations/musicPlayingAnim2.json")}
-                        autoPlay
-                        loop
-                        style={styles.anim}
-                    />
-                )}
+                
+                <View style={styles.anim}>
+                    <Equalizer isPlaying={isPlaying} color={eqColor} size={35} />
+                </View>
             </TouchableOpacity>
 
             <Text numberOfLines={2} style={styles.title}>
