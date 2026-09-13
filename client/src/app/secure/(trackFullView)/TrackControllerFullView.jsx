@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import {
-    View,
-    Text,
-    StyleSheet,
-    Dimensions,
-    PanResponder
-} from "react-native";
+import { View, Text, StyleSheet, Dimensions } from "react-native";
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withSpring,
+    withTiming,
+    runOnJS
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 import { Image } from "expo-image";
@@ -49,84 +51,130 @@ const TrackControllerFullView = () => {
         }
     }, [trackId, coverUrl]);
 
-    const panResponder = React.useRef(
-        PanResponder.create({
-            onMoveShouldSetPanResponder: (evt, gestureState) => {
-                return gestureState.dy > 20 && Math.abs(gestureState.dx) < 30;
-            },
-            onPanResponderRelease: (evt, gestureState) => {
-                if (gestureState.dy > 50) {
-                    if (router.canGoBack()) router.back();
-                }
-            }
+    const translateY = useSharedValue(0);
+
+    // Extracted so the worklet closure captures a plain function reference
+    // instead of the complex `router` object (which can't be serialized
+    // to the UI runtime and causes the "Remote Function" error).
+    const goBack = () => {
+        router.back();
+    };
+
+    // Disabled while lyrics are visible so the FlashList can scroll freely.
+    // The NavBar chevron still works for dismissing during lyrics view.
+    const panGesture = Gesture.Pan()
+        .enabled(!showLyrics)
+        .activeOffsetY(30)
+        .failOffsetX([-15, 15])
+        .onUpdate((event) => {
+            'worklet';
+            translateY.value = event.translationY > 0 ? event.translationY : 0;
         })
-    ).current;
+        .onEnd((event) => {
+            'worklet';
+            if (
+                event.translationY > vh * 0.15 ||
+                (event.velocityY > 500 && event.translationY > 30)
+            ) {
+                translateY.value = withTiming(vh, { duration: 200 }, (finished) => {
+                    'worklet';
+                    if (finished) {
+                        runOnJS(goBack)();
+                    }
+                });
+            } else {
+                translateY.value = withSpring(0, { damping: 15, stiffness: 200 });
+            }
+        });
+
+    const animatedStyle = useAnimatedStyle(() => {
+        'worklet';
+        return {
+            transform: [{ translateY: translateY.value }]
+        };
+    });
 
     if (!trackId) return null;
 
-    const topColor = colors?.darkVibrant || colors?.dominant || colors?.average || "#111111";
+    const topColor =
+        colors?.darkVibrant || colors?.dominant || colors?.average || "#111111";
 
     return (
-        // <LinearGradient
-        //     colors={[topColor, "#000000"]}
-        //     style={[styles.container]}>
-        <View style={[styles.container, { backgroundColor: "black" }]} {...panResponder.panHandlers}>
-            {/* navbar */}
-            <NavBar />
-
-            {/* title */}
-            <View
-                style={{
-                    minHeight: vh * 0.08,
-                    justifyContent: "center"
-                }}>
-                <Text numberOfLines={2} style={styles.title}>
-                    {track?.title}
-                </Text>
-            </View>
-
-            <OptionsContainer />
-
-            <View
+        <GestureDetector gesture={panGesture}>
+            <Animated.View
                 style={[
-                    styles.imageContainer,
-                    { shadowColor: colors?.lightVibrant || "#32ffd4" }
-                ]}>
-                <Image
-                    source={
-                        coverUrl
-                            ? { uri: coverUrl }
-                            : require("@assets/images/images.jpeg")
-                    }
-                    placeholder={{ blurhash }}
-                    contentFit="cover"
-                    transition={1000}
-                    filter="contrast(1.25) brightness(0.8)"
-                    style={{ width: "100%", height: "100%" }}
-                />
-                {showLyrics && <Lyrics track={track} />}
-            </View>
+                    styles.container,
+                    { backgroundColor: "black" },
+                    animatedStyle
+                ]}
+            >
+                <LinearGradient
+                    colors={[topColor, "#000000"]}
+                    style={[styles.container]}
+                >
+                    {/* navbar */}
+                    <NavBar />
 
-            {/* slider */}
+                    {/* title */}
+                    <View
+                        style={{
+                            minHeight: vh * 0.08,
+                            justifyContent: "center"
+                        }}
+                    >
+                        <Text numberOfLines={2} style={styles.title}>
+                            {track?.title}
+                        </Text>
+                    </View>
 
-            <SliderContainer
-                defaultDuration={track?.duration}
-                lightVibrant={colors?.lightVibrant}
-            />
+                    <OptionsContainer />
 
-            {/* controllers */}
-            <Controllers />
+                    <View
+                        onLayout={handleImageLayout}
+                        style={[
+                            styles.imageContainer,
+                            { shadowColor: colors?.lightVibrant || "#32ffd4" }
+                        ]}
+                    >
+                        <Image
+                            source={
+                                coverUrl
+                                    ? { uri: coverUrl }
+                                    : require("@assets/images/images.jpeg")
+                            }
+                            placeholder={{ blurhash }}
+                            contentFit="cover"
+                            transition={1000}
+                            filter="contrast(1.25) brightness(0.8)"
+                            style={{ width: "100%", height: "100%" }}
+                        />
+                        {showLyrics && (
+                            <Lyrics track={track} />
+                        )}
+                    </View>
 
-            {/* footer */}
-            <Footer />
-        {/* </LinearGradient> */}
-        </View>
+                    {/* slider */}
+
+                    <SliderContainer
+                        defaultDuration={track?.duration}
+                        lightVibrant={colors?.lightVibrant}
+                    />
+
+                    {/* controllers */}
+                    <Controllers />
+
+                    {/* footer */}
+                    <Footer />
+                </LinearGradient>
+            </Animated.View>
+        </GestureDetector>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
+        borderRadius: 26
     },
     title: {
         color: "white",
