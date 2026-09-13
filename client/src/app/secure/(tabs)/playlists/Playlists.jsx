@@ -54,8 +54,8 @@ const Playlists = () => {
 
             <AnimatedFlashList
                 data={playlists}
-                renderItem={({ item }) => <ListItem item={item} />}
-                estimatedItemSize={70}
+                renderItem={({ item, index }) => <ListItem item={item} index={index} scrollY={scrollY} />}
+                estimatedItemSize={170}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     isLoading ? (

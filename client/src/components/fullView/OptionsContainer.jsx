@@ -13,10 +13,9 @@ import { usePlayer } from "@store/player";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
-const activeLyricColor = "rgb(246,7,135)",
-    iconSize = 12;
+const iconSize = 12;
 
-const OptionsContainer = () => {
+const OptionsContainer = ({ lightVibrant }) => {
     const [artistIndex, setArtistIndex] = useState(0);
 
     const showLyrics1 = useStatus(state => state.showLyrics1);
@@ -34,6 +33,8 @@ const OptionsContainer = () => {
             setArtistIndex(prev => prev + 1);
         } else setArtistIndex(0);
     };
+
+    let activeLyricColor = lightVibrant ?? "rgb(246,7,135)";
 
     return (
         <View style={styles.optionsContainer}>
