@@ -24,13 +24,21 @@ const CARD_MARGIN = 15;
 
 const ListItem = ({ item, index = 0, scrollY }) => {
     const [showOptions, setShowOptions] = useState(false);
-    const isSelecting = useMultiSelect(state => state.selectedSongs?.length > 0);
+    const isSelecting = useMultiSelect(
+        state => state.selectedSongs?.length > 0
+    );
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
-    const setCurrentSelectedPlaylist = useAppStatus(state => state.setCurrentSelectedPlaylist);
+    const setCurrentSelectedPlaylist = useAppStatus(
+        state => state.setCurrentSelectedPlaylist
+    );
     const reset = useMultiSelect(state => state.reset);
 
     const handleLongPress = () => {
-        if (item.isLocalDownloadsFolder || item._id === "6a3e689cfba948ae55682fe3") return;
+        if (
+            item.isLocalDownloadsFolder ||
+            item._id === "6a3e689cfba948ae55682fe3"
+        )
+            return;
         Haptics.impactAsync("light");
         setShowOptions(true);
     };
@@ -60,13 +68,15 @@ const ListItem = ({ item, index = 0, scrollY }) => {
 
     // Header is approx 250px
     const itemOffset = 250 + (CARD_HEIGHT + CARD_MARGIN) * index;
-    const translateY = scrollY ? scrollY.interpolate({
-        inputRange: [itemOffset - vh, itemOffset + CARD_HEIGHT],
-        outputRange: [-35, 35],
-        extrapolate: 'clamp'
-    }) : 0;
+    const translateY = scrollY
+        ? scrollY.interpolate({
+              inputRange: [itemOffset - vh, itemOffset + CARD_HEIGHT],
+              outputRange: [-35, 35],
+              extrapolate: "clamp"
+          })
+        : 0;
 
-    const coverUrl = item.cover || item.songs?.[0]?.cover || item.songs?.[0]?.artwork;
+    const coverUrl = item.cover;
 
     return (
         <TouchableOpacity
@@ -85,15 +95,24 @@ const ListItem = ({ item, index = 0, scrollY }) => {
                     placeholder={{ blurhash: "L10U~q%M00t7%MRj00of00RjRjRj" }}
                     contentFit="cover"
                     transition={500}
-                    style={[styles.parallaxImage, { transform: [{ translateY }] }]}
+                    style={[
+                        styles.parallaxImage,
+                        { transform: [{ translateY }] }
+                    ]}
                 />
-                
+
                 {/* Overlay for text readability */}
                 <View style={styles.overlay}>
                     <Text style={styles.name}>{item?.name}</Text>
                     {isSelecting && (
                         <TouchableOpacity
-                            onPress={() => addSongsToPlaylist({ id: item._id, selectedSongs, reset })}
+                            onPress={() =>
+                                addSongsToPlaylist({
+                                    id: item._id,
+                                    selectedSongs,
+                                    reset
+                                })
+                            }
                             style={styles.btn}
                         >
                             <Entypo name="plus" size={15} color="white" />
@@ -130,9 +149,9 @@ const styles = StyleSheet.create({
     },
     parallaxImage: {
         width: "100%",
-        height: CARD_HEIGHT + 70, 
+        height: CARD_HEIGHT + 70,
         position: "absolute",
-        top: -35 
+        top: -35
     },
     overlay: {
         position: "absolute",
@@ -140,18 +159,18 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         padding: 16,
-        paddingTop: 40,
+        paddingTop: 20,
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "flex-end",
-        backgroundColor: "rgba(0,0,0,0.5)"
+        backgroundColor: "rgba(0,0,0,0.8)"
     },
     name: {
         color: "white",
         fontSize: vw * 0.055,
         fontWeight: "bold",
-        textShadowColor: 'rgba(0, 0, 0, 0.9)',
-        textShadowOffset: {width: 0, height: 1},
+        textShadowColor: "rgba(0, 0, 0, 0.9)",
+        textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 10,
         flex: 1,
         marginRight: 10

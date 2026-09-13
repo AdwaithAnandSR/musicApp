@@ -3,7 +3,8 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    Dimensions
+    Dimensions,
+    View
 } from "react-native";
 import { Image } from "expo-image";
 import { getColors } from "react-native-image-colors";

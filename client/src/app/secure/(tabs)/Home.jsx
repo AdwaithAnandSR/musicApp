@@ -14,7 +14,7 @@ import queryClient from "@services/queryClient";
 import PopUpOptions from "@components/PopUpOptions.jsx";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
-const HEADER_HEIGHT = 250;
+const HEADER_HEIGHT = 200;
 
 const Home = () => {
     const [scrollY] = useState(() => new Animated.Value(0));

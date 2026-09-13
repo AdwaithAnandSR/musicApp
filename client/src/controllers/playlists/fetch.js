@@ -10,8 +10,6 @@ export const fetchPlaylists = async ({ pageParam = 1 }) => {
             limit: 20
         });
 
-        console.log(res.data)
-
         if (res.data.playlists && pageParam === 1) {
             storage.set("playlists", JSON.stringify(res.data.playlists?.slice(0, 10)));
         }
