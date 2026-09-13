@@ -4,6 +4,7 @@ import {
     Text,
     StyleSheet,
     Dimensions,
+    PanResponder
 } from "react-native";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
@@ -48,6 +49,19 @@ const TrackControllerFullView = () => {
         }
     }, [trackId, coverUrl]);
 
+    const panResponder = React.useRef(
+        PanResponder.create({
+            onMoveShouldSetPanResponder: (evt, gestureState) => {
+                return gestureState.dy > 20 && Math.abs(gestureState.dx) < 30;
+            },
+            onPanResponderRelease: (evt, gestureState) => {
+                if (gestureState.dy > 50) {
+                    if (router.canGoBack()) router.back();
+                }
+            }
+        })
+    ).current;
+
     if (!trackId) return null;
 
     const topColor = colors?.darkVibrant || colors?.dominant || colors?.average || "#111111";
@@ -56,7 +70,7 @@ const TrackControllerFullView = () => {
         // <LinearGradient
         //     colors={[topColor, "#000000"]}
         //     style={[styles.container]}>
-        <View style={[styles.container, { backgroundColor: "black" }]}>
+        <View style={[styles.container, { backgroundColor: "black" }]} {...panResponder.panHandlers}>
             {/* navbar */}
             <NavBar />
 
