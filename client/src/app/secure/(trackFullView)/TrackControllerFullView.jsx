@@ -130,7 +130,6 @@ const TrackControllerFullView = () => {
                     <OptionsContainer />
 
                     <View
-                        onLayout={handleImageLayout}
                         style={[
                             styles.imageContainer,
                             { shadowColor: colors?.lightVibrant || "#32ffd4" }
