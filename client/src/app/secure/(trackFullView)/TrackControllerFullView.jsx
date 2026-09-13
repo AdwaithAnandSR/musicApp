@@ -53,42 +53,42 @@ const TrackControllerFullView = () => {
 
     const translateY = useSharedValue(0);
 
-    // Extracted so the worklet closure captures a plain function reference
-    // instead of the complex `router` object (which can't be serialized
-    // to the UI runtime and causes the "Remote Function" error).
-    const goBack = () => {
-        router.back();
-    };
+    const goBack = () => router.back();
 
-    // Disabled while lyrics are visible so the FlashList can scroll freely.
-    // The NavBar chevron still works for dismissing during lyrics view.
     const panGesture = Gesture.Pan()
         .enabled(!showLyrics)
         .activeOffsetY(30)
         .failOffsetX([-15, 15])
-        .onUpdate((event) => {
-            'worklet';
+        .onUpdate(event => {
+            "worklet";
             translateY.value = event.translationY > 0 ? event.translationY : 0;
         })
-        .onEnd((event) => {
-            'worklet';
+        .onEnd(event => {
+            "worklet";
             if (
                 event.translationY > vh * 0.15 ||
                 (event.velocityY > 500 && event.translationY > 30)
             ) {
-                translateY.value = withTiming(vh, { duration: 200 }, (finished) => {
-                    'worklet';
-                    if (finished) {
-                        runOnJS(goBack)();
+                translateY.value = withTiming(
+                    vh,
+                    { duration: 200 },
+                    finished => {
+                        "worklet";
+                        if (finished) {
+                            runOnJS(goBack)();
+                        }
                     }
-                });
+                );
             } else {
-                translateY.value = withSpring(0, { damping: 15, stiffness: 200 });
+                translateY.value = withSpring(0, {
+                    damping: 15,
+                    stiffness: 200
+                });
             }
         });
 
     const animatedStyle = useAnimatedStyle(() => {
-        'worklet';
+        "worklet";
         return {
             transform: [{ translateY: translateY.value }]
         };
@@ -147,9 +147,7 @@ const TrackControllerFullView = () => {
                             filter="contrast(1.25) brightness(0.8)"
                             style={{ width: "100%", height: "100%" }}
                         />
-                        {showLyrics && (
-                            <Lyrics track={track} />
-                        )}
+                        {showLyrics && <Lyrics track={track} />}
                     </View>
 
                     {/* slider */}
