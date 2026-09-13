@@ -24,7 +24,7 @@ const _layout = () => {
                 <Stack.Screen
                     name="(trackFullView)/TrackControllerFullView"
                     options={{
-                        presentation: "modal",
+                        presentation: "transparentModal",
                         animation: "slide_from_bottom",
                         headerShown: false
                     }}
