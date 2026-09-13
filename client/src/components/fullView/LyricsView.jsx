@@ -14,7 +14,7 @@ const LyricItemAsText = ({ item }) => {
     );
 };
 
-const LyricsView = ({ track = {} }) => {
+const LyricsView = ({ track = {}, lightVibrant }) => {
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
@@ -116,7 +116,7 @@ const LyricsView = ({ track = {} }) => {
                 }
                 renderItem={({ item, index }) =>
                     showLyrics1 || showSyncedLyric ? (
-                        <SyncedRenderItem item={item} index={index} />
+                        <SyncedRenderItem item={item} index={index} lightVibrant={lightVibrant} />
                     ) : showLyrics2 ? (
                         <LyricItemAsText item={item} />
                     ) : null
