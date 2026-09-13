@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
+    useAnimatedReaction,
     withSpring,
     runOnJS
 } from "react-native-reanimated";
@@ -24,12 +25,21 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
 
     const thumbScale = useSharedValue(1);
     const panX = useSharedValue(0);
+    const isSeekingUI = useSharedValue(false);
+    const progressShared = useSharedValue(progress || 0);
 
     useEffect(() => {
-        if (!isSeeking) {
-            panX.value = (progress || 0) * SLIDER_WIDTH;
+        progressShared.value = progress || 0;
+    }, [progress]);
+
+    useAnimatedReaction(
+        () => progressShared.value,
+        (currentProgress) => {
+            if (!isSeekingUI.value) {
+                panX.value = currentProgress * SLIDER_WIDTH;
+            }
         }
-    }, [progress, isSeeking]);
+    );
 
     const handleSlidingComplete = (ratio) => {
         if (duration) {
@@ -46,6 +56,7 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
 
     const panGesture = Gesture.Pan()
         .onBegin((e) => {
+            isSeekingUI.value = true;
             runOnJS(setIsSeeking)(true);
             runOnJS(updateSeekTime)(Math.max(0, Math.min(SLIDER_WIDTH, e.x)));
             thumbScale.value = withSpring(1.5, { damping: 15, stiffness: 300 });
@@ -55,7 +66,8 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
             panX.value = Math.max(0, Math.min(SLIDER_WIDTH, e.x));
             runOnJS(updateSeekTime)(panX.value);
         })
-        .onEnd(() => {
+        .onFinalize(() => {
+            isSeekingUI.value = false;
             thumbScale.value = withSpring(1, { damping: 15, stiffness: 300 });
             runOnJS(handleSlidingComplete)(panX.value / SLIDER_WIDTH);
         });
