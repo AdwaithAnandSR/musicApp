@@ -365,8 +365,6 @@ const PlaylistSongs = () => {
                 onRefresh={handleRefresh}
             />
 
-            <PopUpOptions />
-            
             <DownloadOptionsModal 
                 visible={downloadModalVisible}
                 onClose={() => setDownloadModalVisible(false)}

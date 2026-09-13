@@ -122,7 +122,6 @@ const DownloadedPlaylistSongs = () => {
                     { useNativeDriver: true }
                 )}
             />
-            <PopUpOptions />
         </View>
     );
 };

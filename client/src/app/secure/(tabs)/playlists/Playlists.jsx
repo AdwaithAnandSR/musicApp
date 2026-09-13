@@ -82,7 +82,7 @@ const Playlists = () => {
                 }
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT,
-                    paddingBottom: 150
+                    paddingBottom: 5
                 }}
                 onEndReached={() => {
                     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
