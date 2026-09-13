@@ -17,7 +17,7 @@ import Toast from "../services/Toast.js";
 import queryClient from "../services/queryClient.js";
 import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";
 
-const HEADER_HEIGHT = 250;
+const HEADER_HEIGHT = 200;
 const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 90;
 
 const Header = ({
@@ -111,18 +111,22 @@ const Header = ({
     };
 
     const [destModalVisible, setDestModalVisible] = useState(false);
-    
+
     const handleDownloadSelected = () => {
         setDestModalVisible(true);
     };
 
     const handleDownloadSelectedSubmit = async (playlistName, concurrency) => {
         setDestModalVisible(false);
-        const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
-        
+        const {
+            downloadPlaylistSongs
+        } = require("../services/downloads/downloadService.js");
+
         const safePlaylistName = playlistName.trim() || "My Downloads";
-        const playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-        
+        const playlistId =
+            "local_" +
+            safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+
         const playlistToSave = {
             id: playlistId,
             name: safePlaylistName,
@@ -131,12 +135,16 @@ const Header = ({
 
         const songsToDownload = [...selectedSongs];
         useMultiSelect.getState().reset();
-        
+
         Toast.show(`Downloading ${songsToDownload.length} songs...`, "pending");
         try {
-            await downloadPlaylistSongs(playlistToSave, songsToDownload, concurrency);
+            await downloadPlaylistSongs(
+                playlistToSave,
+                songsToDownload,
+                concurrency
+            );
             Toast.show("Download Complete!", "success");
-        } catch(e) {
+        } catch (e) {
             Toast.show("Download Failed", "error");
         }
     };
@@ -233,20 +241,38 @@ const Header = ({
 
                         {onDownload && (
                             <TouchableOpacity
-                                style={[styles.shuffleToggleBtn, { marginLeft: 10 }]}
+                                style={[
+                                    styles.shuffleToggleBtn,
+                                    { marginLeft: 10 }
+                                ]}
                                 onPress={onDownload}
                                 activeOpacity={0.8}
                             >
-                                <Ionicons name="download-outline" size={18} color="#ffffff" />
+                                <Ionicons
+                                    name="download-outline"
+                                    size={18}
+                                    color="#ffffff"
+                                />
                             </TouchableOpacity>
                         )}
                         {onDelete && (
                             <TouchableOpacity
-                                style={[styles.shuffleToggleBtn, { marginLeft: 10, borderColor: '#ff4d4d', backgroundColor: 'rgba(255,77,77,0.1)' }]}
+                                style={[
+                                    styles.shuffleToggleBtn,
+                                    {
+                                        marginLeft: 10,
+                                        borderColor: "#ff4d4d",
+                                        backgroundColor: "rgba(255,77,77,0.1)"
+                                    }
+                                ]}
                                 onPress={onDelete}
                                 activeOpacity={0.8}
                             >
-                                <Ionicons name="trash-outline" size={18} color="#ff4d4d" />
+                                <Ionicons
+                                    name="trash-outline"
+                                    size={18}
+                                    color="#ff4d4d"
+                                />
                             </TouchableOpacity>
                         )}
                     </Animated.View>
@@ -257,14 +283,13 @@ const Header = ({
                 onPress={handleShortPress}
                 onLongPress={handleLongPress}
             >
-                <Animated.Text
+                <Text
                     numberOfLines={2}
                     adjustsFontSizeToFit
                     style={[styles.headerText]}
                 >
-                    {title}
-                </Animated.Text>
-                {total !== undefined && total !== null && total !== -1 && <Text style={styles.headerText2}>{total}</Text>}
+                    {title + " "}
+                </Text>
             </TouchableOpacity>
 
             {selectedSongs?.length > 0 && (
@@ -296,17 +321,27 @@ const Header = ({
                             </TouchableOpacity>
                         )}
                         <TouchableOpacity
-                            style={[styles.badgeBtn, { backgroundColor: '#22f97e' }]}
+                            style={[
+                                styles.badgeBtn,
+                                { backgroundColor: "#22f97e" }
+                            ]}
                             onPress={handleDownloadSelected}
                         >
-                            <Text style={[styles.badgeBtnText, { color: 'black' }]}>Download</Text>
+                            <Text
+                                style={[
+                                    styles.badgeBtnText,
+                                    { color: "black" }
+                                ]}
+                            >
+                                Download
+                            </Text>
                         </TouchableOpacity>
                     </View>
                 </View>
             )}
 
             {destModalVisible && (
-                <DestinationPickerModal 
+                <DestinationPickerModal
                     visible={destModalVisible}
                     onClose={() => setDestModalVisible(false)}
                     onSelect={handleDownloadSelectedSubmit}
@@ -343,8 +378,7 @@ const styles = StyleSheet.create({
         color: "white",
         fontWeight: "bold",
         fontSize: 50,
-        letterSpacing: -2,
-        paddingRight: 10,
+        letterSpacing: -1,
         textShadowColor: "rgba(0,0,0,1)",
         textShadowOffset: { width: 3, height: 3 },
         textShadowRadius: 5

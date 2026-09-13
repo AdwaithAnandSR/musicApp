@@ -36,69 +36,6 @@ const musicSchema = mongoose.Schema({
     lyricsAsText: [{ type: String }],
     stableRandom: Number,
 
-    ai: {
-        processed: {
-            type: Boolean,
-            default: false,
-            index: true
-        },
-
-        processing: {
-            type: Boolean,
-            default: false
-        },
-
-        // NEW: timestamp of when "processing" was last set to true.
-        // Used to detect and recover songs that got stuck mid-run
-        // (e.g. the script crashed or was killed) so they can be
-        // safely re-claimed instead of staying locked forever.
-        processingAt: {
-            type: Date
-        },
-
-        webSearched: {
-            type: Boolean,
-            default: false
-        },
-
-        webSearchedAt: Date,
-
-        webSources: [
-            {
-                title: String,
-                url: String,
-                snippet: String
-            }
-        ],
-
-        processedAt: Date,
-
-        language: String,
-
-        moods: [String],
-        themes: [String],
-        genres: [String],
-        situations: [String],
-
-        energy: String,
-
-        description: String,
-
-        searchText: String,
-
-        // select: false — embeddings are only needed for vector search/recommend
-        // queries, never for normal song reads (list, player, search-by-title,
-        // etc). Excluding them by default keeps ordinary queries cheap even
-        // with 20k+ documents. Explicitly opt in with .select("+ai.embedding")
-        // wherever you actually need it.
-        embedding: {
-            type: [Number],
-            select: false
-        },
-
-        error: String
-    },
-
     createdAt: {
         type: Date,
         default: Date.now
@@ -107,8 +44,6 @@ const musicSchema = mongoose.Schema({
 
 musicSchema.index({ createdAt: -1 });
 
-// Helps the atomic "claim next song" query (ai.processed=false, sorted by createdAt)
-musicSchema.index({ "ai.processed": 1, "ai.processing": 1, createdAt: 1 });
 
 musicSchema.index(
     {
