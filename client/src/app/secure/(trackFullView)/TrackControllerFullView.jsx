@@ -8,6 +8,7 @@ import {
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -49,8 +50,13 @@ const TrackControllerFullView = () => {
 
     if (!trackId) return null;
 
+    const topColor = colors?.darkVibrant || colors?.dominant || colors?.average || "#111111";
+
     return (
-        <View style={[styles.container]}>
+        // <LinearGradient
+        //     colors={[topColor, "#000000"]}
+        //     style={[styles.container]}>
+        <View style={[styles.container, { backgroundColor: "black" }]}>
             {/* navbar */}
             <NavBar />
 
@@ -99,14 +105,14 @@ const TrackControllerFullView = () => {
 
             {/* footer */}
             <Footer />
+        {/* </LinearGradient> */}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
-        backgroundColor: "black"
+        flex: 1
     },
     title: {
         color: "white",
