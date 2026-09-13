@@ -66,6 +66,8 @@ const ListItem = ({ item, index = 0, scrollY }) => {
         extrapolate: 'clamp'
     }) : 0;
 
+    const coverUrl = item.cover || item.songs?.[0]?.cover || item.songs?.[0]?.artwork;
+
     return (
         <TouchableOpacity
             onPress={handleRoute}
@@ -76,8 +78,8 @@ const ListItem = ({ item, index = 0, scrollY }) => {
             <View style={styles.imageContainer}>
                 <AnimatedExpoImage
                     source={
-                        item.cover
-                            ? { uri: item.cover }
+                        coverUrl
+                            ? { uri: coverUrl }
                             : require("@assets/images/DefaultImage.jpeg")
                     }
                     placeholder={{ blurhash: "L10U~q%M00t7%MRj00of00RjRjRj" }}
