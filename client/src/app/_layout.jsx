@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Stack } from "expo-router";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useAppStatus } from "@store/appState.store.js";
 import queryClient from "@services/queryClient.js";
@@ -18,19 +19,21 @@ const Layout = () => {
     }, []);
 
     return (
-        <QueryClientProvider client={queryClient}>
-            <Stack screenOptions={{ headerShown: false }}>
-                {/* Unauthenticated: splash check + login/register */}
-                <Stack.Protected guard={!isAuthenticated}>
-                    <Stack.Screen name="index" />
-                </Stack.Protected>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <QueryClientProvider client={queryClient}>
+                <Stack screenOptions={{ headerShown: false }}>
+                    {/* Unauthenticated: splash check + login/register */}
+                    <Stack.Protected guard={!isAuthenticated}>
+                        <Stack.Screen name="index" />
+                    </Stack.Protected>
 
-                {/* Authenticated: main app */}
-                <Stack.Protected guard={isAuthenticated}>
-                    <Stack.Screen name="secure" />
-                </Stack.Protected>
-            </Stack>
-        </QueryClientProvider>
+                    {/* Authenticated: main app */}
+                    <Stack.Protected guard={isAuthenticated}>
+                        <Stack.Screen name="secure" />
+                    </Stack.Protected>
+                </Stack>
+            </QueryClientProvider>
+        </GestureHandlerRootView>
     );
 };
 
