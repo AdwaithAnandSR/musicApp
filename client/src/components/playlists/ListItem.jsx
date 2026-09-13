@@ -4,7 +4,8 @@ import {
     Text,
     StyleSheet,
     Dimensions,
-    TouchableOpacity
+    TouchableOpacity,
+    Animated
 } from "react-native";
 import { Entypo } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -12,21 +13,20 @@ import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";
 
 import { useMultiSelect, useAppStatus } from "@store/appState.store.js";
-
 import addSongsToPlaylist from "@controllers/playlists/addSongsToPlaylist.js";
 import LongPressOptions from "./LongPressOptions.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
-const ListItem = ({ item }) => {
+const CARD_HEIGHT = 150;
+const CARD_MARGIN = 15;
+
+const ListItem = ({ item, index = 0, scrollY }) => {
     const [showOptions, setShowOptions] = useState(false);
-    const isSelecting = useMultiSelect(
-        state => state.selectedSongs?.length > 0
-    );
+    const isSelecting = useMultiSelect(state => state.selectedSongs?.length > 0);
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
-    const setCurrentSelectedPlaylist = useAppStatus(
-        state => state.setCurrentSelectedPlaylist
-    );
+    const setCurrentSelectedPlaylist = useAppStatus(state => state.setCurrentSelectedPlaylist);
     const reset = useMultiSelect(state => state.reset);
 
     const handleLongPress = () => {
@@ -37,9 +37,7 @@ const ListItem = ({ item }) => {
 
     const handleRoute = () => {
         if (item.isLocalDownloadsFolder) {
-            router.push({
-                pathname: "secure/playlists/DownloadedPlaylists"
-            });
+            router.push({ pathname: "secure/playlists/DownloadedPlaylists" });
             return;
         }
 
@@ -47,64 +45,62 @@ const ListItem = ({ item }) => {
         if (item.isLocalFolder) {
             router.push({
                 pathname: "secure/playlists/DownloadedPlaylistSongs",
-                params: {
-                    playlistId: item._id,
-                    playlistName: item.name
-                }
+                params: { playlistId: item._id, playlistName: item.name }
             });
             return;
         }
 
         router.push({
             pathname: "secure/playlists/PlaylistSongs",
-            params: {
-                playlistId: item._id,
-                playlistName: item.name
-            }
+            params: { playlistId: item._id, playlistName: item.name }
         });
     };
 
-    if (!item?._id) return;
+    if (!item?._id) return null;
+
+    // Header is approx 250px
+    const itemOffset = 250 + (CARD_HEIGHT + CARD_MARGIN) * index;
+    const translateY = scrollY ? scrollY.interpolate({
+        inputRange: [itemOffset - vh, itemOffset + CARD_HEIGHT],
+        outputRange: [-35, 35],
+        extrapolate: 'clamp'
+    }) : 0;
 
     return (
         <TouchableOpacity
             onPress={handleRoute}
             onLongPress={handleLongPress}
-            style={styles.container}
+            style={styles.cardContainer}
+            activeOpacity={0.9}
         >
-            <View style={styles.ImgNameCont}>
-                <View style={styles.imageContainer}>
-                    <Image
-                        source={
-                            item.cover
-                                ? { uri: item.cover }
-                                : require("@assets/images/DefaultImage.jpeg")
-                        }
-                        placeholder={{
-                            blurhash: "L10U~q%M00t7%MRj00of00RjRjRj"
-                        }}
-                        contentFit="cover"
-                        transition={1000}
-                        style={{ width: "100%", height: "100%" }}
-                    />
-                </View>
-                <Text style={styles.name}>{item?.name}</Text>
-            </View>
-            {isSelecting && (
-                <TouchableOpacity
-                    onPress={() =>
-                        addSongsToPlaylist({
-                            id: item._id,
-                            selectedSongs,
-                            reset
-                        })
+            <View style={styles.imageContainer}>
+                <AnimatedExpoImage
+                    source={
+                        item.cover
+                            ? { uri: item.cover }
+                            : require("@assets/images/DefaultImage.jpeg")
                     }
-                    style={styles.btn}
-                >
-                    <Entypo name="plus" size={15} color="white" />
-                    <Text style={styles.text}>Add</Text>
-                </TouchableOpacity>
-            )}
+                    placeholder={{ blurhash: "L10U~q%M00t7%MRj00of00RjRjRj" }}
+                    contentFit="cover"
+                    transition={500}
+                    style={[styles.parallaxImage, { transform: [{ translateY }] }]}
+                />
+                
+                {/* Overlay for text readability */}
+                <View style={styles.overlay}>
+                    <Text style={styles.name}>{item?.name}</Text>
+                    {isSelecting && (
+                        <TouchableOpacity
+                            onPress={() => addSongsToPlaylist({ id: item._id, selectedSongs, reset })}
+                            style={styles.btn}
+                        >
+                            <Entypo name="plus" size={15} color="white" />
+                            <Text style={styles.text}>Add</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+
             {showOptions && (
                 <LongPressOptions
                     id={item?._id}
@@ -117,45 +113,60 @@ const ListItem = ({ item }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        height: vh * 0.09,
-        paddingHorizontal: vw * 0.05,
-        alignItems: "center",
-        justifyContent: "space-between",
-        flexDirection: "row",
-        marginBottom: 3
-    },
-    ImgNameCont: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: vw * 0.03
+    cardContainer: {
+        height: CARD_HEIGHT,
+        marginHorizontal: vw * 0.05,
+        marginBottom: CARD_MARGIN,
+        borderRadius: 16,
+        overflow: "hidden",
+        backgroundColor: "#1e1e1e"
     },
     imageContainer: {
-        width: vh * 0.06,
-        height: vh * 0.06,
-        minHeight: 50,
-        minWidth: 50,
-        borderRadius: vh * 0.5,
+        width: "100%",
+        height: "100%",
         overflow: "hidden"
+    },
+    parallaxImage: {
+        width: "100%",
+        height: CARD_HEIGHT + 70, 
+        position: "absolute",
+        top: -35 
+    },
+    overlay: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 16,
+        paddingTop: 40,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        backgroundColor: "rgba(0,0,0,0.5)"
     },
     name: {
         color: "white",
-        fontSize: vw * 0.045,
-        fontWeight: "bold"
+        fontSize: vw * 0.055,
+        fontWeight: "bold",
+        textShadowColor: 'rgba(0, 0, 0, 0.9)',
+        textShadowOffset: {width: 0, height: 1},
+        textShadowRadius: 10,
+        flex: 1,
+        marginRight: 10
     },
     btn: {
-        padding: vw * 0.02,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
         backgroundColor: "#22f97e",
-        borderRadius: vw * 0.05,
-        justifyContent: "center",
-        alignItems: "center",
+        borderRadius: 20,
         flexDirection: "row",
-        gap: vw * 0.01
+        alignItems: "center",
+        gap: 4
     },
     text: {
         color: "white",
         fontWeight: "bold",
-        fontSize: vw * 0.03
+        fontSize: 13
     }
 });
 
