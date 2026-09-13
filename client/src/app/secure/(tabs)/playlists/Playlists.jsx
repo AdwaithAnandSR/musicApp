@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -17,6 +17,13 @@ const HEADER_HEIGHT = 200;
 
 const Playlists = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
+    
+    const onScroll = useMemo(() => 
+        Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+        ),
+    [scrollY]);
 
     const {
         data,
@@ -45,6 +52,15 @@ const Playlists = () => {
         refetch();
     };
 
+    const renderItem = useMemo(() => {
+        return ({ item, index }) => {
+            if (item.isCreateButton) {
+                return <CreatePlaylistCard index={index} scrollY={scrollY} />;
+            }
+            return <ListItem item={item} index={index} scrollY={scrollY} />;
+        };
+    }, [scrollY]);
+
     return (
         <View style={styles.container}>
             <Header
@@ -55,12 +71,8 @@ const Playlists = () => {
 
             <AnimatedFlashList
                 data={playlists}
-                renderItem={({ item, index }) => {
-                    if (item.isCreateButton) {
-                        return <CreatePlaylistCard index={index} scrollY={scrollY} />;
-                    }
-                    return <ListItem item={item} index={index} scrollY={scrollY} />;
-                }}
+                keyExtractor={(item, index) => item._id || String(index)}
+                renderItem={renderItem}
                 estimatedItemSize={170}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
@@ -88,10 +100,8 @@ const Playlists = () => {
                     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
                 }}
                 onEndReachedThreshold={0.5}
-                onScroll={Animated.event(
-                    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                    { useNativeDriver: true }
-                )}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
                 refreshing={isFetching && !isFetchingNextPage && !isLoading}
                 onRefresh={handleRefresh}
             />
