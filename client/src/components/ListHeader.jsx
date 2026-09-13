@@ -241,10 +241,7 @@ const Header = ({
 
                         {onDownload && (
                             <TouchableOpacity
-                                style={[
-                                    styles.shuffleToggleBtn,
-                                    { marginLeft: 10 }
-                                ]}
+                                style={styles.shuffleToggleBtn}
                                 onPress={onDownload}
                                 activeOpacity={0.8}
                             >
@@ -260,7 +257,6 @@ const Header = ({
                                 style={[
                                     styles.shuffleToggleBtn,
                                     {
-                                        marginLeft: 10,
                                         borderColor: "#ff4d4d",
                                         backgroundColor: "rgba(255,77,77,0.1)"
                                     }
@@ -399,6 +395,7 @@ const styles = StyleSheet.create({
     },
     shuffleRow: {
         flexDirection: "row",
+        flexWrap: "wrap",
         alignItems: "center",
         gap: 8,
         paddingHorizontal: 10,
@@ -450,8 +447,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 18,
-        backgroundColor: "#22f97e",
-        marginLeft: "auto"
+        backgroundColor: "#22f97e"
     },
     playShuffledBtnText: {
         color: "#000000",

@@ -79,6 +79,7 @@ const ListItem = ({ item, index = 0, scrollY }) => {
     const coverUrl = item.cover;
 
     return (
+    <>
         <TouchableOpacity
             onPress={handleRoute}
             onLongPress={handleLongPress}
@@ -121,15 +122,16 @@ const ListItem = ({ item, index = 0, scrollY }) => {
                     )}
                 </View>
             </View>
-
-            {showOptions && (
-                <LongPressOptions
-                    id={item?._id}
-                    setShowOptions={setShowOptions}
-                    isLocal={item?.isLocalFolder}
-                />
-            )}
         </TouchableOpacity>
+
+        <LongPressOptions
+            id={item?._id}
+            visible={showOptions}
+            onClose={() => setShowOptions(false)}
+            isLocal={item?.isLocalFolder}
+            playlistName={item?.name}
+        />
+    </>
     );
 };
 

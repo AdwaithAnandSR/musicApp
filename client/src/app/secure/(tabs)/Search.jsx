@@ -178,7 +178,6 @@ const Search = () => {
                     ) : null
                 }
             />
-            <PopUpOptions />
         </View>
     );
 };
