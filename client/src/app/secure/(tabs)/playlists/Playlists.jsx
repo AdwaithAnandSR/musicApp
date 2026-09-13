@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-import FloatingAdd from "@components/playlists/FloatingAdd.jsx";
 import ListItem from "@components/playlists/ListItem.jsx";
+import CreatePlaylistCard from "@components/playlists/CreatePlaylistCard.jsx";
 import Header from "@components/ListHeader.jsx";
 import Loader from "@components/Loader";
 
@@ -13,7 +13,7 @@ import { fetchPlaylists } from "@controllers/playlists/fetch";
 import queryClient from "@services/queryClient";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
-const HEADER_HEIGHT = 250;
+const HEADER_HEIGHT = 200;
 
 const Playlists = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
@@ -35,6 +35,7 @@ const Playlists = () => {
     const apiPlaylists = data?.pages.flatMap(page => page.playlists) || [];
     
     const playlists = [
+        { _id: 'CREATE_PLAYLIST', isCreateButton: true },
         { _id: 'LOCAL_DOWNLOADS', name: 'Downloads', isLocalDownloadsFolder: true, cover: null },
         ...apiPlaylists
     ];
@@ -54,7 +55,12 @@ const Playlists = () => {
 
             <AnimatedFlashList
                 data={playlists}
-                renderItem={({ item, index }) => <ListItem item={item} index={index} scrollY={scrollY} />}
+                renderItem={({ item, index }) => {
+                    if (item.isCreateButton) {
+                        return <CreatePlaylistCard index={index} scrollY={scrollY} />;
+                    }
+                    return <ListItem item={item} index={index} scrollY={scrollY} />;
+                }}
                 estimatedItemSize={170}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
@@ -89,8 +95,6 @@ const Playlists = () => {
                 refreshing={isFetching && !isFetchingNextPage && !isLoading}
                 onRefresh={handleRefresh}
             />
-
-            <FloatingAdd />
         </View>
     );
 };
