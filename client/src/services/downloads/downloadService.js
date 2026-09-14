@@ -3,6 +3,7 @@ import { MMKV } from "react-native-mmkv";
 import { useDownloadStatus } from "../../store/appState.store.js";
 
 const storage = new MMKV({ id: "downloads-storage" });
+let metaMutex = Promise.resolve();
 
 const getMetaFile = () => {
     const downloadsDir = new Directory(Paths.document, "downloads");
@@ -44,12 +45,21 @@ export const getDownloadedSongs = async playlistId => {
 };
 
 export const saveDownloadedPlaylist = async playlist => {
-    const meta = await getMeta();
-    meta.playlists[playlist.id] = {
-        ...(meta.playlists[playlist.id] || {}),
-        ...playlist
-    };
-    await saveMeta(meta);
+    return new Promise(resolve => {
+        metaMutex = metaMutex.then(async () => {
+            try {
+                const meta = await getMeta();
+                meta.playlists[playlist.id] = {
+                    ...(meta.playlists[playlist.id] || {}),
+                    ...playlist
+                };
+                await saveMeta(meta);
+            } catch (e) {
+                console.log("Failed to save playlist meta:", e);
+            }
+            resolve();
+        });
+    });
 };
 
 export const deleteDownloadedPlaylist = async playlistId => {
@@ -60,15 +70,16 @@ export const deleteDownloadedPlaylist = async playlistId => {
 
     for (const song of pendingSongs) {
         const songId = song.id || song._id;
-        const task = allTasks[songId];
+        const taskKey = `${playlistId}:${songId}`;
+        const task = allTasks[taskKey];
         if (task) {
             try {
                 await task.cancelAsync();
             } catch (e) {
                 console.log("Failed to cancel task:", e);
             }
-            useDownloadStatus.getState().removeDownloadingSong(songId);
         }
+        useDownloadStatus.getState().removeDownloadingSong(songId);
         storage.delete(`download_task_${playlistId}:${songId}`);
     }
 
@@ -89,72 +100,94 @@ export const deleteDownloadedPlaylist = async playlistId => {
     }
 
     // 3. Clear state from storage
-    const meta = await getMeta();
-    delete meta.playlists[playlistId];
-    delete meta.songs[playlistId];
-    await saveMeta(meta);
+    return new Promise(resolve => {
+        metaMutex = metaMutex.then(async () => {
+            try {
+                const meta = await getMeta();
+                delete meta.playlists[playlistId];
+                delete meta.songs[playlistId];
+                await saveMeta(meta);
+            } catch (e) {
+                console.log("Failed to clear playlist meta:", e);
+            }
+            resolve();
+        });
+    });
 };
 
 export const deleteDownloadedSong = async (playlistId, songId) => {
     // 1. Cancel active download task if it exists
-    const task = useDownloadStatus.getState().downloadTasks[songId];
+    const taskKey = `${playlistId}:${songId}`;
+    const task = useDownloadStatus.getState().downloadTasks[taskKey];
     if (task) {
         try {
             await task.cancelAsync();
         } catch (e) {
             console.log("Failed to cancel task:", e);
         }
-        useDownloadStatus.getState().removeDownloadingSong(songId);
-        useDownloadStatus
-            .getState()
-            .removeDownloadingPlaylistSong(playlistId, songId);
     }
+    useDownloadStatus.getState().removeDownloadingSong(songId);
+    useDownloadStatus
+        .getState()
+        .removeDownloadingPlaylistSong(playlistId, songId);
+
     storage.delete(`download_task_${playlistId}:${songId}`);
 
-    const meta = await getMeta();
-    let songs = meta.songs[playlistId] || [];
-    const songIndex = songs.findIndex(s => (s.id || s._id) === songId);
-
-    if (songIndex === -1) return;
-
-    const song = songs[songIndex];
-
-    if (song.localUrl) {
-        try {
-            const file = new File(song.localUrl);
-            if (file.exists) {
-                file.delete();
-            }
-        } catch (e) {
-            console.log("Failed to delete song file:", e);
+    // Delete the file whether it's fully downloaded (in meta) or partially downloaded
+    try {
+        const downloadsDir = new Directory(Paths.document, "downloads");
+        const playlistDir = new Directory(downloadsDir, String(playlistId));
+        const file = new File(playlistDir, `${songId}.mp3`);
+        if (file.exists) {
+            file.delete();
         }
+    } catch (e) {
+        console.log("Failed to delete song file:", e);
     }
 
-    songs.splice(songIndex, 1);
+    return new Promise(resolve => {
+        metaMutex = metaMutex.then(async () => {
+            try {
+                const meta = await getMeta();
+                let songs = meta.songs[playlistId] || [];
+                const songIndex = songs.findIndex(s => (s.id || s._id) === songId);
 
-    if (songs.length === 0) {
-        delete meta.playlists[playlistId];
-        delete meta.songs[playlistId];
-        try {
-            const downloadsDir = new Directory(Paths.document, "downloads");
-            const playlistDir = new Directory(downloadsDir, String(playlistId));
-            if (playlistDir.exists) {
-                playlistDir.delete();
+                if (songIndex === -1) {
+                    resolve();
+                    return;
+                }
+
+                songs.splice(songIndex, 1);
+
+                if (songs.length === 0) {
+                    delete meta.playlists[playlistId];
+                    delete meta.songs[playlistId];
+                    try {
+                        const downloadsDir = new Directory(Paths.document, "downloads");
+                        const playlistDir = new Directory(downloadsDir, String(playlistId));
+                        if (playlistDir.exists) {
+                            playlistDir.delete();
+                        }
+                    } catch (e) {
+                        console.log("Failed to delete empty playlist directory:", e);
+                    }
+                } else {
+                    meta.songs[playlistId] = songs;
+                    meta.playlists[playlistId].songCount = songs.length;
+                    // Recalculate size
+                    meta.playlists[playlistId].sizeBytes = songs.reduce(
+                        (acc, s) => acc + (s.totalBytes || 0),
+                        0
+                    );
+                }
+
+                await saveMeta(meta);
+            } catch (e) {
+                console.log("Delete song error:", e);
             }
-        } catch (e) {
-            console.log("Failed to delete empty playlist directory:", e);
-        }
-    } else {
-        meta.songs[playlistId] = songs;
-        meta.playlists[playlistId].songCount = songs.length;
-        // Recalculate size
-        meta.playlists[playlistId].sizeBytes = songs.reduce(
-            (acc, s) => acc + (s.totalBytes || 0),
-            0
-        );
-    }
-
-    await saveMeta(meta);
+            resolve();
+        });
+    });
 };
 
 export const downloadSongToLocal = async (song, playlistId) => {
@@ -174,8 +207,9 @@ export const downloadSongToLocal = async (song, playlistId) => {
         const fileName = `${songId}.${ext}`;
         const file = new File(playlistDir, fileName);
 
+        // If file exists but we are here, it's a partial/failed download.
         if (file.exists) {
-            return file.uri;
+            try { file.delete(); } catch(e) {}
         }
 
         const onProgress = ({ bytesWritten, totalBytes }) => {
@@ -197,30 +231,36 @@ export const downloadSongToLocal = async (song, playlistId) => {
             onProgress
         });
 
+        const taskKey = `${playlistId}:${songId}`;
+
         useDownloadStatus.setState(state => ({
             downloadTasks: {
                 ...state.downloadTasks,
-                [songId]: task
+                [taskKey]: task
             }
         }));
 
+        let downloadSuccess = false;
         try {
             await task.downloadAsync();
+            downloadSuccess = true;
         } catch (err) {
             console.log("Task download error:", err);
+            if (file.exists) {
+                try { file.delete(); } catch(e) {}
+            }
         }
 
         // Clean up legacy task state if it exists
-        const taskKey = `download_task_${playlistId}:${songId}`;
-
-        storage.delete(taskKey);
+        const legacyTaskKey = `download_task_${playlistId}:${songId}`;
+        storage.delete(legacyTaskKey);
 
         useDownloadStatus.setState(state => {
-            const { [songId]: _, ...rest } = state.downloadTasks;
+            const { [taskKey]: _, ...rest } = state.downloadTasks;
             return { downloadTasks: rest };
         });
 
-        return file.uri;
+        return downloadSuccess ? file.uri : null;
     } catch (e) {
         console.log("Download error:", e, e?.message);
         return null;
@@ -256,7 +296,7 @@ export const downloadPlaylistSongs = async (
         song =>
             !downloadedSongs.find(
                 s => (s.id || s._id) === (song.id || song._id)
-            ) && !downloadingTasks[song.id || song._id]
+            ) && !downloadingTasks[`${playlist.id}:${song.id || song._id}`]
     );
     if (pendingSongs.length > 0) {
         useDownloadStatus
@@ -266,7 +306,6 @@ export const downloadPlaylistSongs = async (
 
     let currentIndex = 0;
     let progressCount = 0;
-    let saveMutex = Promise.resolve();
 
     const worker = async () => {
         while (currentIndex < songsToDownload.length) {
@@ -274,7 +313,18 @@ export const downloadPlaylistSongs = async (
             const song = songsToDownload[index];
             const songId = song.id || song._id;
 
-            const isDownloading = !!useDownloadStatus.getState().downloadTasks[songId];
+            const isStillPending = useDownloadStatus.getState().downloadingPlaylists[playlist.id]?.find(s => (s.id || s._id) === songId);
+            if (!isStillPending) {
+                // The song was cancelled while queued!
+                if (onProgress) {
+                    progressCount++;
+                    onProgress(progressCount, songsToDownload.length, 1);
+                }
+                continue;
+            }
+
+            const taskKey = `${playlist.id}:${songId}`;
+            const isDownloading = !!useDownloadStatus.getState().downloadTasks[taskKey];
             if (downloadedSongs.find(s => (s.id || s._id) === songId) || isDownloading) {
                 if (onProgress) {
                     progressCount++;
@@ -306,7 +356,7 @@ export const downloadPlaylistSongs = async (
                 };
 
                 await new Promise(resolve => {
-                    saveMutex = saveMutex.then(async () => {
+                    metaMutex = metaMutex.then(async () => {
                         try {
                             const meta = await getMeta();
                             meta.songs[playlist.id] = meta.songs[playlist.id] || [];
