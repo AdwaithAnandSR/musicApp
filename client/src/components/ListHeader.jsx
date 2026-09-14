@@ -17,9 +17,6 @@ import Toast from "../services/Toast.js";
 import queryClient from "../services/queryClient.js";
 import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";
 
-const HEADER_HEIGHT = 200;
-const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 90;
-
 const Header = ({
     title,
     containerStyles,
@@ -32,8 +29,10 @@ const Header = ({
     onReshuffle,
     onPlayShuffled,
     onDownload,
-    onDelete
+    onDelete,
+    HEADER_HEIGHT = 200
 }) => {
+    const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 90;
     const translateY = scrollY?.interpolate({
         inputRange: [0, MIN_HEADER_HEIGHT],
         outputRange: [0, -MIN_HEADER_HEIGHT],
