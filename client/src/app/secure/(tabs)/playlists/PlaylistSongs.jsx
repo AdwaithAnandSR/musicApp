@@ -25,7 +25,7 @@ import Loader from "@components/Loader";
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 const limit = 50,
-    HEADER_HEIGHT = 200;
+    HEADER_HEIGHT = 250;
 
 const PlaylistSongs = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
