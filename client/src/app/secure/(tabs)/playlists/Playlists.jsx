@@ -61,6 +61,8 @@ const Playlists = () => {
         };
     }, [scrollY]);
 
+    console.log("Playlist rendering")
+
     return (
         <View style={styles.container}>
             <Header

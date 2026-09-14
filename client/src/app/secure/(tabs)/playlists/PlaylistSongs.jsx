@@ -260,7 +260,7 @@ const PlaylistSongs = () => {
 
             const pendingSongs = songs.filter(s => {
                 const sId = s.id || s._id;
-                return !downloadedIds.has(sId) && !downloadingTasks[sId];
+                return !downloadedIds.has(sId) && !downloadingTasks[`${playlistId}:${sId}`];
             });
 
             const songsToDownload = pendingSongs.slice(0, numSongs);

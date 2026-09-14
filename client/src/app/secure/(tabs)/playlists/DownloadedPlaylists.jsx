@@ -5,7 +5,7 @@ import { useFocusEffect } from 'expo-router';
 
 import Header from "@components/ListHeader.jsx";
 import ListItem from "@components/playlists/ListItem.jsx";
-import { getDownloadedPlaylists } from "@services/downloads/downloadService.js";
+import { getDownloadedPlaylists, getDownloadedSongs } from "@services/downloads/downloadService.js";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
@@ -20,7 +20,18 @@ const DownloadedPlaylists = () => {
             const loadPlaylists = async () => {
                 const fetchedPlaylists = await getDownloadedPlaylists();
                 if (isMounted) {
-                    setPlaylists(fetchedPlaylists.map(p => ({ ...p, _id: p.id, isLocalFolder: true })));
+                    const playlistsWithCovers = await Promise.all(
+                        fetchedPlaylists.map(async p => {
+                            const songs = await getDownloadedSongs(p.id);
+                            return {
+                                ...p,
+                                _id: p.id,
+                                isLocalFolder: true,
+                                cover: songs && songs.length > 0 ? (songs[0].cover || songs[0].artwork) : p.cover
+                            };
+                        })
+                    );
+                    setPlaylists(playlistsWithCovers);
                 }
             };
             loadPlaylists();
