@@ -32,7 +32,8 @@ const Header = ({
     onDelete,
     HEADER_HEIGHT = 200
 }) => {
-    const MIN_HEADER_HEIGHT = HEADER_HEIGHT - 90;
+    const [textHeight, setTextHeight] = useState(60);
+    const MIN_HEADER_HEIGHT = Math.max(0, HEADER_HEIGHT - (textHeight + 30)); // 30 for padding/margins
     const translateY = scrollY?.interpolate({
         inputRange: [0, MIN_HEADER_HEIGHT],
         outputRange: [0, -MIN_HEADER_HEIGHT],
@@ -277,11 +278,15 @@ const Header = ({
                 style={styles.textCont}
                 onPress={handleShortPress}
                 onLongPress={handleLongPress}
+                onLayout={(e) => {
+                    const height = e.nativeEvent.layout.height;
+                    if (height > 0) setTextHeight(height);
+                }}
             >
                 <Text
                     numberOfLines={2}
                     adjustsFontSizeToFit
-                    style={[styles.headerText]}
+                    style={[styles.headerText, { flexShrink: 1, width: "100%" }]}
                 >
                     {title + " "}
                 </Text>
