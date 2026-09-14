@@ -1,5 +1,8 @@
 import DownloadOptionsModal from "@components/playlists/DownloadOptionsModal.jsx";
-import { downloadPlaylistSongs, getDownloadedSongs } from "@services/downloads/downloadService.js";
+import {
+    downloadPlaylistSongs,
+    getDownloadedSongs
+} from "@services/downloads/downloadService.js";
 import Toast from "@services/Toast.js";
 
 import { useRef, useEffect, useState } from "react";
@@ -31,12 +34,19 @@ const PlaylistSongs = () => {
 
     const [isRandom, setIsRandom] = useState(() => {
         const playerState = usePlayer.getState();
-        return playerState.currentPlaylistId === playlistId && playerState.isRandomPlaylist;
+        return (
+            playerState.currentPlaylistId === playlistId &&
+            playerState.isRandomPlaylist
+        );
     });
-    
+
     const [seed, setSeed] = useState(() => {
         const playerState = usePlayer.getState();
-        if (playerState.currentPlaylistId === playlistId && playerState.isRandomPlaylist && playerState.randomSeed) {
+        if (
+            playerState.currentPlaylistId === playlistId &&
+            playerState.isRandomPlaylist &&
+            playerState.randomSeed
+        ) {
             return playerState.randomSeed;
         }
         return Math.random();
@@ -184,7 +194,8 @@ const PlaylistSongs = () => {
         } catch (e) {}
     }, [isRandom, seed]);
 
-    const rawSongs = data?.pages.flatMap(
+    const rawSongs =
+        data?.pages.flatMap(
             page =>
                 page.musics?.map(({ _id, cover, ...rest }) => ({
                     id: _id,
@@ -199,22 +210,24 @@ const PlaylistSongs = () => {
 
     const songs = rawSongs;
 
-
-    const getHeaderLabel = (dateString) => {
+    const getHeaderLabel = dateString => {
         if (!dateString) return null;
         const date = new Date(dateString);
         const today = new Date();
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
 
-        const isSameDate = (d1, d2) => 
+        const isSameDate = (d1, d2) =>
             d1.getFullYear() === d2.getFullYear() &&
             d1.getMonth() === d2.getMonth() &&
             d1.getDate() === d2.getDate();
 
         if (isSameDate(date, today)) return "Today";
         if (isSameDate(date, yesterday)) return "Yesterday";
-        return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return date.toLocaleDateString("en-US", {
+            month: "long",
+            year: "numeric"
+        });
     };
 
     const ItemSeparator = ({ leadingItem, trailingItem }) => {
@@ -255,32 +268,51 @@ const PlaylistSongs = () => {
 
         try {
             const downloadedSongs = await getDownloadedSongs(playlistId);
-            const downloadedIds = new Set(downloadedSongs.map(s => s.id || s._id));
+            const downloadedIds = new Set(
+                downloadedSongs.map(s => s.id || s._id)
+            );
             const downloadingTasks = useDownloadStatus.getState().downloadTasks;
 
             const pendingSongs = songs.filter(s => {
                 const sId = s.id || s._id;
-                return !downloadedIds.has(sId) && !downloadingTasks[`${playlistId}:${sId}`];
+                return (
+                    !downloadedIds.has(sId) &&
+                    !downloadingTasks[`${playlistId}:${sId}`]
+                );
             });
 
             const songsToDownload = pendingSongs.slice(0, numSongs);
 
             if (songsToDownload.length === 0) {
-                Toast.show("All selected songs are already downloaded", "success");
+                Toast.show(
+                    "All selected songs are already downloaded",
+                    "success"
+                );
                 return;
             }
 
-            Toast.show(`Downloading ${songsToDownload.length} songs...`, "pending");
-            
+            Toast.show(
+                `Downloading ${songsToDownload.length} songs...`,
+                "pending"
+            );
+
             const playlistToSave = {
                 id: playlistId,
                 name: playlistName,
-                cover: currentSelectedPlaylist?.cover || cachedPlaylist?.cover || null
+                cover:
+                    currentSelectedPlaylist?.cover ||
+                    cachedPlaylist?.cover ||
+                    null
             };
-            
-            await downloadPlaylistSongs(playlistToSave, songsToDownload, concurrency, (current, total, progress) => {
-                // we could show a progress toast here
-            });
+
+            await downloadPlaylistSongs(
+                playlistToSave,
+                songsToDownload,
+                concurrency,
+                (current, total, progress) => {
+                    // we could show a progress toast here
+                }
+            );
             Toast.show("Download Complete!", "success");
         } catch (error) {
             Toast.show("Download Failed", "error");
@@ -291,6 +323,7 @@ const PlaylistSongs = () => {
         <View style={styles.container}>
             <Header
                 title={playlistName}
+                HEADER_HEIGHT={HEADER_HEIGHT}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
                 ID={playlistId}
@@ -307,9 +340,9 @@ const PlaylistSongs = () => {
                 data={songs}
                 estimatedItemSize={70}
                 renderItem={({ item }) => (
-                    <ListItem 
-                        ID={playlistId} 
-                        item={item} 
+                    <ListItem
+                        ID={playlistId}
+                        item={item}
                         isRandomPlaylist={isRandom}
                         randomSeed={seed}
                     />
@@ -318,7 +351,9 @@ const PlaylistSongs = () => {
                 ListHeaderComponent={
                     isRecentlyAdded && songs.length > 0 ? (
                         <View style={styles.headerContainer}>
-                            <Text style={styles.headerText}>{getHeaderLabel(songs[0].createdAt)}</Text>
+                            <Text style={styles.headerText}>
+                                {getHeaderLabel(songs[0].createdAt)}
+                            </Text>
                         </View>
                     ) : null
                 }
@@ -346,7 +381,7 @@ const PlaylistSongs = () => {
                 }
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT + 10,
-                    paddingBottom: 150
+                    paddingBottom: 5
                 }}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -365,7 +400,7 @@ const PlaylistSongs = () => {
                 onRefresh={handleRefresh}
             />
 
-            <DownloadOptionsModal 
+            <DownloadOptionsModal
                 visible={downloadModalVisible}
                 onClose={() => setDownloadModalVisible(false)}
                 onSelect={handleDownloadSelect}
@@ -382,18 +417,20 @@ const styles = StyleSheet.create({
     headerContainer: {
         paddingHorizontal: 20,
         paddingVertical: 10,
-        marginTop: 10,
+        marginTop: 10
     },
     headerText: {
         color: "gray",
         fontSize: 16,
-        fontWeight: "bold",
+        fontWeight: "bold"
     },
     loader: {
         color: "white",
         textAlign: "center",
         marginTop: 10,
-        fontWeight: "bold"
+        fontWeight: "bold",
+        paddingHorizontal: 30,
+        lineHeight: 25
     }
 });
 

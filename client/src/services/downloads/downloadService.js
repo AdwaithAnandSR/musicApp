@@ -141,8 +141,15 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
         if (file.exists) {
             file.delete();
         }
+        const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        for (const ext of extensions) {
+            const coverFile = new File(playlistDir, `${songId}_cover.${ext}`);
+            if (coverFile.exists) {
+                try { coverFile.delete(); } catch(e) {}
+            }
+        }
     } catch (e) {
-        console.log("Failed to delete song file:", e);
+        console.log("Failed to delete song file or cover:", e);
     }
 
     return new Promise(resolve => {
@@ -251,6 +258,37 @@ export const downloadSongToLocal = async (song, playlistId) => {
             }
         }
 
+        let localCoverUrl = null;
+        const coverUrl = song.cover || song.artwork;
+        if (downloadSuccess && coverUrl) {
+            if (!coverUrl.startsWith("file://")) {
+                try {
+                    let coverExt = "jpg";
+                    const urlParts = coverUrl.split('?')[0].split('.');
+                    if (urlParts.length > 1) {
+                        const lastPart = urlParts[urlParts.length - 1];
+                        if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(lastPart.toLowerCase())) {
+                            coverExt = lastPart.toLowerCase();
+                        }
+                    }
+                    const coverFileName = `${songId}_cover.${coverExt}`;
+                    const coverFile = new File(playlistDir, coverFileName);
+                    
+                    if (coverFile.exists) {
+                        try { coverFile.delete(); } catch(e) {}
+                    }
+                    
+                    const coverTask = File.createDownloadTask(coverUrl, coverFile);
+                    await coverTask.downloadAsync();
+                    localCoverUrl = coverFile.uri;
+                } catch (e) {
+                    console.log("Cover download error:", e);
+                }
+            } else {
+                localCoverUrl = coverUrl;
+            }
+        }
+
         // Clean up legacy task state if it exists
         const legacyTaskKey = `download_task_${playlistId}:${songId}`;
         storage.delete(legacyTaskKey);
@@ -260,7 +298,7 @@ export const downloadSongToLocal = async (song, playlistId) => {
             return { downloadTasks: rest };
         });
 
-        return downloadSuccess ? file.uri : null;
+        return downloadSuccess ? { localUrl: file.uri, localCoverUrl } : null;
     } catch (e) {
         console.log("Download error:", e, e?.message);
         return null;
@@ -280,10 +318,38 @@ export const downloadPlaylistSongs = async (
 
     let downloadedSongs = await getDownloadedSongs(playlist.id);
 
+    let localPlaylistCover = playlist.cover;
+    if (playlist.cover && !playlist.cover.startsWith("file://")) {
+        try {
+            const downloadsDir = new Directory(Paths.document, "downloads");
+            const playlistDir = new Directory(downloadsDir, String(playlist.id));
+            playlistDir.create({ idempotent: true, intermediates: true });
+            
+            let coverExt = "jpg";
+            const urlParts = playlist.cover.split('?')[0].split('.');
+            if (urlParts.length > 1) {
+                const lastPart = urlParts[urlParts.length - 1];
+                if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(lastPart.toLowerCase())) {
+                    coverExt = lastPart.toLowerCase();
+                }
+            }
+            const coverFileName = `playlist_cover.${coverExt}`;
+            const coverFile = new File(playlistDir, coverFileName);
+            
+            if (!coverFile.exists) {
+                const coverTask = File.createDownloadTask(playlist.cover, coverFile);
+                await coverTask.downloadAsync();
+            }
+            localPlaylistCover = coverFile.uri;
+        } catch (e) {
+            console.log("Playlist cover download error:", e);
+        }
+    }
+
     await saveDownloadedPlaylist({
         id: playlist.id,
         name: playlist.name,
-        cover: playlist.cover,
+        cover: localPlaylistCover,
         songCount: downloadedSongs.length,
         sizeBytes: downloadedSongs.reduce(
             (acc, s) => acc + (s.totalBytes || 0),
@@ -335,11 +401,12 @@ export const downloadPlaylistSongs = async (
 
             useDownloadStatus.getState().setDownloadingSong(songId, "downloading");
 
-            const localUrl = await downloadSongToLocal(song, playlist.id);
+            const downloadResult = await downloadSongToLocal(song, playlist.id);
 
             useDownloadStatus.getState().removeDownloadingSong(songId);
 
-            if (localUrl) {
+            if (downloadResult && downloadResult.localUrl) {
+                const { localUrl, localCoverUrl } = downloadResult;
                 const progressData =
                     useDownloadStatus
                         .getState()
@@ -354,6 +421,11 @@ export const downloadPlaylistSongs = async (
                     url: localUrl,
                     totalBytes: progressData.totalBytes || 0
                 };
+                
+                if (localCoverUrl) {
+                    songToSave.cover = localCoverUrl;
+                    songToSave.artwork = localCoverUrl;
+                }
 
                 await new Promise(resolve => {
                     metaMutex = metaMutex.then(async () => {

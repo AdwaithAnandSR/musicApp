@@ -34,7 +34,7 @@ const PopUpOptions = () => {
     const user = useAppStatus(state => state.user);
     const selectedSongs = useMultiSelect(state => state.selectedSongs);
     const isAdmin = user?.role === "admin";
-    const [destModalVisible, setDestModalVisible] = useState(false);
+    const [destModalSong, setDestModalSong] = useState(null);
 
     const visible = options.y !== -1 && !!options.songId && !!options.playId;
 
@@ -121,12 +121,17 @@ const PopUpOptions = () => {
     };
 
     const handleDownloadSingle = () => {
+        const targetSong = options.song || {
+            id: options.songId,
+            _id: options.songId
+        };
         close();
-        setTimeout(() => setDestModalVisible(true), 250);
+        setTimeout(() => setDestModalSong(targetSong), 250);
     };
 
     const handleDownloadSingleSubmit = async (playlistName, concurrency) => {
-        setDestModalVisible(false);
+        const targetSong = destModalSong;
+        setDestModalSong(null);
         const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
         const currentSelectedPlaylist = useAppStatus.getState().currentSelectedPlaylist;
         
@@ -137,11 +142,6 @@ const PopUpOptions = () => {
             id: playlistId,
             name: safePlaylistName,
             cover: currentSelectedPlaylist?.cover || null
-        };
-
-        const targetSong = options.song || {
-            id: options.songId,
-            _id: options.songId
         };
         
         Toast.show("Downloading song...", "pending");
@@ -245,6 +245,7 @@ const PopUpOptions = () => {
 
     const songTitle = options.song?.title || "Options";
 
+
     return (
         <>
             <Modal
@@ -296,7 +297,7 @@ const PopUpOptions = () => {
                                         </TouchableOpacity>
                                     )}
 
-                                    {isAdmin && (
+                                    {isAdmin && !isLocalDownload && (
                                         <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleBatchDelete}>
                                             <View style={[styles.iconCircle, styles.deleteIconBg]}>
                                                 <Ionicons name="trash-outline" size={20} color="#ff3b5c" />
@@ -332,7 +333,7 @@ const PopUpOptions = () => {
                                         </TouchableOpacity>
                                     )}
 
-                                    {isAdmin && (
+                                    {isAdmin && !isLocalDownload && (
                                         <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleDeletePermanent}>
                                             <View style={[styles.iconCircle, styles.deleteIconBg]}>
                                                 <Ionicons name="trash-outline" size={20} color="#ff3b5c" />
@@ -367,10 +368,10 @@ const PopUpOptions = () => {
                 </TouchableOpacity>
             </Modal>
 
-            {destModalVisible && (
+            {!!destModalSong && (
                 <DestinationPickerModal 
-                    visible={destModalVisible}
-                    onClose={() => setDestModalVisible(false)}
+                    visible={!!destModalSong}
+                    onClose={() => setDestModalSong(null)}
                     onSelect={handleDownloadSingleSubmit}
                     defaultName={useAppStatus.getState().currentSelectedPlaylist?.name || "My Downloads"}
                 />
