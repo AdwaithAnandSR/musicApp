@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import ImageColors from "react-native-image-colors";
 import api from "../../../services/axios";
@@ -7,13 +7,27 @@ import { router } from "expo-router";
 const ColorExtractor = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [stats, setStats] = useState({ processed: 0, errors: 0 });
+    const [stats, setStats] = useState({ processed: 0, errors: 0, totalRemaining: "Loading..." });
     
     const stopFlag = useRef(false);
 
     const log = (msg) => {
         setLogs((prev) => [msg, ...prev].slice(0, 50)); 
     };
+
+    const fetchInitialRemaining = async () => {
+        try {
+            const res = await api.post("/admin/getSongsWithoutColors", { limit: 1 });
+            setStats(s => ({ ...s, totalRemaining: res.data.totalRemaining ?? "Unknown" }));
+        } catch (error) {
+            log(`Failed to fetch initial count: ${error.message}`);
+            setStats(s => ({ ...s, totalRemaining: "Error" }));
+        }
+    };
+
+    useEffect(() => {
+        fetchInitialRemaining();
+    }, []);
 
     const processBatch = async () => {
         if (stopFlag.current) {
@@ -25,6 +39,9 @@ const ColorExtractor = () => {
         try {
             const res = await api.post("/admin/getSongsWithoutColors", { limit: 10 });
             const songs = res.data.songs;
+            const remaining = res.data.totalRemaining;
+
+            setStats(s => ({ ...s, totalRemaining: remaining }));
 
             if (!songs || songs.length === 0) {
                 log("No more songs to process. Finished!");
@@ -107,8 +124,9 @@ const ColorExtractor = () => {
             </View>
 
             <View style={styles.statsCard}>
-                <Text style={styles.statText}>Processed: {stats.processed}</Text>
-                <Text style={styles.statText}>Errors: {stats.errors}</Text>
+                <Text style={styles.statText}>Remaining to Process: {stats.totalRemaining}</Text>
+                <Text style={styles.statText}>Processed (This session): {stats.processed}</Text>
+                <Text style={styles.statText}>Errors (This session): {stats.errors}</Text>
             </View>
 
             <TouchableOpacity 
