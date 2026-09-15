@@ -226,14 +226,22 @@ const AdminPanel = () => {
 
             {/* Header */}
             <View style={styles.header}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                     <Text style={styles.headerTitle}>Admin Panel</Text>
-                    <TouchableOpacity
-                        style={styles.youtubeBtn}
-                        onPress={() => router.push("/secure/others/Youtube")}
-                    >
-                        <Text style={styles.youtubeBtnText}>Open YouTube</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                            style={styles.youtubeBtn}
+                            onPress={() => router.push("/secure/others/ColorExtractor")}
+                        >
+                            <Text style={styles.youtubeBtnText}>Colors</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.youtubeBtn}
+                            onPress={() => router.push("/secure/others/Youtube")}
+                        >
+                            <Text style={styles.youtubeBtnText}>YouTube</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
                 <Text style={styles.headerSub}>
                     {users.length} user{users.length !== 1 ? "s" : ""}

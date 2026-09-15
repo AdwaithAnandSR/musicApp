@@ -17,13 +17,15 @@ const HEADER_HEIGHT = 200;
 
 const Playlists = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
-    
-    const onScroll = useMemo(() => 
-        Animated.event(
-            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-            { useNativeDriver: true }
-        ),
-    [scrollY]);
+
+    const onScroll = useMemo(
+        () =>
+            Animated.event(
+                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                { useNativeDriver: true }
+            ),
+        [scrollY]
+    );
 
     const {
         data,
@@ -40,10 +42,15 @@ const Playlists = () => {
     });
 
     const apiPlaylists = data?.pages.flatMap(page => page.playlists) || [];
-    
+
     const playlists = [
-        { _id: 'CREATE_PLAYLIST', isCreateButton: true },
-        { _id: 'LOCAL_DOWNLOADS', name: 'Downloads', isLocalDownloadsFolder: true, cover: null },
+        { _id: "CREATE_PLAYLIST", isCreateButton: true },
+        {
+            _id: "LOCAL_DOWNLOADS",
+            name: "Downloads",
+            isLocalDownloadsFolder: true,
+            cover: null
+        },
         ...apiPlaylists
     ];
 
@@ -60,8 +67,6 @@ const Playlists = () => {
             return <ListItem item={item} index={index} scrollY={scrollY} />;
         };
     }, [scrollY]);
-
-    console.log("Playlist rendering")
 
     return (
         <View style={styles.container}>
@@ -86,7 +91,8 @@ const Playlists = () => {
                                 color: "white",
                                 textAlign: "center",
                                 marginTop: 10
-                            }}>
+                            }}
+                        >
                             no playlists.
                         </Text>
                     )

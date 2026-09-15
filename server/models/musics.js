@@ -35,6 +35,20 @@ const musicSchema = mongoose.Schema({
     },
     lyricsAsText: [{ type: String }],
     stableRandom: Number,
+    colors: {
+        background: String,
+        primary: String,
+        secondary: String,
+        detail: String,
+        average: String,
+        dominant: String,
+        lightVibrant: String,
+        vibrant: String,
+        darkVibrant: String,
+        lightMuted: String,
+        muted: String,
+        darkMuted: String,
+    },
 
     createdAt: {
         type: Date,
