@@ -3,8 +3,9 @@ import musicModel from "../../models/musics.js";
 export const getSongsWithoutColors = async (req, res) => {
     try {
         const { limit = 50 } = req.body;
+        const totalRemaining = await musicModel.countDocuments({ colors: { $exists: false } });
         const songs = await musicModel.find({ colors: { $exists: false } }).limit(limit).select('title artist cover url');
-        res.json({ success: true, songs });
+        res.json({ success: true, songs, totalRemaining });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, error: error.message });
