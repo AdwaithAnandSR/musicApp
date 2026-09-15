@@ -27,7 +27,12 @@ import {
 import cloudStatus from "../handlers/admin/cloudStatus.js";
 import { youtubeDownload } from "../handlers/admin/youtubeDownload.js";
 
+import { getSongsWithoutColors, updateSongColors } from "../handlers/admin/colorExtraction.js";
+
 const router = express.Router();
+
+router.post("/getSongsWithoutColors", getSongsWithoutColors);
+router.post("/updateSongColors", updateSongColors);
 
 router.post("/getUnSyncedLyrics", getUnSyncedLyrics);
 
