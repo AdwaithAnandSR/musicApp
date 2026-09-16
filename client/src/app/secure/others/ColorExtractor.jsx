@@ -1,24 +1,41 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import {
+    View,
+    Text,
+    StyleSheet,
+    TouchableOpacity,
+    ScrollView
+} from "react-native";
 import ImageColors from "react-native-image-colors";
 import api from "../../../services/axios";
 import { router } from "expo-router";
 
+const FALLBACK_IMAGE = require("@assets/images/images.jpeg");
+
 const ColorExtractor = () => {
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [stats, setStats] = useState({ processed: 0, errors: 0, totalRemaining: "Loading..." });
-    
+    const [stats, setStats] = useState({
+        processed: 0,
+        errors: 0,
+        totalRemaining: "Loading..."
+    });
+
     const stopFlag = useRef(false);
 
-    const log = (msg) => {
-        setLogs((prev) => [msg, ...prev].slice(0, 50)); 
+    const log = msg => {
+        setLogs(prev => [msg, ...prev].slice(0, 50));
     };
 
     const fetchInitialRemaining = async () => {
         try {
-            const res = await api.post("/admin/getSongsWithoutColors", { limit: 1 });
-            setStats(s => ({ ...s, totalRemaining: res.data.totalRemaining ?? "Unknown" }));
+            const res = await api.post("/admin/getSongsWithoutColors", {
+                limit: 1
+            });
+            setStats(s => ({
+                ...s,
+                totalRemaining: res.data.totalRemaining ?? "Unknown"
+            }));
         } catch (error) {
             log(`Failed to fetch initial count: ${error.message}`);
             setStats(s => ({ ...s, totalRemaining: "Error" }));
@@ -37,7 +54,9 @@ const ColorExtractor = () => {
         }
 
         try {
-            const res = await api.post("/admin/getSongsWithoutColors", { limit: 10 });
+            const res = await api.post("/admin/getSongsWithoutColors", {
+                limit: 10
+            });
             const songs = res.data.songs;
             const remaining = res.data.totalRemaining;
 
@@ -51,15 +70,15 @@ const ColorExtractor = () => {
 
             log(`Fetched ${songs.length} songs. Extracting colors...`);
 
-            const updatePromises = songs.map(async (song) => {
+            const updatePromises = songs.map(async song => {
                 if (stopFlag.current) return;
                 try {
-                    const urlToUse = song.cover || song.url; 
+                    const urlToUse = song.cover || song.url || FALLBACK_IMAGE;
                     if (!urlToUse) {
-                         throw new Error("No cover image");
+                        throw new Error("No cover image");
                     }
                     const colors = await ImageColors.getColors(urlToUse, {
-                        fallback: '#000000',
+                        fallback: "#000000",
                         cache: true,
                         key: urlToUse
                     });
@@ -76,15 +95,21 @@ const ColorExtractor = () => {
                         darkVibrant: colors.darkVibrant,
                         lightMuted: colors.lightMuted,
                         muted: colors.muted,
-                        darkMuted: colors.darkMuted,
+                        darkMuted: colors.darkMuted
                     };
 
-                    await api.post("/admin/updateSongColors", { id: song._id, colors: extractedColors });
-                    
-                    setStats((s) => ({ ...s, processed: s.processed + 1 }));
+                    await api.post("/admin/updateSongColors", {
+                        id: song._id,
+                        colors: extractedColors
+                    });
+
+                    setStats(s => ({ ...s, processed: s.processed + 1 }));
                 } catch (err) {
-                    await api.post("/admin/updateSongColors", { id: song._id, colors: { average: "#000000" } });
-                    setStats((s) => ({ ...s, errors: s.errors + 1 }));
+                    await api.post("/admin/updateSongColors", {
+                        id: song._id,
+                        colors: { average: "#000000" }
+                    });
+                    setStats(s => ({ ...s, errors: s.errors + 1 }));
                 }
             });
 
@@ -117,29 +142,45 @@ const ColorExtractor = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backBtn}
+                >
                     <Text style={styles.backText}>{"< Back"}</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>Color Extractor</Text>
             </View>
 
             <View style={styles.statsCard}>
-                <Text style={styles.statText}>Remaining to Process: {stats.totalRemaining}</Text>
-                <Text style={styles.statText}>Processed (This session): {stats.processed}</Text>
-                <Text style={styles.statText}>Errors (This session): {stats.errors}</Text>
+                <Text style={styles.statText}>
+                    Remaining to Process: {stats.totalRemaining}
+                </Text>
+                <Text style={styles.statText}>
+                    Processed (This session): {stats.processed}
+                </Text>
+                <Text style={styles.statText}>
+                    Errors (This session): {stats.errors}
+                </Text>
             </View>
 
-            <TouchableOpacity 
-                style={[styles.actionBtn, isRunning ? styles.stopBtn : styles.startBtn]} 
+            <TouchableOpacity
+                style={[
+                    styles.actionBtn,
+                    isRunning ? styles.stopBtn : styles.startBtn
+                ]}
                 onPress={toggleProcessing}
             >
-                <Text style={styles.btnText}>{isRunning ? "Stop Extraction" : "Start Extraction"}</Text>
+                <Text style={styles.btnText}>
+                    {isRunning ? "Stop Extraction" : "Start Extraction"}
+                </Text>
             </TouchableOpacity>
 
             <Text style={styles.logsTitle}>Logs (Last 50):</Text>
             <ScrollView style={styles.logsContainer}>
                 {logs.map((l, idx) => (
-                    <Text key={idx} style={styles.logText}>{l}</Text>
+                    <Text key={idx} style={styles.logText}>
+                        {l}
+                    </Text>
                 ))}
             </ScrollView>
         </View>
@@ -148,19 +189,44 @@ const ColorExtractor = () => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: "#000", padding: 16 },
-    header: { flexDirection: "row", alignItems: "center", marginBottom: 20, paddingTop: 40 },
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 20,
+        paddingTop: 40
+    },
     backBtn: { marginRight: 16, padding: 8 },
     backText: { color: "#f9c1e9", fontSize: 16 },
     title: { color: "#fff", fontSize: 20, fontWeight: "bold" },
-    statsCard: { backgroundColor: "#111", padding: 16, borderRadius: 8, marginBottom: 20 },
+    statsCard: {
+        backgroundColor: "#111",
+        padding: 16,
+        borderRadius: 8,
+        marginBottom: 20
+    },
     statText: { color: "#ccc", fontSize: 16, marginBottom: 8 },
-    actionBtn: { padding: 16, borderRadius: 8, alignItems: "center", marginBottom: 20 },
+    actionBtn: {
+        padding: 16,
+        borderRadius: 8,
+        alignItems: "center",
+        marginBottom: 20
+    },
     startBtn: { backgroundColor: "#163016" },
     stopBtn: { backgroundColor: "#2d0a0a" },
     btnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
     logsTitle: { color: "#fff", fontSize: 16, marginBottom: 8 },
-    logsContainer: { flex: 1, backgroundColor: "#0a0a0a", padding: 12, borderRadius: 8 },
-    logText: { color: "#aaa", fontSize: 12, marginBottom: 4, fontFamily: "monospace" }
+    logsContainer: {
+        flex: 1,
+        backgroundColor: "#0a0a0a",
+        padding: 12,
+        borderRadius: 8
+    },
+    logText: {
+        color: "#aaa",
+        fontSize: 12,
+        marginBottom: 4,
+        fontFamily: "monospace"
+    }
 });
 
 export default ColorExtractor;
