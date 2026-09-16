@@ -78,8 +78,6 @@ const ListItem = ({ item, index = 0, scrollY }) => {
 
     const coverUrl = item.cover;
 
-    console.log("rending item ", item.name)
-
     return (
     <>
         <TouchableOpacity
