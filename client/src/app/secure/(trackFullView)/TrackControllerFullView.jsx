@@ -42,14 +42,18 @@ const TrackControllerFullView = () => {
             if (router.canGoBack()) {
                 router.back();
             }
+        } else if (track?.colors && Object.keys(track.colors).length > 0) {
+            setColors(track.colors);
         } else if (coverUrl) {
             getColors(coverUrl, {
-                fallback: "#228B22",
+                fallback: "#fd47bd",
                 cache: true,
                 key: trackId
             }).then(setColors);
         }
-    }, [trackId, coverUrl]);
+    }, [trackId, coverUrl, track?.colors]);
+
+    console.log(track.colors)
 
     const translateY = useSharedValue(0);
 
