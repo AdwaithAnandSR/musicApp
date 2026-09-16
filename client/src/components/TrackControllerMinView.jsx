@@ -29,18 +29,21 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
 
     useEffect(() => {
         const url = track?.cover || track?.artwork;
-        if (url) {
+        if (track?.colors && Object.keys(track.colors).length > 0) {
+            setColors(track.colors);
+        } else if (url) {
             getColors(url, {
                 fallback: "#ffffff",
                 cache: true,
                 key: url
             }).then(c => setColors(c));
         }
-    }, [track?.cover, track?.artwork]);
+    }, [track?.cover, track?.artwork, track?.colors]);
 
     if (!track || !track.url || isStopped) return null;
 
     const eqColor = colors?.lightVibrant || colors?.dominant || "white";
+    const bgColor = colors?.darkVibrant || colors?.dominant || colors?.average || "#51847c";
 
     return (
         <TouchableOpacity
@@ -52,7 +55,7 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
                 })
             }
             onPressOut={e => handleSwipe(e, swipeStartPos)}
-            style={[styles.container, { bottom: tabBarHeight - 15 }]}
+            style={[styles.container, { bottom: tabBarHeight - 15, backgroundColor: bgColor }]}
         >
             <TouchableOpacity
                 style={{
