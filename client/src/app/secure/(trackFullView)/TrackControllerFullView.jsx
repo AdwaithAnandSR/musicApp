@@ -53,7 +53,7 @@ const TrackControllerFullView = () => {
         }
     }, [trackId, coverUrl, track?.colors]);
 
-    console.log(track.colors)
+    
 
     const translateY = useSharedValue(0);
 
