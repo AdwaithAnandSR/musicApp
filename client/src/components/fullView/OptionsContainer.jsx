@@ -51,15 +51,12 @@ const OptionsContainer = ({ lightVibrant }) => {
                             <Feather
                                 name="user"
                                 size={15}
-                                color={activeLyricColor}
+                                color={"white"}
                             />
                             <Text
                                 adjustsFontSizeToFit
                                 numberOfLines={1}
-                                style={[
-                                    styles.optionsText,
-                                    { color: activeLyricColor }
-                                ]}
+                                style={styles.optionsText}
                             >
                                 {artists[artistIndex]?.trim()}
                             </Text>
@@ -83,19 +80,12 @@ const OptionsContainer = ({ lightVibrant }) => {
                         <MaterialCommunityIcons
                             name="music-circle"
                             size={iconSize}
-                            color={showSyncedLyric ? activeLyricColor : "white"}
+                            color={"white"}
                         />
                         <Text
                             adjustsFontSizeToFit
                             numberOfLines={1}
-                            style={[
-                                styles.optionsText,
-                                {
-                                    color: showSyncedLyric
-                                        ? activeLyricColor
-                                        : "white"
-                                }
-                            ]}
+                            style={styles.optionsText}
                         >
                             sync
                         </Text>
@@ -117,19 +107,12 @@ const OptionsContainer = ({ lightVibrant }) => {
                         <MaterialCommunityIcons
                             name="music-circle"
                             size={iconSize}
-                            color={showLyrics1 ? activeLyricColor : "white"}
+                            color={"white"}
                         />
                         <Text
                             adjustsFontSizeToFit
                             numberOfLines={1}
-                            style={[
-                                styles.optionsText,
-                                {
-                                    color: showLyrics1
-                                        ? activeLyricColor
-                                        : "white"
-                                }
-                            ]}
+                            style={styles.optionsText}
                         >
                             {"Lyric 1"}
                         </Text>
@@ -153,18 +136,7 @@ const OptionsContainer = ({ lightVibrant }) => {
                             size={iconSize}
                             color={showLyrics2 ? activeLyricColor : "white"}
                         />
-                        <Text
-                            style={[
-                                styles.optionsText,
-                                {
-                                    color: showLyrics2
-                                        ? activeLyricColor
-                                        : "white"
-                                }
-                            ]}
-                        >
-                            {"lyric 2"}
-                        </Text>
+                        <Text style={styles.optionsText}>{"lyric 2"}</Text>
                     </TouchableOpacity>
                 )}
             </View>
