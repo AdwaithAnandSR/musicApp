@@ -10,7 +10,18 @@ import ImageColors from "react-native-image-colors";
 import api from "../../../services/axios";
 import { router } from "expo-router";
 
-const FALLBACK_IMAGE = require("@assets/images/images.jpeg");
+
+const defaultColors = {
+    average: "#060606",
+    darkMuted: "#484848",
+    darkVibrant: "#000000",
+    dominant: "#E0E0E0",
+    lightMuted: "#E0E0E0",
+    lightVibrant: "#000000",
+    muted: "#808080",
+    platform: "android",
+    vibrant: "#000000"
+};
 
 const ColorExtractor = () => {
     const [isRunning, setIsRunning] = useState(false);
@@ -55,8 +66,9 @@ const ColorExtractor = () => {
 
         try {
             const res = await api.post("/admin/getSongsWithoutColors", {
-                limit: 10
+                limit: 100 
             });
+
             const songs = res.data.songs;
             const remaining = res.data.totalRemaining;
 
@@ -70,41 +82,44 @@ const ColorExtractor = () => {
 
             log(`Fetched ${songs.length} songs. Extracting colors...`);
 
+
+            
             const updatePromises = songs.map(async song => {
                 if (stopFlag.current) return;
                 try {
-                    const urlToUse = song.cover || song.url || FALLBACK_IMAGE;
-                    if (!urlToUse) {
-                        throw new Error("No cover image");
-                    }
-                    const colors = await ImageColors.getColors(urlToUse, {
-                        fallback: "#000000",
-                        cache: true,
-                        key: urlToUse
-                    });
+                    const urlToUse = song.cover;
+                    let extractedColors = {};
 
-                    const extractedColors = {
-                        background: colors.background,
-                        primary: colors.primary,
-                        secondary: colors.secondary,
-                        detail: colors.detail,
-                        average: colors.average,
-                        dominant: colors.dominant,
-                        lightVibrant: colors.lightVibrant,
-                        vibrant: colors.vibrant,
-                        darkVibrant: colors.darkVibrant,
-                        lightMuted: colors.lightMuted,
-                        muted: colors.muted,
-                        darkMuted: colors.darkMuted
-                    };
+                    if (urlToUse) {
+                        const colors = await ImageColors.getColors(urlToUse, {
+                            fallback: "#000000",
+                            cache: true,
+                            key: urlToUse
+                        });
+                        extractedColors = {
+                            background: colors.background,
+                            primary: colors.primary,
+                            secondary: colors.secondary,
+                            detail: colors.detail,
+                            average: colors.average,
+                            dominant: colors.dominant,
+                            lightVibrant: colors.lightVibrant,
+                            vibrant: colors.vibrant,
+                            darkVibrant: colors.darkVibrant,
+                            lightMuted: colors.lightMuted,
+                            muted: colors.muted,
+                            darkMuted: colors.darkMuted
+                        };
+                    }
 
                     await api.post("/admin/updateSongColors", {
                         id: song._id,
-                        colors: extractedColors
+                        colors: urlToUse ? extractedColors : defaultColors
                     });
 
                     setStats(s => ({ ...s, processed: s.processed + 1 }));
                 } catch (err) {
+                    console.log(err)
                     await api.post("/admin/updateSongColors", {
                         id: song._id,
                         colors: { average: "#000000" }
