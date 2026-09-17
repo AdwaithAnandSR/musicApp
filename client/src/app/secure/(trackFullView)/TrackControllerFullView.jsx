@@ -22,6 +22,7 @@ import Lyrics from "@components/fullView/LyricsView.jsx";
 import NavBar from "@components/fullView/NavBar.jsx";
 import Footer from "@components/fullView/Footer.jsx";
 import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
+import PlaylistBottomSheet from "@components/fullView/PlaylistBottomSheet.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 const blurhash =
@@ -56,38 +57,65 @@ const TrackControllerFullView = () => {
     
 
     const translateY = useSharedValue(0);
+    const playlistTranslateY = useSharedValue(vh * 0.7);
+    const context = useSharedValue({ y: vh * 0.7, startY: 0 });
 
     const goBack = () => router.back();
 
     const panGesture = Gesture.Pan()
         .enabled(!showLyrics)
-        .activeOffsetY(30)
-        .failOffsetX([-15, 15])
+        .activeOffsetY([-20, 20])
+        .failOffsetX([-20, 20])
+        .onStart(() => {
+            "worklet";
+            context.value = { y: playlistTranslateY.value, startY: translateY.value };
+        })
         .onUpdate(event => {
             "worklet";
-            translateY.value = event.translationY > 0 ? event.translationY : 0;
+            if (context.value.y < vh * 0.7 || (event.translationY < 0 && context.value.startY === 0)) {
+                let newY = context.value.y + event.translationY;
+                newY = Math.max(0, Math.min(newY, vh * 0.7));
+                playlistTranslateY.value = newY;
+            } else {
+                let newY = context.value.startY + event.translationY;
+                translateY.value = newY > 0 ? newY : 0;
+            }
         })
         .onEnd(event => {
             "worklet";
-            if (
-                event.translationY > vh * 0.15 ||
-                (event.velocityY > 500 && event.translationY > 30)
-            ) {
-                translateY.value = withTiming(
-                    vh,
-                    { duration: 200 },
-                    finished => {
-                        "worklet";
-                        if (finished) {
-                            runOnJS(goBack)();
-                        }
+            if (context.value.y < vh * 0.7 || event.translationY < 0) {
+                if (event.velocityY > 500 || event.translationY > vh * 0.15) {
+                    playlistTranslateY.value = withTiming(vh * 0.7, { duration: 250 });
+                } else if (event.velocityY < -500 || event.translationY < -vh * 0.15) {
+                    playlistTranslateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+                } else {
+                    if (playlistTranslateY.value > vh * 0.35) {
+                        playlistTranslateY.value = withTiming(vh * 0.7, { duration: 250 });
+                    } else {
+                        playlistTranslateY.value = withSpring(0, { damping: 20, stiffness: 150 });
                     }
-                );
+                }
             } else {
-                translateY.value = withSpring(0, {
-                    damping: 15,
-                    stiffness: 200
-                });
+                if (
+                    event.translationY > vh * 0.15 ||
+                    (event.velocityY > 500 && event.translationY > 30)
+                ) {
+                    translateY.value = withTiming(
+                        vh,
+                        { duration: 200 },
+                        finished => {
+                            "worklet";
+                            if (finished) {
+                                runOnJS(goBack)();
+                            }
+                        }
+                    );
+                } else {
+                    translateY.value = withSpring(0, {
+                        damping: 15,
+                        stiffness: 200
+                    });
+                }
             }
         });
 
@@ -151,14 +179,14 @@ const TrackControllerFullView = () => {
                             filter="contrast(1.25) brightness(0.8)"
                             style={{ width: "100%", height: "100%" }}
                         />
-                        {showLyrics && <Lyrics track={track} lightVibrant={colors?.lightVibrant} />}
+                        {showLyrics && <Lyrics track={track} lightVibrant={track.colors.lightMuted} />}
                     </View>
 
                     {/* slider */}
 
                     <SliderContainer
                         defaultDuration={track?.duration}
-                        lightVibrant={colors?.lightVibrant}
+                        lightVibrant={colors?.lightMuted}
                     />
 
                     {/* controllers */}
