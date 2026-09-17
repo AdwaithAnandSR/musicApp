@@ -29,11 +29,12 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
 
     useEffect(() => {
         const url = track?.cover || track?.artwork;
+        
         if (track?.colors && Object.keys(track.colors).length > 0) {
             setColors(track.colors);
         } else if (url) {
             getColors(url, {
-                fallback: "#ffffff",
+                fallback: "#712958",
                 cache: true,
                 key: url
             }).then(c => setColors(c));
