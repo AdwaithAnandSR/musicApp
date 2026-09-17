@@ -48,7 +48,7 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
             id: item._id || item.id,
             selectedSongs: [track],
             reset: () => {
-                playlistTranslateY.value = withTiming(vh, { duration: 200 }, (finished) => {
+                playlistTranslateY.value = withTiming(vh * 0.7, { duration: 200 }, (finished) => {
                     if (finished) {
                         if (closeSheet) runOnJS(closeSheet)();
                     }
