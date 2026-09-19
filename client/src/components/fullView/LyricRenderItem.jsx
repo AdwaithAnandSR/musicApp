@@ -22,7 +22,7 @@ const LyricRenderItem = ({ item, index, lightVibrant }) => {
 
     useEffect(() => {
         scale.value = withSpring(isActive ? 1.15 : 1, {
-            damping: 15,
+            damping: 25,
             stiffness: 200
         });
         opacity.value = withTiming(isActive ? 1 : 0.6, { duration: 200 });
