@@ -15,7 +15,10 @@ const { height: vh, width: vw } = Dimensions.get("window");
 
 const SLIDER_WIDTH = vw * 0.65;
 
-const clampX = (x) => Math.max(0, Math.min(SLIDER_WIDTH, x));
+const clampX = (x) => {
+    "worklet";
+    return Math.max(0, Math.min(SLIDER_WIDTH, x));
+};
 
 const formatTime = (ms) => {
     if (!ms || ms < 0) return "00:00";
