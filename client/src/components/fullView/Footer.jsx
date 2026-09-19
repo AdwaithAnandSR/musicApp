@@ -45,11 +45,7 @@ const RepeatButton = () => {
                     color="#64748b"
                 />
             ) : (
-                <Feather
-                    name="repeat"
-                    size={ICON_SIZE}
-                    color="#22c55e"
-                />
+                <Feather name="repeat" size={ICON_SIZE} color="#22c55e" />
             )}
         </TouchableOpacity>
     );
@@ -58,7 +54,7 @@ const RepeatButton = () => {
 const TimerButton = () => {
     const timer = usePlayer(state => state.timer);
 
-    const getRemainingStr = (targetTimer) => {
+    const getRemainingStr = targetTimer => {
         if (!targetTimer) return "";
         const rem = targetTimer - Date.now();
         if (rem <= 0) return "";
@@ -70,7 +66,9 @@ const TimerButton = () => {
         return `${totalSec}s`;
     };
 
-    const [timeLeftStr, setTimeLeftStr] = useState(() => getRemainingStr(timer));
+    const [timeLeftStr, setTimeLeftStr] = useState(() =>
+        getRemainingStr(timer)
+    );
 
     useEffect(() => {
         if (!timer) return;
@@ -89,7 +87,7 @@ const TimerButton = () => {
     return (
         <TouchableOpacity
             style={styles.timerBtnContainer}
-            onPress={() => useAppStatus.getState().toggleTimerSelect()}
+            onLongPress={() => useAppStatus.getState().toggleTimerSelect()}
         >
             <Feather
                 name="clock"
@@ -110,13 +108,17 @@ const Footer = () => {
         <View style={styles.container}>
             <RepeatButton />
             <TimerButton />
-            <TouchableOpacity style={styles.iconBtnContainer}>
-                <Feather name="heart" size={ICON_SIZE} color="white" />
-            </TouchableOpacity>
+
             <WheelPicker />
         </View>
     );
 };
+
+/*
+<TouchableOpacity style={styles.iconBtnContainer}>
+                <Feather name="heart" size={ICON_SIZE} color="white" />
+            </TouchableOpacity>
+            */
 
 const styles = StyleSheet.create({
     container: {

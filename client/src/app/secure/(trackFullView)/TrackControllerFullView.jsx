@@ -87,12 +87,12 @@ const TrackControllerFullView = () => {
                 if (event.velocityY > 500 || event.translationY > vh * 0.15) {
                     playlistTranslateY.value = withTiming(vh * 0.7, { duration: 250 });
                 } else if (event.velocityY < -500 || event.translationY < -vh * 0.15) {
-                    playlistTranslateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+                    playlistTranslateY.value = withSpring(0, { damping: 35, stiffness: 150 });
                 } else {
                     if (playlistTranslateY.value > vh * 0.35) {
                         playlistTranslateY.value = withTiming(vh * 0.7, { duration: 250 });
                     } else {
-                        playlistTranslateY.value = withSpring(0, { damping: 20, stiffness: 150 });
+                        playlistTranslateY.value = withSpring(0, { damping: 35, stiffness: 150 });
                     }
                 }
             } else {
