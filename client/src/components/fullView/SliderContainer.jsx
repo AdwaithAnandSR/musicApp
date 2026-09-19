@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Animated, {
     useSharedValue,
@@ -15,6 +15,19 @@ const { height: vh, width: vw } = Dimensions.get("window");
 
 const SLIDER_WIDTH = vw * 0.65;
 
+const clampX = (x) => Math.max(0, Math.min(SLIDER_WIDTH, x));
+
+const formatTime = (ms) => {
+    if (!ms || ms < 0) return "00:00";
+    const minutes = Math.floor(ms / 60);
+    const seconds = Math.floor(ms - minutes * 60);
+    return (
+        (minutes < 10 ? `0${minutes}` : minutes) +
+        ":" +
+        (seconds < 10 ? `0${seconds}` : seconds)
+    );
+};
+
 const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekTime, setSeekTime] = useState(0);
@@ -28,15 +41,29 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     const isSeekingUI = useSharedValue(false);
     const progressShared = useSharedValue(progress || 0);
 
-    useEffect(() => {
-        progressShared.value = progress || 0;
-    }, [progress]);
+    useAnimatedReaction(
+        () => progress,
+        (currentProgress) => {
+            progressShared.value = currentProgress || 0;
+        }
+    );
 
     useAnimatedReaction(
         () => progressShared.value,
         (currentProgress) => {
             if (!isSeekingUI.value) {
                 panX.value = currentProgress * SLIDER_WIDTH;
+            }
+        }
+    );
+
+    // Derive seek time from panX changes on the UI thread, bridge once
+    useAnimatedReaction(
+        () => ({ x: panX.value, seeking: isSeekingUI.value }),
+        (current) => {
+            if (current.seeking) {
+                const time = (current.x / SLIDER_WIDTH) * (duration || 0);
+                runOnJS(setSeekTime)(time);
             }
         }
     );
@@ -48,51 +75,37 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
         setIsSeeking(false);
     };
 
-    const updateSeekTime = (x) => {
-        if (duration) {
-            setSeekTime((x / SLIDER_WIDTH) * duration);
-        }
+    const onSeekStart = () => {
+        setIsSeeking(true);
     };
 
     const panGesture = Gesture.Pan()
         .onBegin((e) => {
+            "worklet";
             isSeekingUI.value = true;
-            runOnJS(setIsSeeking)(true);
-            runOnJS(updateSeekTime)(Math.max(0, Math.min(SLIDER_WIDTH, e.x)));
             thumbScale.value = withSpring(1.5, { damping: 15, stiffness: 300 });
-            panX.value = Math.max(0, Math.min(SLIDER_WIDTH, e.x));
+            panX.value = clampX(e.x);
+            runOnJS(onSeekStart)();
         })
         .onUpdate((e) => {
-            panX.value = Math.max(0, Math.min(SLIDER_WIDTH, e.x));
-            runOnJS(updateSeekTime)(panX.value);
+            "worklet";
+            panX.value = clampX(e.x);
         })
         .onFinalize(() => {
+            "worklet";
             isSeekingUI.value = false;
             thumbScale.value = withSpring(1, { damping: 15, stiffness: 300 });
             runOnJS(handleSlidingComplete)(panX.value / SLIDER_WIDTH);
         });
 
-    const formatTime = ms => {
-        if (!ms || ms < 0) return "00:00";
-        const minutes = Math.floor(ms / 60);
-        const seconds = Math.floor(ms - minutes * 60);
-        return (
-            (minutes < 10 ? `0${minutes}` : minutes) +
-            ":" +
-            (seconds < 10 ? `0${seconds}` : seconds)
-        );
-    };
+    const accentColor = lightVibrant || "#FFFFFF";
 
     const trackStyle = useAnimatedStyle(() => ({
-        width: panX.value,
-        backgroundColor: lightVibrant || "#FFFFFF",
-        height: 4,
-        borderRadius: 2
+        width: panX.value
     }));
 
     const thumbStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: panX.value - 7.5 }, { scale: thumbScale.value }],
-        backgroundColor: lightVibrant || "#FFFFFF"
+        transform: [{ translateX: panX.value - 7.5 }, { scale: thumbScale.value }]
     }));
 
     return (
@@ -102,8 +115,8 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
             <GestureDetector gesture={panGesture}>
                 <View style={styles.sliderHitSlop}>
                     <View style={styles.sliderBackgroundTrack} />
-                    <Animated.View style={[styles.sliderFilledTrack, trackStyle]} />
-                    <Animated.View style={[styles.thumb, thumbStyle]} />
+                    <Animated.View style={[styles.sliderFilledTrack, { backgroundColor: accentColor }, trackStyle]} />
+                    <Animated.View style={[styles.thumb, { backgroundColor: accentColor }, thumbStyle]} />
                 </View>
             </GestureDetector>
 
@@ -138,7 +151,9 @@ const styles = StyleSheet.create({
         position: "absolute"
     },
     sliderFilledTrack: {
-        position: "absolute"
+        position: "absolute",
+        height: 4,
+        borderRadius: 2
     },
     thumb: {
         width: 15,
