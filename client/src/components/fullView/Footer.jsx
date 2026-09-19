@@ -1,16 +1,27 @@
-import { useState, useEffect } from "react";
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import { useState, useEffect, useRef, useCallback } from "react";
+import {
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    Text,
+    findNodeHandle,
+    UIManager,
+    Platform
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useSharedValue, runOnJS } from "react-native-reanimated";
 import {
     Feather,
     MaterialCommunityIcons,
     MaterialIcons
 } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { usePlayer } from "@store/player";
-import { useAppStatus } from "@store/appState.store.js";
-import WheelPicker from "./WheelPicker.jsx";
+import SleepTimerPopup from "./SleepTimerPopup.jsx";
 
 const ICON_SIZE = 25;
+const LONG_PRESS_DURATION = 400; // ms
 
 const RepeatButton = () => {
     const repeatMode = usePlayer(state => state.repeatMode);
@@ -53,6 +64,13 @@ const RepeatButton = () => {
 
 const TimerButton = () => {
     const timer = usePlayer(state => state.timer);
+    const [popupVisible, setPopupVisible] = useState(false);
+    const [anchorLayout, setAnchorLayout] = useState(null);
+    const timerRef = useRef(null);
+    const highlightIndexRef = useRef(-1);
+
+    // Shared value for highlighting — passed to popup
+    const highlightIndex = useSharedValue(-1);
 
     const getRemainingStr = targetTimer => {
         if (!targetTimer) return "";
@@ -71,7 +89,10 @@ const TimerButton = () => {
     );
 
     useEffect(() => {
-        if (!timer) return;
+        if (!timer) {
+            setTimeLeftStr("");
+            return;
+        }
 
         const update = () => {
             setTimeLeftStr(getRemainingStr(timer));
@@ -84,22 +105,105 @@ const TimerButton = () => {
 
     const isTimerActive = !!timeLeftStr;
 
+    // Measure the button position for popup anchoring
+    const measureButton = useCallback(() => {
+        if (timerRef.current) {
+            timerRef.current.measureInWindow((x, y, width, height) => {
+                setAnchorLayout({ pageX: x, pageY: y, width, height });
+            });
+        }
+    }, []);
+
+    const lastHapticIdx = useRef(-1);
+
+    const openPopup = useCallback(() => {
+        if (timerRef.current) {
+            timerRef.current.measureInWindow((x, y, width, height) => {
+                setAnchorLayout({ pageX: x, pageY: y, width, height });
+                setPopupVisible(true);
+            });
+        } else {
+            setPopupVisible(true);
+        }
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        } catch {}
+    }, []);
+
+    const closePopup = useCallback(() => {
+        setPopupVisible(false);
+        highlightIndex.value = -1;
+        lastHapticIdx.current = -1;
+    }, []);
+
+    const updateHighlightFromPageY = useCallback(
+        pageY => {
+            const idx = SleepTimerPopup.getIndexFromPageY(pageY, anchorLayout);
+            if (idx !== lastHapticIdx.current && idx >= 0)
+                lastHapticIdx.current = idx;
+
+            highlightIndex.value = idx;
+            highlightIndexRef.current = idx;
+        },
+        [anchorLayout]
+    );
+
+    const handleRelease = useCallback(() => {
+        setPopupVisible(prev => {
+            if (prev) {
+                const idx = highlightIndexRef.current;
+                if (idx >= 0) {
+                    SleepTimerPopup.handleSelection(idx);
+                }
+                highlightIndex.value = -1;
+                lastHapticIdx.current = -1;
+                return false;
+            }
+            return prev;
+        });
+    }, []);
+
+    const timerGesture = Gesture.Pan()
+        .activateAfterLongPress(LONG_PRESS_DURATION)
+        .onStart(() => {
+            "worklet";
+            runOnJS(openPopup)();
+        })
+        .onUpdate(event => {
+            "worklet";
+            runOnJS(updateHighlightFromPageY)(event.absoluteY);
+        })
+        .onEnd(() => {
+            "worklet";
+            runOnJS(handleRelease)();
+        });
+
     return (
-        <TouchableOpacity
-            style={styles.timerBtnContainer}
-            onLongPress={() => useAppStatus.getState().toggleTimerSelect()}
-        >
-            <Feather
-                name="clock"
-                size={ICON_SIZE}
-                color={isTimerActive ? "#22c55e" : "white"}
-            />
-            {isTimerActive && (
-                <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{timeLeftStr}</Text>
-                </View>
-            )}
-        </TouchableOpacity>
+        <GestureDetector gesture={timerGesture}>
+            <Animated.View
+                ref={timerRef}
+                style={styles.timerBtnContainer}
+                onLayout={measureButton}
+                collapsable={false}
+            >
+                <Feather
+                    name="clock"
+                    size={ICON_SIZE}
+                    color={isTimerActive ? "#22c55e" : "white"}
+                />
+                {isTimerActive && (
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{timeLeftStr}</Text>
+                    </View>
+                )}
+
+                <SleepTimerPopup
+                    visible={popupVisible}
+                    anchorLayout={anchorLayout}
+                    highlightIndex={highlightIndex}
+                />
+            </Animated.View>
+        </GestureDetector>
     );
 };
 
@@ -108,17 +212,9 @@ const Footer = () => {
         <View style={styles.container}>
             <RepeatButton />
             <TimerButton />
-
-            <WheelPicker />
         </View>
     );
 };
-
-/*
-<TouchableOpacity style={styles.iconBtnContainer}>
-                <Feather name="heart" size={ICON_SIZE} color="white" />
-            </TouchableOpacity>
-            */
 
 const styles = StyleSheet.create({
     container: {
