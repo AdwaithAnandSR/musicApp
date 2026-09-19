@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Animated, {
     useSharedValue,
@@ -31,34 +31,39 @@ const formatTime = (ms) => {
     );
 };
 
+// Isolated leaf component: only this tiny Text re-renders on position changes,
+// NOT the entire SliderContainer with its gesture handler and animated styles.
+const CurrentTimeDisplay = () => {
+    const currentTime = usePlayer(state => state.position);
+    return <Text style={styles.timeText}>{formatTime(currentTime)}</Text>;
+};
+
 const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekTime, setSeekTime] = useState(0);
     const duration = usePlayer(state => state.duration);
-    const currentTime = usePlayer(state => state.position);
-    const progress = usePlayer(state => state.progress);
     const seekTo = usePlayer(state => state.seekTo);
 
     const thumbScale = useSharedValue(1);
     const panX = useSharedValue(0);
     const isSeekingUI = useSharedValue(false);
-    const progressShared = useSharedValue(progress || 0);
 
-    useAnimatedReaction(
-        () => progress,
-        (currentProgress) => {
-            progressShared.value = currentProgress || 0;
-        }
-    );
-
-    useAnimatedReaction(
-        () => progressShared.value,
-        (currentProgress) => {
-            if (!isSeekingUI.value) {
-                panX.value = currentProgress * SLIDER_WIDTH;
+    // Subscribe to progress directly from store → shared value.
+    // This bypasses React's render cycle entirely: no component re-render,
+    // just a direct shared value update that the UI thread picks up.
+    useEffect(() => {
+        let lastProgress = -1;
+        const unsubscribe = usePlayer.subscribe((state) => {
+            const prog = state.progress || 0;
+            if (prog !== lastProgress) {
+                lastProgress = prog;
+                if (!isSeekingUI.value) {
+                    panX.value = prog * SLIDER_WIDTH;
+                }
             }
-        }
-    );
+        });
+        return unsubscribe;
+    }, []);
 
     // Derive seek time from panX changes on the UI thread, bridge once
     useAnimatedReaction(
@@ -113,7 +118,11 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
 
     return (
         <View style={styles.sliderContainer}>
-            <Text style={styles.timeText}>{formatTime(isSeeking ? seekTime : currentTime)}</Text>
+            {isSeeking ? (
+                <Text style={styles.timeText}>{formatTime(seekTime)}</Text>
+            ) : (
+                <CurrentTimeDisplay />
+            )}
             
             <GestureDetector gesture={panGesture}>
                 <View style={styles.sliderHitSlop}>

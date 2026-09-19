@@ -135,16 +135,27 @@ export const usePlayer = create((set, get) => ({
                     }
                 }
 
-                set({
-                    isPlaying: status.playing,
-                    isBuffering: status.isBuffering,
-                    isLoaded: status.isLoaded,
-                    position,
-                    duration,
-                    progress: duration ? position / duration : 0,
-                    hasEnded: status.didJustFinish || false,
-                    error: status.error || null
-                });
+                const current = get();
+                const updates = {};
+
+                if (current.isPlaying !== status.playing) updates.isPlaying = status.playing;
+                if (current.isBuffering !== status.isBuffering) updates.isBuffering = status.isBuffering;
+                if (current.isLoaded !== status.isLoaded) updates.isLoaded = status.isLoaded;
+                if (current.position !== position) updates.position = position;
+                if (current.duration !== duration) updates.duration = duration;
+
+                const newProgress = duration ? position / duration : 0;
+                if (current.progress !== newProgress) updates.progress = newProgress;
+
+                const ended = status.didJustFinish || false;
+                if (current.hasEnded !== ended) updates.hasEnded = ended;
+
+                const error = status.error || null;
+                if (current.error !== error) updates.error = error;
+
+                if (Object.keys(updates).length > 0) {
+                    set(updates);
+                }
 
                 if (get().timer != null && get().timer < Date.now())
                     get().clearPlayer();
