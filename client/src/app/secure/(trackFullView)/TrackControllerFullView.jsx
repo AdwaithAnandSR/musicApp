@@ -54,8 +54,6 @@ const TrackControllerFullView = () => {
         }
     }, [trackId, coverUrl, track?.colors]);
 
-    
-
     const translateY = useSharedValue(0);
     const playlistTranslateY = useSharedValue(vh * 0.7);
     const context = useSharedValue({ y: vh * 0.7, startY: 0 });
@@ -68,31 +66,68 @@ const TrackControllerFullView = () => {
         .failOffsetX([-20, 20])
         .onStart(() => {
             "worklet";
-            context.value = { y: playlistTranslateY.value, startY: translateY.value };
+            context.value = {
+                y: playlistTranslateY.value,
+                startY: translateY.value,
+                target: null
+            };
         })
         .onUpdate(event => {
             "worklet";
-            if (context.value.y < vh * 0.7 || (event.translationY < 0 && context.value.startY === 0)) {
+            let target = context.value.target;
+            if (!target) {
+                if (context.value.y < vh * 0.7) {
+                    target = 'playlist';
+                } else if (context.value.startY > 0) {
+                    target = 'fullView';
+                } else if (event.translationY < 0) {
+                    target = 'playlist';
+                } else if (event.translationY > 0) {
+                    target = 'fullView';
+                }
+                
+                if (target) {
+                    context.value = { ...context.value, target };
+                }
+            }
+
+            if (target === 'playlist') {
                 let newY = context.value.y + event.translationY;
                 newY = Math.max(0, Math.min(newY, vh * 0.7));
                 playlistTranslateY.value = newY;
-            } else {
+            } else if (target === 'fullView') {
                 let newY = context.value.startY + event.translationY;
                 translateY.value = newY > 0 ? newY : 0;
             }
         })
         .onEnd(event => {
             "worklet";
-            if (context.value.y < vh * 0.7 || event.translationY < 0) {
+            const target = context.value.target;
+            if (target === 'playlist') {
                 if (event.velocityY > 500 || event.translationY > vh * 0.15) {
-                    playlistTranslateY.value = withTiming(vh * 0.7, { duration: 250 });
-                } else if (event.velocityY < -500 || event.translationY < -vh * 0.15) {
-                    playlistTranslateY.value = withSpring(0, { damping: 35, stiffness: 150 });
+                    playlistTranslateY.value = withTiming(vh * 0.7, {
+                        duration: 250
+                    });
+                } else if (
+                    event.velocityY < -500 ||
+                    event.translationY < -vh * 0.15
+                ) {
+                    playlistTranslateY.value = withSpring(0, {
+                        damping: 20,
+                        stiffness: 150,
+                        overshootClamping: true
+                    });
                 } else {
                     if (playlistTranslateY.value > vh * 0.35) {
-                        playlistTranslateY.value = withTiming(vh * 0.7, { duration: 250 });
+                        playlistTranslateY.value = withTiming(vh * 0.7, {
+                            duration: 250
+                        });
                     } else {
-                        playlistTranslateY.value = withSpring(0, { damping: 35, stiffness: 150 });
+                        playlistTranslateY.value = withSpring(0, {
+                            damping: 20,
+                            stiffness: 150,
+                            overshootClamping: true
+                        });
                     }
                 }
             } else {
@@ -180,7 +215,12 @@ const TrackControllerFullView = () => {
                             filter="contrast(1.25) brightness(0.8)"
                             style={{ width: "100%", height: "100%" }}
                         />
-                        {showLyrics && <Lyrics track={track} lightVibrant={colors?.lightVibrant} />}
+                        {showLyrics && (
+                            <Lyrics
+                                track={track}
+                                lightVibrant={colors?.lightVibrant}
+                            />
+                        )}
                     </View>
 
                     {/* slider */}
