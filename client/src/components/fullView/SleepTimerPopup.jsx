@@ -1,10 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import {
-    View,
-    StyleSheet,
-    Text,
-    Dimensions
-} from "react-native";
+import { View, StyleSheet, Text, Dimensions } from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -51,29 +46,17 @@ const triggerHeavyHaptic = () => {
  * - highlightIndex: Reanimated SharedValue<number> controlled by parent gesture
  */
 const SleepTimerPopup = ({ visible, anchorLayout, highlightIndex }) => {
-    const popupScale = useSharedValue(0.5);
-    const popupOpacity = useSharedValue(0);
+    const popupScale = useSharedValue(0);
 
     useEffect(() => {
-        if (visible) {
-            // popupScale.value = withSpring(1, {
-            //     damping: 16,
-            //     stiffness: 280,
-            //     overshootClamping: false
-            // });
-            popupScale.value = withTiming(1, { duration: 30 });
-            popupOpacity.value = withTiming(1, { duration: 30 });
-        } else {
-            popupScale.value = withTiming(0.5, { duration: 100 });
-            popupOpacity.value = withTiming(0, { duration: 100 });
-        }
+        if (visible) popupScale.value = withTiming(1, { duration: 250 });
+        else popupScale.value = withTiming(0, { duration: 100 });
     }, [visible]);
 
     const popupAnimatedStyle = useAnimatedStyle(() => {
         "worklet";
         return {
-            transform: [{ scale: popupScale.value }],
-            opacity: popupOpacity.value
+            transform: [{ scale: popupScale.value }]
         };
     });
 
@@ -81,16 +64,9 @@ const SleepTimerPopup = ({ visible, anchorLayout, highlightIndex }) => {
 
     return (
         <Animated.View
-            style={[
-                styles.popup,
-                { width: POPUP_WIDTH },
-                popupAnimatedStyle
-            ]}
+            style={[styles.popup, { width: POPUP_WIDTH }, popupAnimatedStyle]}
             pointerEvents="none"
         >
-            <View style={styles.header}>
-                <Text style={styles.headerText}>Sleep Timer</Text>
-            </View>
             {TIMER_OPTIONS.map((opt, idx) => (
                 <OptionRow
                     key={opt.label}
@@ -114,7 +90,13 @@ const OptionRow = React.memo(({ label, index, highlightIndex, isOff }) => {
                     ? "rgba(239, 68, 68, 0.3)"
                     : "rgba(34, 197, 94, 0.25)"
                 : "transparent",
-            transform: [{ scale: withTiming(isHighlighted ? 1.06 : 1, { duration: 100 }) }]
+            transform: [
+                {
+                    scale: withTiming(isHighlighted ? 1.06 : 1, {
+                        duration: 100
+                    })
+                }
+            ]
         };
     });
 
@@ -122,11 +104,7 @@ const OptionRow = React.memo(({ label, index, highlightIndex, isOff }) => {
         "worklet";
         const isHighlighted = highlightIndex.value === index;
         return {
-            color: isHighlighted
-                ? isOff
-                    ? "#ef4444"
-                    : "#22c55e"
-                : "#e2e8f0"
+            color: isHighlighted ? (isOff ? "#ef4444" : "#22c55e") : "#e2e8f0"
         };
     });
 
@@ -170,7 +148,7 @@ SleepTimerPopup.getIndexFromPageY = (pageY, anchorLayout) => {
 /**
  * Execute the selected timer option.
  */
-SleepTimerPopup.handleSelection = (index) => {
+SleepTimerPopup.handleSelection = index => {
     if (index < 0 || index >= TIMER_OPTIONS.length) return;
     const opt = TIMER_OPTIONS[index];
 
@@ -208,14 +186,7 @@ const styles = StyleSheet.create({
         elevation: 30,
         transformOrigin: "bottom center"
     },
-    header: {
-        height: HEADER_HEIGHT,
-        justifyContent: "center",
-        alignItems: "center",
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: "#ffffff20",
-        marginBottom: 4
-    },
+    
     headerText: {
         fontSize: 11,
         fontWeight: "700",
