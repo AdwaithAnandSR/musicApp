@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { FontAwesome5, AntDesign } from "@expo/vector-icons";
 
@@ -172,4 +172,4 @@ const styles = StyleSheet.create({
     }
 });
 
-export default React.memo(ControllersContainer);
+export default ControllersContainer;

@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { useEffect } from "react";
+import { TouchableOpacity, StyleSheet } from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -18,26 +18,28 @@ const LyricRenderItem = ({ item, index, lightVibrant }) => {
     const isActive = currentLyricIndex === index - 1 && showSyncedLyric;
 
     const scale = useSharedValue(1);
+    const opacity = useSharedValue(0.6);
 
     useEffect(() => {
         scale.value = withSpring(isActive ? 1.15 : 1, {
             damping: 15,
             stiffness: 200
         });
+        opacity.value = withTiming(isActive ? 1 : 0.6, { duration: 200 });
     }, [isActive]);
 
-    const animatedStyle = useAnimatedStyle(() => {
-        return {
-            transform: [{ scale: scale.value }],
-            opacity: withTiming(isActive ? 1 : 0.6, { duration: 200 })
-        };
-    });
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: scale.value }],
+        opacity: opacity.value
+    }));
 
     const handleSeek = () => {
         if (typeof item?.start === "number") {
             seekTo(item.start);
         }
     };
+
+    const activeColor = isActive ? (lightVibrant || "rgb(246,7,135)") : "white";
 
     return (
         <TouchableOpacity
@@ -49,11 +51,7 @@ const LyricRenderItem = ({ item, index, lightVibrant }) => {
                 style={[
                     styles.lyricText,
                     animatedStyle,
-                    {
-                        color: isActive
-                            ? lightVibrant || "rgb(246,7,135)"
-                            : "white"
-                    }
+                    { color: activeColor }
                 ]}
             >
                 {item.line?.trim()}
@@ -66,14 +64,13 @@ const styles = StyleSheet.create({
     container: {
         width: "100%",
         paddingVertical: 20,
-        paddingHorizontal: "8%", // Extra padding to allow for scale without hitting parent edges
+        paddingHorizontal: "8%",
         justifyContent: "center"
     },
     lyricText: {
-        color: "white",
         textAlign: "center",
         fontWeight: "bold",
-        fontSize: 24 // slightly smaller base font so it fits better when scaled
+        fontSize: 24
     }
 });
 
