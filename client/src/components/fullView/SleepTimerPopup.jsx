@@ -1,5 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { View, StyleSheet, Text, Dimensions } from "react-native";
+import {
+    View,
+    StyleSheet,
+    Text,
+    Dimensions,
+    TouchableOpacity,
+    Pressable
+} from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -45,12 +52,24 @@ const triggerHeavyHaptic = () => {
  * - anchorLayout: { pageX, pageY, width, height } of the trigger button
  * - highlightIndex: Reanimated SharedValue<number> controlled by parent gesture
  */
-const SleepTimerPopup = ({ visible, anchorLayout, highlightIndex }) => {
+const SleepTimerPopup = ({
+    visible,
+    anchorLayout,
+    highlightIndex,
+    onClose
+}) => {
     const popupScale = useSharedValue(0);
 
     useEffect(() => {
-        if (visible) popupScale.value = withTiming(1, { duration: 250 });
-        else popupScale.value = withTiming(0, { duration: 100 });
+        if (visible) {
+            popupScale.value = withSpring(1, {
+                damping: 50,
+                stiffness: 500,
+                overshootClamping: false
+            });
+        } else {
+            popupScale.value = withTiming(0, { duration: 100 });
+        }
     }, [visible]);
 
     const popupAnimatedStyle = useAnimatedStyle(() => {
@@ -62,66 +81,109 @@ const SleepTimerPopup = ({ visible, anchorLayout, highlightIndex }) => {
 
     if (!visible || !anchorLayout) return null;
 
+    const popupLeft =
+        anchorLayout.pageX + anchorLayout.width / 2 - POPUP_WIDTH / 2;
+    const clampedLeft = Math.max(8, Math.min(popupLeft, vw - POPUP_WIDTH - 8));
+
+    const handleOptionPress = idx => {
+        SleepTimerPopup.handleSelection(idx);
+        if (onClose) onClose();
+    };
+
     return (
-        <Animated.View
-            style={[styles.popup, { width: POPUP_WIDTH }, popupAnimatedStyle]}
-            pointerEvents="none"
-        >
-            {TIMER_OPTIONS.map((opt, idx) => (
-                <OptionRow
-                    key={opt.label}
-                    label={opt.label}
-                    index={idx}
-                    highlightIndex={highlightIndex}
-                    isOff={opt.ms === 0}
-                />
-            ))}
-        </Animated.View>
+        <>
+            <Pressable
+                style={{
+                    position: "absolute",
+                    top: -Dimensions.get("window").height,
+                    left: -Dimensions.get("window").width,
+                    width: Dimensions.get("window").width * 3,
+                    height: Dimensions.get("window").height * 3,
+                    zIndex: 99998
+                }}
+                onPress={() => {
+                    if (onClose) onClose();
+                }}
+            />
+            <Animated.View
+                style={[
+                    styles.popup,
+                    { width: POPUP_WIDTH, left: clampedLeft },
+                    popupAnimatedStyle
+                ]}
+            >
+                <View style={styles.header}>
+                    <Text style={styles.headerText}>Sleep Timer</Text>
+                </View>
+                {TIMER_OPTIONS.map((opt, idx) => (
+                    <OptionRow
+                        key={opt.label}
+                        label={opt.label}
+                        index={idx}
+                        highlightIndex={highlightIndex}
+                        isOff={opt.ms === 0}
+                        onPress={() => handleOptionPress(idx)}
+                    />
+                ))}
+            </Animated.View>
+        </>
     );
 };
 
-const OptionRow = React.memo(({ label, index, highlightIndex, isOff }) => {
-    const animStyle = useAnimatedStyle(() => {
-        "worklet";
-        const isHighlighted = highlightIndex.value === index;
-        return {
-            backgroundColor: isHighlighted
-                ? isOff
-                    ? "rgba(239, 68, 68, 0.3)"
-                    : "rgba(34, 197, 94, 0.25)"
-                : "transparent",
-            transform: [
-                {
-                    scale: withTiming(isHighlighted ? 1.06 : 1, {
-                        duration: 100
-                    })
-                }
-            ]
-        };
-    });
+const OptionRow = React.memo(
+    ({ label, index, highlightIndex, isOff, onPress }) => {
+        const animStyle = useAnimatedStyle(() => {
+            "worklet";
+            const isHighlighted = highlightIndex.value === index;
+            return {
+                backgroundColor: isHighlighted
+                    ? isOff
+                        ? "rgba(239, 68, 68, 0.3)"
+                        : "rgba(34, 197, 94, 0.25)"
+                    : "transparent",
+                transform: [
+                    {
+                        scale: withTiming(isHighlighted ? 1.06 : 1, {
+                            duration: 100
+                        })
+                    }
+                ]
+            };
+        });
 
-    const textStyle = useAnimatedStyle(() => {
-        "worklet";
-        const isHighlighted = highlightIndex.value === index;
-        return {
-            color: isHighlighted ? (isOff ? "#ef4444" : "#22c55e") : "#e2e8f0"
-        };
-    });
+        const textStyle = useAnimatedStyle(() => {
+            "worklet";
+            const isHighlighted = highlightIndex.value === index;
+            return {
+                color: isHighlighted
+                    ? isOff
+                        ? "#ef4444"
+                        : "#22c55e"
+                    : "#e2e8f0"
+            };
+        });
 
-    return (
-        <Animated.View style={[styles.optionRow, animStyle]}>
-            <Animated.Text
-                style={[
-                    styles.optionText,
-                    isOff && styles.optionTextOff,
-                    textStyle
-                ]}
+        return (
+            <TouchableOpacity
+                onPress={onPress}
+                activeOpacity={0.7}
+                style={{ width: "100%" }}
             >
-                {label}
-            </Animated.Text>
-        </Animated.View>
-    );
-});
+                <Animated.View style={[styles.optionRow, animStyle]}>
+                    <Animated.Text
+                        style={[
+                            styles.optionText,
+                            isOff && styles.optionTextOff,
+                            textStyle
+                        ]}
+                    >
+                        {label}
+                    </Animated.Text>
+                </Animated.View>
+            </TouchableOpacity>
+        );
+    }
+);
 
 // --- Static helpers for the parent gesture handler ---
 
@@ -171,8 +233,7 @@ export default SleepTimerPopup;
 const styles = StyleSheet.create({
     popup: {
         position: "absolute",
-        bottom: 42, // 10px above the top of the button (32 height)
-        alignSelf: "center",
+        bottom: 42,
         zIndex: 99999,
         backgroundColor: "#000000ad",
         borderRadius: 16,
@@ -186,7 +247,7 @@ const styles = StyleSheet.create({
         elevation: 30,
         transformOrigin: "bottom center"
     },
-    
+
     headerText: {
         fontSize: 11,
         fontWeight: "700",
