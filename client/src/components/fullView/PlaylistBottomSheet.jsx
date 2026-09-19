@@ -2,7 +2,7 @@ import { useState } from "react";
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Pressable } from "react-native";
 import Animated, { useAnimatedStyle, withTiming, runOnJS, useAnimatedReaction, interpolate, Extrapolation } from "react-native-reanimated";
 import { ScrollView } from "react-native-gesture-handler";
-import { Entypo } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 
 import { usePlayer } from "@store/player.js";
 import queryClient from "@services/queryClient";
@@ -15,8 +15,10 @@ const OPEN_THRESHOLD = vh * 0.65;
 
 const MenuItem = ({ label, onPress }) => (
     <TouchableOpacity onPress={onPress} style={styles.menuItem} activeOpacity={0.7}>
-        <Entypo name="list" size={18} color="white" />
-        <Text style={styles.menuText}>{label}</Text>
+        <View style={styles.iconContainer}>
+            <Ionicons name="musical-notes" size={24} color="#fff" />
+        </View>
+        <Text style={styles.menuText} numberOfLines={1}>{label}</Text>
     </TouchableOpacity>
 );
 
@@ -131,36 +133,37 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: PLAYLIST_CLOSED_Y,
-        backgroundColor: "#121212",
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        paddingTop: 10,
+        backgroundColor: "#1c1c1e",
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        paddingTop: 16,
         paddingHorizontal: vw * 0.05,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: -10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 15,
-        elevation: 20,
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 24,
         zIndex: 100,
     },
     handleContainer: {
         alignItems: "center",
-        paddingBottom: 15,
+        paddingBottom: 24,
         borderBottomWidth: 1,
-        borderBottomColor: "#333",
-        marginBottom: 10,
+        borderBottomColor: "rgba(255, 255, 255, 0.05)",
+        marginBottom: 16,
     },
     handle: {
-        width: 40,
+        width: 48,
         height: 5,
-        backgroundColor: "#555",
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
         borderRadius: 3,
-        marginBottom: 15,
+        marginBottom: 16,
     },
     headerTitle: {
         color: "white",
-        fontSize: 16,
-        fontWeight: "bold",
+        fontSize: 18,
+        fontWeight: "700",
+        letterSpacing: 0.3,
     },
     scrollContainer: {
         flex: 1,
@@ -168,21 +171,33 @@ const styles = StyleSheet.create({
     menuItem: {
         flexDirection: "row",
         alignItems: "center",
-        gap: vw * 0.04,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: "#ffffff10",
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        marginBottom: 12,
+        backgroundColor: "rgba(255, 255, 255, 0.03)",
+        borderRadius: 16,
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 16,
     },
     menuText: {
-        color: "white",
-        fontWeight: "500",
-        fontSize: 15,
+        color: "#f8fafc",
+        fontWeight: "600",
+        fontSize: 16,
+        flex: 1,
     },
     emptyText: {
-        color: "#64748b",
-        fontSize: 14,
+        color: "#94a3b8",
+        fontSize: 15,
         textAlign: "center",
-        paddingVertical: 30,
+        paddingVertical: 40,
+        fontWeight: "500",
     },
 });
 
