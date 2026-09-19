@@ -1,6 +1,21 @@
-import { useState } from "react";
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Pressable } from "react-native";
-import Animated, { useAnimatedStyle, withTiming, runOnJS, useAnimatedReaction, interpolate, Extrapolation } from "react-native-reanimated";
+import { useState, useEffect } from "react";
+import {
+    View,
+    Text,
+    StyleSheet,
+    Dimensions,
+    TouchableOpacity,
+    Pressable,
+    BackHandler
+} from "react-native";
+import Animated, {
+    useAnimatedStyle,
+    withTiming,
+    runOnJS,
+    useAnimatedReaction,
+    interpolate,
+    Extrapolation
+} from "react-native-reanimated";
 import { ScrollView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -14,16 +29,22 @@ const PLAYLIST_CLOSED_Y = vh * 0.7;
 const OPEN_THRESHOLD = vh * 0.65;
 
 const MenuItem = ({ label, onPress }) => (
-    <TouchableOpacity onPress={onPress} style={styles.menuItem} activeOpacity={0.7}>
+    <TouchableOpacity
+        onPress={onPress}
+        style={styles.menuItem}
+        activeOpacity={0.7}
+    >
         <View style={styles.iconContainer}>
             <Ionicons name="musical-notes" size={24} color="#fff" />
         </View>
-        <Text style={styles.menuText} numberOfLines={1}>{label}</Text>
+        <Text style={styles.menuText} numberOfLines={1}>
+            {label}
+        </Text>
     </TouchableOpacity>
 );
 
 const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
-    const track = usePlayer((state) => state.currentTrack);
+    const track = usePlayer(state => state.currentTrack);
     const [isOpen, setIsOpen] = useState(false);
 
     useAnimatedReaction(
@@ -36,22 +57,22 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
         [playlistTranslateY]
     );
 
-    const playlists =
-        (queryClient
+    const playlists = (
+        queryClient
             .getQueryData(["playlists"])
-            ?.pages.flatMap((page) => page.playlists) || [])
-            .filter((item) => {
-                const name = item?.name?.toLowerCase()?.trim();
-                const id = (item?._id || item?.id || "")?.toString()?.toLowerCase();
-                return (
-                    name !== "recently added" &&
-                    name !== "recently-added" &&
-                    name !== "recentlyadded" &&
-                    id !== "recently-added" &&
-                    id !== "recently_added" &&
-                    id !== "recentlyadded"
-                );
-            });
+            ?.pages.flatMap(page => page.playlists) || []
+    ).filter(item => {
+        const name = item?.name?.toLowerCase()?.trim();
+        const id = (item?._id || item?.id || "")?.toString()?.toLowerCase();
+        return (
+            name !== "recently added" &&
+            name !== "recently-added" &&
+            name !== "recentlyadded" &&
+            id !== "recently-added" &&
+            id !== "recently_added" &&
+            id !== "recentlyadded"
+        );
+    });
 
     const animatedStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: playlistTranslateY.value }]
@@ -66,31 +87,58 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
         )
     }));
 
-    const handleAdd = (item) => {
+    const handleAdd = item => {
         addSongsToPlaylist({
             id: item._id || item.id,
             selectedSongs: [track],
             reset: () => {
-                playlistTranslateY.value = withTiming(PLAYLIST_CLOSED_Y, { duration: 200 }, (finished) => {
-                    if (finished) {
-                        if (closeSheet) runOnJS(closeSheet)();
+                playlistTranslateY.value = withTiming(
+                    PLAYLIST_CLOSED_Y,
+                    { duration: 200 },
+                    finished => {
+                        if (finished) {
+                            if (closeSheet) runOnJS(closeSheet)();
+                        }
                     }
-                });
-            },
+                );
+            }
         });
     };
 
     const handleClose = () => {
-        playlistTranslateY.value = withTiming(PLAYLIST_CLOSED_Y, { duration: 200 }, (finished) => {
-            if (finished && closeSheet) runOnJS(closeSheet)();
-        });
+        playlistTranslateY.value = withTiming(
+            PLAYLIST_CLOSED_Y,
+            { duration: 200 },
+            finished => {
+                if (finished && closeSheet) runOnJS(closeSheet)();
+            }
+        );
     };
+
+    useEffect(() => {
+        const onBackPress = () => {
+            if (isOpen) {
+                handleClose();
+                return true;
+            }
+            return false;
+        };
+
+        const subscription = BackHandler.addEventListener(
+            "hardwareBackPress",
+            onBackPress
+        );
+        return () => subscription.remove();
+    }, [isOpen]);
 
     return (
         <>
             {isOpen && (
                 <Animated.View style={[styles.backdrop, backdropStyle]}>
-                    <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+                    <Pressable
+                        style={StyleSheet.absoluteFill}
+                        onPress={handleClose}
+                    />
                 </Animated.View>
             )}
             <Animated.View style={[styles.bottomSheet, animatedStyle]}>
@@ -138,30 +186,30 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 32,
         paddingTop: 16,
         paddingHorizontal: vw * 0.05,
-        zIndex: 100,
+        zIndex: 100
     },
     handleContainer: {
         alignItems: "center",
         paddingBottom: 24,
         borderBottomWidth: 1,
         borderBottomColor: "rgba(255, 255, 255, 0.05)",
-        marginBottom: 16,
+        marginBottom: 16
     },
     handle: {
         width: 48,
         height: 5,
         backgroundColor: "rgba(255, 255, 255, 0.2)",
         borderRadius: 3,
-        marginBottom: 16,
+        marginBottom: 16
     },
     headerTitle: {
         color: "white",
         fontSize: 18,
         fontWeight: "700",
-        letterSpacing: 0.3,
+        letterSpacing: 0.3
     },
     scrollContainer: {
-        flex: 1,
+        flex: 1
     },
     menuItem: {
         flexDirection: "row",
@@ -170,7 +218,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         marginBottom: 12,
         backgroundColor: "rgba(255, 255, 255, 0.05)",
-        borderRadius: 16,
+        borderRadius: 16
     },
     iconContainer: {
         width: 48,
@@ -179,21 +227,21 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255, 255, 255, 0.08)",
         justifyContent: "center",
         alignItems: "center",
-        marginRight: 16,
+        marginRight: 16
     },
     menuText: {
         color: "#f8fafc",
         fontWeight: "600",
         fontSize: 16,
-        flex: 1,
+        flex: 1
     },
     emptyText: {
         color: "#94a3b8",
         fontSize: 15,
         textAlign: "center",
         paddingVertical: 40,
-        fontWeight: "500",
-    },
+        fontWeight: "500"
+    }
 });
 
 export default PlaylistBottomSheet;

@@ -23,6 +23,7 @@ import NavBar from "@components/fullView/NavBar.jsx";
 import Footer from "@components/fullView/Footer.jsx";
 import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
 import PlaylistBottomSheet from "@components/fullView/PlaylistBottomSheet.jsx";
+import { isDarkColor , makeLightColor} from "@services/colors"
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -173,6 +174,8 @@ const TrackControllerFullView = () => {
     const topColor =
         colors?.darkVibrant || colors?.dominant || colors?.average || "#111111";
 
+    const lightColor = isDarkColor(colors?.lightVibrant) ? makeLightColor(colors?.lightVibrant) : colors?.lightVibrant
+    
     return (
         <GestureDetector gesture={panGesture}>
             <Animated.View
@@ -196,7 +199,7 @@ const TrackControllerFullView = () => {
                         </Text>
                     </View>
 
-                    <OptionsContainer lightVibrant={colors?.lightVibrant} />
+                    <OptionsContainer lightVibrant={lightColor} />
 
                     <View
                         style={[
@@ -219,7 +222,7 @@ const TrackControllerFullView = () => {
                         {showLyrics && (
                             <Lyrics
                                 track={track}
-                                lightVibrant={colors?.lightVibrant}
+                                lightVibrant={lightColor}
                             />
                         )}
                     </View>
@@ -228,7 +231,7 @@ const TrackControllerFullView = () => {
 
                     <SliderContainer
                         defaultDuration={track?.duration}
-                        lightVibrant={colors?.lightVibrant}
+                        lightVibrant={lightColor}
                     />
 
                     {/* controllers */}
