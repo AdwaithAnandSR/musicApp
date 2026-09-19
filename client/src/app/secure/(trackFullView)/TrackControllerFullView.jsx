@@ -113,7 +113,8 @@ const TrackControllerFullView = () => {
                 } else {
                     translateY.value = withSpring(0, {
                         damping: 15,
-                        stiffness: 200
+                        stiffness: 200,
+                        overshootClamping: true
                     });
                 }
             }
