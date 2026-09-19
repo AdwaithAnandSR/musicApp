@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity } from "react-native";
-import Animated, { useAnimatedStyle, withTiming, runOnJS } from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Pressable } from "react-native";
+import Animated, { useAnimatedStyle, withTiming, runOnJS, useAnimatedReaction, interpolate, Extrapolation } from "react-native-reanimated";
+import { Gesture, GestureDetector, ScrollView } from "react-native-gesture-handler";
 import { Entypo } from "@expo/vector-icons";
 
 import { usePlayer } from "@store/player.js";
@@ -19,6 +19,17 @@ const MenuItem = ({ label, onPress }) => (
 
 const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
     const track = usePlayer((state) => state.currentTrack);
+    const [isOpen, setIsOpen] = useState(false);
+
+    useAnimatedReaction(
+        () => playlistTranslateY.value < vh * 0.65,
+        (isOpenNow, wasOpen) => {
+            if (isOpenNow !== wasOpen) {
+                runOnJS(setIsOpen)(isOpenNow);
+            }
+        },
+        [playlistTranslateY]
+    );
 
     const playlists =
         (queryClient
@@ -43,6 +54,17 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
         };
     });
 
+    const backdropStyle = useAnimatedStyle(() => {
+        return {
+            opacity: interpolate(
+                playlistTranslateY.value,
+                [0, vh * 0.7],
+                [0.6, 0],
+                Extrapolation.CLAMP
+            )
+        };
+    });
+
     const handleAdd = (item) => {
         addSongsToPlaylist({
             id: item._id || item.id,
@@ -57,15 +79,27 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
         });
     };
 
+    const handleClose = () => {
+        playlistTranslateY.value = withTiming(vh * 0.7, { duration: 200 }, (finished) => {
+            if (finished && closeSheet) runOnJS(closeSheet)();
+        });
+    };
+
     return (
-        <Animated.View style={[styles.bottomSheet, animatedStyle]}>
+        <>
+            {isOpen && (
+                <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: 'black', zIndex: 90 }, backdropStyle]}>
+                    <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+                </Animated.View>
+            )}
+            <Animated.View style={[styles.bottomSheet, animatedStyle]}>
             <View style={styles.handleContainer}>
                 <View style={styles.handle} />
                 <Text style={styles.headerTitle}>Add to Playlist</Text>
             </View>
             <ScrollView
                 style={styles.scrollContainer}
-                showsVerticalScrollIndicator={true}
+                showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
                 bounces={true}
             >
@@ -82,6 +116,7 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
                 )}
             </ScrollView>
         </Animated.View>
+        </>
     );
 };
 
