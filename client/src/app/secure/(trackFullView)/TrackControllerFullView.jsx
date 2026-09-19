@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
 import Animated, {
     useSharedValue,
@@ -25,8 +25,14 @@ import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
 import PlaylistBottomSheet from "@components/fullView/PlaylistBottomSheet.jsx";
 
 const { height: vh, width: vw } = Dimensions.get("window");
+
+const PLAYLIST_CLOSED_Y = vh * 0.7;
+const SWIPE_THRESHOLD = vh * 0.15;
+const PLAYLIST_MID = vh * 0.35;
+
 const blurhash =
     "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
+const blurhashPlaceholder = { blurhash };
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
@@ -55,8 +61,8 @@ const TrackControllerFullView = () => {
     }, [trackId, coverUrl, track?.colors]);
 
     const translateY = useSharedValue(0);
-    const playlistTranslateY = useSharedValue(vh * 0.7);
-    const context = useSharedValue({ y: vh * 0.7, startY: 0 });
+    const playlistTranslateY = useSharedValue(PLAYLIST_CLOSED_Y);
+    const context = useSharedValue({ y: PLAYLIST_CLOSED_Y, startY: 0 });
 
     const goBack = () => router.back();
 
@@ -76,7 +82,7 @@ const TrackControllerFullView = () => {
             "worklet";
             let target = context.value.target;
             if (!target) {
-                if (context.value.y < vh * 0.7) {
+                if (context.value.y < PLAYLIST_CLOSED_Y) {
                     target = 'playlist';
                 } else if (context.value.startY > 0) {
                     target = 'fullView';
@@ -93,7 +99,7 @@ const TrackControllerFullView = () => {
 
             if (target === 'playlist') {
                 let newY = context.value.y + event.translationY;
-                newY = Math.max(0, Math.min(newY, vh * 0.7));
+                newY = Math.max(0, Math.min(newY, PLAYLIST_CLOSED_Y));
                 playlistTranslateY.value = newY;
             } else if (target === 'fullView') {
                 let newY = context.value.startY + event.translationY;
@@ -104,13 +110,13 @@ const TrackControllerFullView = () => {
             "worklet";
             const target = context.value.target;
             if (target === 'playlist') {
-                if (event.velocityY > 500 || event.translationY > vh * 0.15) {
-                    playlistTranslateY.value = withTiming(vh * 0.7, {
+                if (event.velocityY > 500 || event.translationY > SWIPE_THRESHOLD) {
+                    playlistTranslateY.value = withTiming(PLAYLIST_CLOSED_Y, {
                         duration: 250
                     });
                 } else if (
                     event.velocityY < -500 ||
-                    event.translationY < -vh * 0.15
+                    event.translationY < -SWIPE_THRESHOLD
                 ) {
                     playlistTranslateY.value = withSpring(0, {
                         damping: 20,
@@ -118,8 +124,8 @@ const TrackControllerFullView = () => {
                         overshootClamping: true
                     });
                 } else {
-                    if (playlistTranslateY.value > vh * 0.35) {
-                        playlistTranslateY.value = withTiming(vh * 0.7, {
+                    if (playlistTranslateY.value > PLAYLIST_MID) {
+                        playlistTranslateY.value = withTiming(PLAYLIST_CLOSED_Y, {
                             duration: 250
                         });
                     } else {
@@ -132,7 +138,7 @@ const TrackControllerFullView = () => {
                 }
             } else {
                 if (
-                    (event.translationY > vh * 0.15 && event.velocityY >= 0) ||
+                    (event.translationY > SWIPE_THRESHOLD && event.velocityY >= 0) ||
                     (event.velocityY > 500 && event.translationY > 30)
                 ) {
                     translateY.value = withTiming(
@@ -172,7 +178,7 @@ const TrackControllerFullView = () => {
             <Animated.View
                 style={[
                     styles.container,
-                    { backgroundColor: "black" },
+                    styles.bgBlack,
                     animatedStyle
                 ]}
             >
@@ -184,12 +190,7 @@ const TrackControllerFullView = () => {
                     <NavBar />
 
                     {/* title */}
-                    <View
-                        style={{
-                            minHeight: vh * 0.08,
-                            justifyContent: "center"
-                        }}
-                    >
+                    <View style={styles.titleWrapper}>
                         <Text numberOfLines={2} style={styles.title}>
                             {track?.title}
                         </Text>
@@ -209,11 +210,11 @@ const TrackControllerFullView = () => {
                                     ? { uri: coverUrl }
                                     : require("@assets/images/images.jpeg")
                             }
-                            placeholder={{ blurhash }}
+                            placeholder={blurhashPlaceholder}
                             contentFit="cover"
                             transition={1000}
                             filter="contrast(1.25) brightness(0.8)"
-                            style={{ width: "100%", height: "100%" }}
+                            style={styles.imageFill}
                         />
                         {showLyrics && (
                             <Lyrics
@@ -247,6 +248,13 @@ const styles = StyleSheet.create({
         flex: 1,
         borderRadius: 26
     },
+    bgBlack: {
+        backgroundColor: "black"
+    },
+    titleWrapper: {
+        minHeight: vh * 0.08,
+        justifyContent: "center"
+    },
     title: {
         color: "white",
         fontSize: vw * 0.045,
@@ -265,6 +273,10 @@ const styles = StyleSheet.create({
         marginVertical: vh * 0.03,
         shadowOpacity: 1,
         elevation: 80
+    },
+    imageFill: {
+        width: "100%",
+        height: "100%"
     }
 });
 
