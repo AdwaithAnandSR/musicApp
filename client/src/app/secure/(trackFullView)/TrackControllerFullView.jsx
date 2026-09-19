@@ -201,7 +201,7 @@ const TrackControllerFullView = () => {
                     <View
                         style={[
                             styles.imageContainer,
-                            { shadowColor: colors?.lightVibrant || "#32ffd4" }
+                            { boxShadow: `0px 30px 100px ${colors?.lightMuted}b0`, }
                         ]}
                     >
                         <Image
@@ -271,8 +271,6 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         alignSelf: "center",
         marginVertical: vh * 0.03,
-        shadowOpacity: 1,
-        elevation: 80
     },
     imageFill: {
         width: "100%",
