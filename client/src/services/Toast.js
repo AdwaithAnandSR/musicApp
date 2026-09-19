@@ -92,7 +92,7 @@ const ToastManager = () => {
         const words = displayMessage.trim().split(/\s+/);
         if (words.length >= 2) {
             left = words[0];
-            right = words[1];
+            right = words[1]?.split("-")?.join(" ");
         } else if (words.length === 1) {
             left = words[0];
         }
