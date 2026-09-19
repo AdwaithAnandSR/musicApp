@@ -21,7 +21,7 @@ import { usePlayer } from "@store/player";
 import SleepTimerPopup from "./SleepTimerPopup.jsx";
 
 const ICON_SIZE = 25;
-const LONG_PRESS_DURATION = 400; // ms
+const LONG_PRESS_DURATION = 300; // ms
 
 const RepeatButton = () => {
     const repeatMode = usePlayer(state => state.repeatMode);
@@ -149,19 +149,15 @@ const TimerButton = () => {
     );
 
     const handleRelease = useCallback(() => {
-        setPopupVisible(prev => {
-            if (prev) {
-                const idx = highlightIndexRef.current;
-                if (idx >= 0) {
-                    SleepTimerPopup.handleSelection(idx);
-                }
-                highlightIndex.value = -1;
-                lastHapticIdx.current = -1;
-                return false;
-            }
-            return prev;
-        });
-    }, []);
+        const idx = highlightIndexRef.current;
+        if (idx >= 0) {
+            SleepTimerPopup.handleSelection(idx);
+        }
+        highlightIndex.value = -1;
+        highlightIndexRef.current = -1;
+        lastHapticIdx.current = -1;
+        setPopupVisible(false);
+    }, [highlightIndex]);
 
     const timerGesture = Gesture.Pan()
         .activateAfterLongPress(LONG_PRESS_DURATION)
