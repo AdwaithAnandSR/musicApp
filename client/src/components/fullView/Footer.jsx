@@ -21,7 +21,7 @@ import { usePlayer } from "@store/player";
 import SleepTimerPopup from "./SleepTimerPopup.jsx";
 
 const ICON_SIZE = 25;
-const LONG_PRESS_DURATION = 300; // ms
+const LONG_PRESS_DURATION = 250; // ms
 
 const RepeatButton = () => {
     const repeatMode = usePlayer(state => state.repeatMode);
@@ -159,6 +159,16 @@ const TimerButton = () => {
         setPopupVisible(false);
     }, [highlightIndex]);
 
+    const timerTapGesture = Gesture.Tap()
+        .onEnd(() => {
+            "worklet";
+            if (popupVisible) {
+                runOnJS(closePopup)();
+            } else {
+                runOnJS(openPopup)();
+            }
+        });
+
     const timerGesture = Gesture.Pan()
         .activateAfterLongPress(LONG_PRESS_DURATION)
         .onStart(() => {
@@ -174,32 +184,37 @@ const TimerButton = () => {
             runOnJS(handleRelease)();
         });
 
-    return (
-        <GestureDetector gesture={timerGesture}>
-            <Animated.View
-                ref={timerRef}
-                style={styles.timerBtnContainer}
-                onLayout={measureButton}
-                collapsable={false}
-            >
-                <Feather
-                    name="clock"
-                    size={ICON_SIZE}
-                    color={isTimerActive ? "#22c55e" : "white"}
-                />
-                {isTimerActive && (
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{timeLeftStr}</Text>
-                    </View>
-                )}
+    const composedGesture = Gesture.Simultaneous(timerGesture, timerTapGesture);
 
-                <SleepTimerPopup
-                    visible={popupVisible}
-                    anchorLayout={anchorLayout}
-                    highlightIndex={highlightIndex}
-                />
-            </Animated.View>
-        </GestureDetector>
+    return (
+        <>
+            <GestureDetector gesture={composedGesture}>
+                <Animated.View
+                    ref={timerRef}
+                    style={styles.timerBtnContainer}
+                    onLayout={measureButton}
+                    collapsable={false}
+                >
+                    <Feather
+                        name="clock"
+                        size={ICON_SIZE}
+                        color={isTimerActive ? "#22c55e" : "white"}
+                    />
+                    {isTimerActive && (
+                        <View style={styles.badge}>
+                            <Text style={styles.badgeText}>{timeLeftStr}</Text>
+                        </View>
+                    )}
+                </Animated.View>
+            </GestureDetector>
+
+            <SleepTimerPopup
+                visible={popupVisible}
+                anchorLayout={anchorLayout}
+                highlightIndex={highlightIndex}
+                onClose={closePopup}
+            />
+        </>
     );
 };
 
