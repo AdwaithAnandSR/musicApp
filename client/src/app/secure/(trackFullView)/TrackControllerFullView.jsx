@@ -97,7 +97,7 @@ const TrackControllerFullView = () => {
                 }
             } else {
                 if (
-                    event.translationY > vh * 0.15 ||
+                    (event.translationY > vh * 0.15 && event.velocityY >= 0) ||
                     (event.velocityY > 500 && event.translationY > 30)
                 ) {
                     translateY.value = withTiming(
