@@ -58,6 +58,7 @@ app.use("/admin", requireAuth, requireAdmin, adminRoutes);
 app.use("/users", requireAuth, requireAdmin, userRoutes);
 
 import { resumePendingTasks } from "./scripts/resumeTasks.js";
+import { initVideoChangeListener } from "./scripts/videoChangeListener.js";
 
 if (!process.env.VERCEL) {
     // Every day at 7:00 AM
@@ -86,6 +87,9 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running at http://localhost:${PORT}`);
     if (!process.env.VERCEL) {
         setTimeout(resumePendingTasks, 3000);
+        
+        // Start listening to real-time database changes
+        initVideoChangeListener();
     }
 });
 

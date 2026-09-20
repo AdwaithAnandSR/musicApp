@@ -21,29 +21,6 @@ const toggleFavourite = async (req, res) => {
 
         console.log("toggled fav");
 
-        if (music.isFav && !music.videoUrl && music.ytId) {
-            console.log("calling api");
-            // Trigger p01--musicapp--87699hjhjdrd.code.run background download
-            const res = fetch(
-                "https://p01--musicapp--87699hjhjdrd.code.run/admin/video-download",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: req.headers.authorization || ""
-                    },
-                    body: JSON.stringify({
-                        songId: music._id,
-                        ytId: music.ytId
-                    })
-                }
-            ).catch(err => {
-                console.error("Failed to trigger remote video download:", err);
-            });
-
-            console.log(res.json());
-        }
-
         return res.status(200).json({
             message: music.isFav
                 ? "Added to Favourites"
