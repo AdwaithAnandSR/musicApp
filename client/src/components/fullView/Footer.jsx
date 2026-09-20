@@ -13,12 +13,14 @@ import Animated, { useSharedValue, runOnJS } from "react-native-reanimated";
 import {
     Feather,
     MaterialCommunityIcons,
-    MaterialIcons
+    MaterialIcons,
+    AntDesign
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 import { usePlayer } from "@store/player";
 import SleepTimerPopup from "./SleepTimerPopup.jsx";
+import handleToggleFavourite from "../../controllers/playlists/handleToggleFavourite.js";
 
 const ICON_SIZE = 25;
 const LONG_PRESS_DURATION = 250; // ms
@@ -218,10 +220,58 @@ const TimerButton = () => {
     );
 };
 
+const FavoriteButton = () => {
+    const track = usePlayer(state => state.currentTrack);
+    const isFav = track?.isFav || false;
+
+    console.log(track)
+
+    const handlePress = async () => {
+        if (!track) return;
+        
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {}
+
+        // Optimistic update
+        usePlayer.setState(state => ({
+            currentTrack: { ...state.currentTrack, isFav: !isFav }
+        }));
+
+        const newFavState = await handleToggleFavourite(track._id || track.id);
+        
+        // Revert if failed (or just sync with server state)
+        if (newFavState === null) {
+            usePlayer.setState(state => ({
+                currentTrack: { ...state.currentTrack, isFav: isFav }
+            }));
+        } else if (newFavState !== !isFav) {
+            usePlayer.setState(state => ({
+                currentTrack: { ...state.currentTrack, isFav: newFavState }
+            }));
+        }
+    };
+
+    return (
+        <TouchableOpacity
+            style={styles.iconBtnContainer}
+            onPress={handlePress}
+            activeOpacity={0.7}
+        >
+            <AntDesign
+                name={isFav ? "heart" : "heart"}
+                size={ICON_SIZE}
+                color={isFav ? "#ef4444" : "white"}
+            />
+        </TouchableOpacity>
+    );
+};
+
 const Footer = () => {
     return (
         <View style={styles.container}>
             <RepeatButton />
+            <FavoriteButton />
             <TimerButton />
         </View>
     );

@@ -2,8 +2,8 @@ import { create } from "axios";
 import { getToken, removeToken } from "./storage.js";
 import { useAppStatus } from "@store/appState.store";
 
-const BASE_URL = process.env.EXPO_PUBLIC_API ?? "https://vivid-music.vercel.app";
-// const BASE_URL =  "http://localhost:5000";
+// const BASE_URL = process.env.EXPO_PUBLIC_API ?? "https://vivid-music.vercel.app";
+ const BASE_URL =  "http://localhost:5000";
 
 const api = create({
     baseURL: BASE_URL,

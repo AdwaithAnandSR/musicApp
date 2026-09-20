@@ -9,10 +9,11 @@ import addSongs from "../handlers/playlists/add.playlist.js"
 import { getSongs } from "../handlers/playlists/songs.playlist.js"
 import removeSong from "../handlers/playlists/remove.playlist.js"
 import { cleanupPlaylists } from "../handlers/playlists/cleanup.playlist.js"
-
+import toggleFavourite from "../handlers/playlists/toggleFavourite.js"
 
 // playlist
 router.post("/create", create);
+router.post("/toggleFavourite", toggleFavourite);
 
 router.post("/get", getPlaylists);
 router.get("/artists", getArtists);
