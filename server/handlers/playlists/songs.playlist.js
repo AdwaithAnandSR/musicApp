@@ -9,10 +9,11 @@ export const getSongs = async (req, res) => {
 
         const isRandom = random === "true";
         const isSpecialPlaylist = playlistId === "6a3e689cfba948ae55682fe3";
+        const isFavPlaylist = playlistId === "FAVOURITES_PLAYLIST_ID";
         const isArtistPlaylist = Boolean(artistName);
 
         const parsedLimit = Number(limit);
-        const playlistObjectId = (playlistId && playlistId !== "ARTISTS_PLAYLIST_ID" && !isArtistPlaylist) ? new mongoose.Types.ObjectId(playlistId) : null;
+        const playlistObjectId = (playlistId && playlistId !== "ARTISTS_PLAYLIST_ID" && playlistId !== "FAVOURITES_PLAYLIST_ID" && !isArtistPlaylist) ? new mongoose.Types.ObjectId(playlistId) : null;
 
         let songs = [];
         let mappings = [];
@@ -33,7 +34,7 @@ export const getSongs = async (req, res) => {
 
             songs = await Music.find(query)
                 .select(
-                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText"
+                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
                 )
                 .sort({ createdAt: -1 })
                 .limit(parsedLimit);
@@ -48,9 +49,23 @@ export const getSongs = async (req, res) => {
 
             songs = await Music.find(query)
                 .select(
-                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText"
+                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
                 )
                 .sort({ createdAt: -1 })
+                .limit(parsedLimit);
+        }
+        // =========================
+        // 🎵 FAVOURITES PLAYLIST
+        // =========================
+        else if (isFavPlaylist) {
+            let query = { isFav: true };
+            if (cursor) query.favAt = { $lt: new Date(Number(cursor)) };
+
+            songs = await Music.find(query)
+                .select(
+                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav favAt"
+                )
+                .sort({ favAt: -1 })
                 .limit(parsedLimit);
         }
         // =========================
@@ -94,7 +109,7 @@ export const getSongs = async (req, res) => {
             const songsRaw = await Music.find({
                 _id: { $in: songIds }
             }).select(
-                "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText"
+                "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
             );
 
             // preserve order
@@ -118,7 +133,7 @@ export const getSongs = async (req, res) => {
             const songsRaw = await Music.find({
                 _id: { $in: songIds }
             }).select(
-                "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText"
+                "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
             );
 
             // preserve order
@@ -131,7 +146,12 @@ export const getSongs = async (req, res) => {
         // =========================
         let nextCursor = null;
 
-        if (isSpecialPlaylist || isArtistPlaylist) {
+        if (isFavPlaylist) {
+            if (songs.length === parsedLimit) {
+                const lastSong = songs[songs.length - 1];
+                nextCursor = lastSong.favAt ? lastSong.favAt.getTime() : lastSong.createdAt.getTime();
+            }
+        } else if (isSpecialPlaylist || isArtistPlaylist) {
             if (songs.length === parsedLimit)
                 nextCursor = songs[songs.length - 1].createdAt.getTime();
         } else if (isRandom) {

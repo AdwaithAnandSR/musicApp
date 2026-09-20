@@ -121,6 +121,13 @@ const getPlaylists = async (req, res) => {
 
         if (page === 1) {
             playlists.unshift({
+                _id: "FAVOURITES_PLAYLIST_ID",
+                name: "Favourites",
+                description: "Your liked songs",
+                isFavFolder: true,
+                cover: null
+            });
+            playlists.unshift({
                 _id: "ARTISTS_PLAYLIST_ID",
                 name: "Artists",
                 description: "All your favourite artists",
