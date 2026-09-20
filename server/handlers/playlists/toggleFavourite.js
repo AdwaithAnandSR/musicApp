@@ -1,5 +1,5 @@
 import Music from "../../models/musics.js";
-import { processVideoDownload } from "../../utils/videoDownloader.js";
+// import { processVideoDownload } from "../../utils/videoDownloader.js";
 
 const toggleFavourite = async (req, res) => {
     try {
@@ -22,9 +22,16 @@ const toggleFavourite = async (req, res) => {
         console.log("toggled fav")
 
         if (music.isFav && !music.videoUrl && music.ytId) {
-            // Trigger background download, do not await it
-            processVideoDownload(music._id, music.ytId).catch(err => {
-                console.error("Background video download error:", err);
+            // Trigger remote background download
+            fetch("https://p01--musicapp--87699hjhjdrd.code.run/admin/video-download", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": req.headers.authorization || "" 
+                },
+                body: JSON.stringify({ songId: music._id, ytId: music.ytId })
+            }).catch(err => {
+                console.error("Failed to trigger remote video download:", err);
             });
         }
 
