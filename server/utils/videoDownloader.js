@@ -50,7 +50,12 @@ const runCommand = (command, args, ignoreOutput = false, env = undefined) => {
 
         proc.on("close", code => {
             if (code === 0) resolve(stdout);
-            else reject(new Error(`Command failed with code ${code}:\n${stderr.slice(-MAX_LOG_CHARS)}`));
+            else
+                reject(
+                    new Error(
+                        `Command failed with code ${code}:\n${stderr.slice(-MAX_LOG_CHARS)}`
+                    )
+                );
         });
         proc.on("error", err => reject(err));
     });
@@ -65,7 +70,7 @@ const loadCookiesFromDb = async () => {
     }
 };
 
-const writeCookieFile = (netscapeContent) => {
+const writeCookieFile = netscapeContent => {
     if (!netscapeContent) return null;
     const cookiePath = path.resolve(
         process.cwd(),
@@ -76,17 +81,25 @@ const writeCookieFile = (netscapeContent) => {
 };
 
 export const processVideoDownload = async (songId, ytId) => {
+    console.log("start processing");
     const { command, prefix, env } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
-    if (!fs.existsSync(downloadDir)) fs.mkdirSync(downloadDir, { recursive: true });
+    if (!fs.existsSync(downloadDir))
+        fs.mkdirSync(downloadDir, { recursive: true });
+
+    console.log("created path");
 
     const jobId = Math.random().toString(36).slice(2, 9);
     const filePrefix = `vid_${ytId}_${jobId}`;
     const rawVideoPath = path.join(downloadDir, `${filePrefix}_raw.mp4`);
-    const processedVideoPath = path.join(downloadDir, `${filePrefix}_processed.mp4`);
+    const processedVideoPath = path.join(
+        downloadDir,
+        `${filePrefix}_processed.mp4`
+    );
 
     let cookieFile = null;
     try {
+        console.log("loading cookie");
         const cookies = await loadCookiesFromDb();
         if (cookies) cookieFile = writeCookieFile(cookies);
     } catch (e) {}
@@ -97,10 +110,11 @@ export const processVideoDownload = async (songId, ytId) => {
         console.log(`[Video Download] Started for ytId: ${ytId}`);
 
         // 1. Download best video stream (no audio) max 1080p to allow good 720x1280 crop
-        // Wait, bestvideo[ext=mp4] is good. 
+        // Wait, bestvideo[ext=mp4] is good.
         const dlArgs = [
             ...prefix,
-            "-f", "bestvideo[height<=1080][ext=mp4]/bestvideo[ext=mp4]/best[ext=mp4]",
+            "-f",
+            "bestvideo[height<=1080][ext=mp4]/bestvideo[ext=mp4]/best[ext=mp4]",
             "--no-playlist",
             "--no-cache-dir",
             "--no-progress",
@@ -112,7 +126,8 @@ export const processVideoDownload = async (songId, ytId) => {
             "3",
             "--socket-timeout",
             "30",
-            "-o", rawVideoPath,
+            "-o",
+            rawVideoPath,
             ...cookieArgs,
             `https://www.youtube.com/watch?v=${ytId}`
         ];
@@ -125,19 +140,24 @@ export const processVideoDownload = async (songId, ytId) => {
         }
 
         console.log(`[Video Download] Processing video with ffmpeg...`);
-        
+
         // 2. Process with ffmpeg
         // crop/scale to portrait 9:16 (720x1280)
         // preserve aspect ratio, crop excess
         // remove audio (-an)
         // H.264 mp4
         const ffmpegArgs = [
-            "-i", rawVideoPath,
-            "-vf", "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
+            "-i",
+            rawVideoPath,
+            "-vf",
+            "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
             "-an",
-            "-c:v", "libx264",
-            "-preset", "fast",
-            "-crf", "28",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "fast",
+            "-crf",
+            "28",
             "-y",
             processedVideoPath
         ];
@@ -152,36 +172,51 @@ export const processVideoDownload = async (songId, ytId) => {
         console.log(`[Video Download] Uploading to Cloudinary...`);
         const cloudName = process.env.CLOUDINARY_CLOUD_NAME_VIDEO;
         const apiKey = process.env.CLOUDINARY_API_KEY_VIDEO;
-        const apiSecret = process.env.CLOUDINARY_API_SECRET_VIDEO ;
+        const apiSecret = process.env.CLOUDINARY_API_SECRET_VIDEO;
 
-        const uploadResult = await cloudinary.uploader.upload(processedVideoPath, {
-            resource_type: "video",
-            folder: "musicApp/backgrounds",
-            cloud_name: cloudName,
-            api_key: apiKey,
-            api_secret: apiSecret
-        });
+        const uploadResult = await cloudinary.uploader.upload(
+            processedVideoPath,
+            {
+                resource_type: "video",
+                folder: "musicApp/backgrounds",
+                cloud_name: cloudName,
+                api_key: apiKey,
+                api_secret: apiSecret
+            }
+        );
 
         const videoUrl = uploadResult.secure_url;
 
         // 4. Save to DB
         await musicModel.findByIdAndUpdate(songId, { videoUrl });
-        console.log(`[Video Download] Successfully updated videoUrl for song ${songId}`);
-
+        console.log(
+            `[Video Download] Successfully updated videoUrl for song ${songId}`
+        );
     } catch (err) {
-        console.error(`[Video Download] Error processing video for ${ytId}:`, err);
+        console.error(
+            `[Video Download] Error processing video for ${ytId}:`,
+            err
+        );
     } finally {
         if (cookieFile && fs.existsSync(cookieFile)) {
-            try { fs.unlinkSync(cookieFile); } catch (e) {}
+            try {
+                fs.unlinkSync(cookieFile);
+            } catch (e) {}
         }
-        try { if (fs.existsSync(rawVideoPath)) fs.unlinkSync(rawVideoPath); } catch (e) {}
-        try { if (fs.existsSync(processedVideoPath)) fs.unlinkSync(processedVideoPath); } catch (e) {}
-        
+        try {
+            if (fs.existsSync(rawVideoPath)) fs.unlinkSync(rawVideoPath);
+        } catch (e) {}
+        try {
+            if (fs.existsSync(processedVideoPath))
+                fs.unlinkSync(processedVideoPath);
+        } catch (e) {}
+
         // clean up any other files yt-dlp might have left (like .part)
         try {
             const currentFiles = fs.readdirSync(downloadDir);
             currentFiles.forEach(f => {
-                if (f.startsWith(filePrefix)) fs.unlinkSync(path.join(downloadDir, f));
+                if (f.startsWith(filePrefix))
+                    fs.unlinkSync(path.join(downloadDir, f));
             });
         } catch (e) {}
     }
