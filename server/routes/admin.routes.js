@@ -70,4 +70,25 @@ router.get("/cloudStatus", cloudStatus);
 
 router.post("/youtubeDownload", youtubeDownload);
 
+import { processVideoDownload } from "../utils/videoDownloader.js";
+
+router.post("/video-download", async (req, res) => {
+    try {
+        const { songId, ytId } = req.body;
+        if (!songId || !ytId) {
+            return res.status(400).json({ success: false, message: "songId and ytId required" });
+        }
+
+        // Run background download
+        processVideoDownload(songId, ytId).catch(err => {
+            console.error("Background video download error:", err);
+        });
+
+        res.json({ success: true, message: "Video download started" });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false });
+    }
+});
+
 export default router;
