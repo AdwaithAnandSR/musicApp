@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
-import FontAwesome5 from "@react-native-vector-icons/fontawesome5/static";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import AntDesign from "@react-native-vector-icons/ant-design/static";
 
 import { useStatus } from "@store/appState.store.js";
@@ -97,11 +97,10 @@ const ControllersContainer = () => {
                         onPress={handlePlayPause}
                         style={styles.btnContainer}
                     >
-                        <FontAwesome5
+                        <Ionicons
                             name="pause"
-                            size={playPauseIconSize}
+                            size={playPauseIconSize + 5}
                             color="white"
-                            solid
                         />
                     </TouchableOpacity>
                 ) : (
@@ -109,11 +108,10 @@ const ControllersContainer = () => {
                         onPress={handlePlayPause}
                         style={styles.btnContainer}
                     >
-                        <FontAwesome5
+                        <Ionicons
                             name="play"
                             size={playPauseIconSize}
                             color="white"
-                            solid
                         />
                     </TouchableOpacity>
                 )}

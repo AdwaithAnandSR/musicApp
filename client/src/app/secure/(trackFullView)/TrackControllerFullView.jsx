@@ -54,6 +54,10 @@ const TrackControllerFullView = () => {
     const coverUrl = track?.cover || track?.artwork;
     const videoUrl = track?.videoUrl;
 
+    const isPlaying = usePlayer(state => state.isPlaying);
+    const isBuffering = usePlayer(state => state.isBuffering);
+    const audioPosition = usePlayer(state => state.position); // In seconds
+
     const player = useVideoPlayer(videoUrl, p => {
         p.loop = true;
         p.muted = true;
@@ -61,10 +65,26 @@ const TrackControllerFullView = () => {
 
     useEffect(() => {
         if (player) {
-            if (showVideo) player.play();
-            else player.pause();
+            if (showVideo && isPlaying && !isBuffering) {
+                player.play();
+            } else {
+                player.pause();
+            }
         }
-    }, [showVideo, player]);
+    }, [showVideo, isPlaying, isBuffering, player]);
+
+    useEffect(() => {
+        if (player && showVideo && isPlaying && !isBuffering) {
+            // Don't force sync if video is currently trying to buffer its own stream
+            if (player.status === "loading" || player.status === "idle") return;
+
+            const diff = Math.abs(player.currentTime - audioPosition);
+            // Sync video if it's lagging or ahead by more than 1.5s
+            if (diff > 1.5) {
+                player.currentTime = audioPosition;
+            }
+        }
+    }, [audioPosition, player, showVideo, isPlaying, isBuffering]);
 
     useEffect(() => {
         if (!trackId) {
@@ -313,7 +333,7 @@ const TrackControllerFullView = () => {
                                     {
                                         width: "100%",
                                         height: "100%",
-                                        backgroundColor: "#000000c0"
+                                        backgroundColor: "#000000a0"
                                     }
                                 ]}
                             />
@@ -351,7 +371,10 @@ const TrackControllerFullView = () => {
                                 contentFit="cover"
                                 transition={1000}
                                 filter="contrast(1.25) brightness(0.8)"
-                                style={styles.imageFill}
+                                style={[
+                                    styles.imageFill,
+                                    { opacity: showVideo && videoUrl ? 0.4 : 1 }
+                                ]}
                             />
                             {showLyrics && (
                                 <Lyrics
