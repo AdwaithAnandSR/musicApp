@@ -10,6 +10,7 @@ const musicSchema = mongoose.Schema({
         type: String,
         required: true
     },
+    videoUrl: String,
     cover: String,
     duration: Number,
     artist: {

@@ -1,4 +1,5 @@
 import Music from "../../models/musics.js";
+import { processVideoDownload } from "../../utils/videoDownloader.js";
 
 const toggleFavourite = async (req, res) => {
     try {
@@ -17,6 +18,13 @@ const toggleFavourite = async (req, res) => {
         music.isFav = !music.isFav;
         music.favAt = music.isFav ? new Date() : null;
         await music.save();
+
+        if (music.isFav && !music.videoUrl && music.ytId) {
+            // Trigger background download, do not await it
+            processVideoDownload(music._id, music.ytId).catch(err => {
+                console.error("Background video download error:", err);
+            });
+        }
 
         return res.status(200).json({ 
             message: music.isFav ? "Added to Favourites" : "Removed from Favourites",
