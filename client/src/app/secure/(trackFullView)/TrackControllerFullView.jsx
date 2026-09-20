@@ -181,13 +181,13 @@ const TrackControllerFullView = () => {
         "worklet";
         heartScale.value = 0; // reset
         heartScale.value = withSequence(
-            withSpring(1.5, { damping: 10, stiffness: 200 }),
-            withSpring(1, { damping: 10, stiffness: 500 })
+            withSpring(1.5, { damping: 12, stiffness: 150 }),
+            withSpring(1, { damping: 12, stiffness: 100 })
         );
         heartOpacity.value = 0; // reset
         heartOpacity.value = withSequence(
-            withTiming(1, { duration: 300 }),
-            withDelay(300, withTiming(0, { duration: 300 }))
+            withTiming(1, { duration: 250 }),
+            withDelay(700, withTiming(0, { duration: 400 }))
         );
     };
 

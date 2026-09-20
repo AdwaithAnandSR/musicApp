@@ -1,6 +1,7 @@
 import mongoose from "mongoose"
 import playlistModel from "../../models/playlist.js";
 import PlaylistSong from "../../models/playlistSong.js";
+import Music from "../../models/musics.js";
 
 const getPlaylists = async (req, res) => {
     try {
@@ -120,12 +121,17 @@ const getPlaylists = async (req, res) => {
         const total = await playlistModel.countDocuments();
 
         if (page === 1) {
+            const latestFavSong = await Music.findOne({ isFav: true })
+                .sort({ favAt: -1 })
+                .select("cover")
+                .lean();
+
             playlists.unshift({
                 _id: "FAVOURITES_PLAYLIST_ID",
                 name: "Favourites",
                 description: "Your liked songs",
                 isFavFolder: true,
-                cover: null
+                cover: latestFavSong ? latestFavSong.cover : null
             });
             playlists.unshift({
                 _id: "ARTISTS_PLAYLIST_ID",
