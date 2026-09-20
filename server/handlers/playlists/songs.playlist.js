@@ -5,21 +5,43 @@ import mongoose from "mongoose";
 
 export const getSongs = async (req, res) => {
     try {
-        const { playlistId, cursor, limit = 50, random, seed } = req.query;
+        const { playlistId, cursor, limit = 50, random, seed, artistName } = req.query;
 
         const isRandom = random === "true";
         const isSpecialPlaylist = playlistId === "6a3e689cfba948ae55682fe3";
+        const isArtistPlaylist = Boolean(artistName);
 
         const parsedLimit = Number(limit);
-        const playlistObjectId = new mongoose.Types.ObjectId(playlistId);
+        const playlistObjectId = (playlistId && playlistId !== "ARTISTS_PLAYLIST_ID" && !isArtistPlaylist) ? new mongoose.Types.ObjectId(playlistId) : null;
 
         let songs = [];
         let mappings = [];
 
         // =========================
+        // 🎵 ARTIST PLAYLIST
+        // =========================
+        if (isArtistPlaylist) {
+            let query = {};
+            if (cursor) query.createdAt = { $lt: new Date(Number(cursor)) };
+
+            // Escape special regex chars from artist name
+            const escapedName = artistName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            
+            // Match exact artist name from comma-separated list, ignoring case
+            const regex = new RegExp(`(^|,)\\s*${escapedName}\\s*(,|$)`, "i");
+            query.artist = { $regex: regex };
+
+            songs = await Music.find(query)
+                .select(
+                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText"
+                )
+                .sort({ createdAt: -1 })
+                .limit(parsedLimit);
+        }
+        // =========================
         // 🎵 SPECIAL PLAYLIST (DIRECT MUSIC ACCESS - NEWEST FIRST)
         // =========================
-        if (isSpecialPlaylist) {
+        else if (isSpecialPlaylist) {
             let query = {};
 
             if (cursor) query.createdAt = { $lt: new Date(Number(cursor)) };
@@ -109,7 +131,7 @@ export const getSongs = async (req, res) => {
         // =========================
         let nextCursor = null;
 
-        if (isSpecialPlaylist) {
+        if (isSpecialPlaylist || isArtistPlaylist) {
             if (songs.length === parsedLimit)
                 nextCursor = songs[songs.length - 1].createdAt.getTime();
         } else if (isRandom) {
@@ -136,3 +158,5 @@ export const getSongs = async (req, res) => {
 };
 
 export default getSongs;
+
+

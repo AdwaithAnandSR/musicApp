@@ -119,6 +119,16 @@ const getPlaylists = async (req, res) => {
         ]);
         const total = await playlistModel.countDocuments();
 
+        if (page === 1) {
+            playlists.unshift({
+                _id: "ARTISTS_PLAYLIST_ID",
+                name: "Artists",
+                description: "All your favourite artists",
+                isArtistsFolder: true,
+                cover: null // The client can use a default cover or we can fetch a random one
+            });
+        }
+
         return res.json({
             playlists,
             nextPage: page * limit < total ? page + 1 : null
