@@ -31,12 +31,19 @@ const getArtists = async (req, res) => {
                     cover: 1
                 }
             },
-            // 5. Group by lowercased artist name, get original casing and first cover
+            // 5. Group by lowercased artist name, get original casing, first cover, and count songs
             {
                 $group: {
                     _id: "$lowerArtist",
                     name: { $first: "$originalArtist" },
-                    cover: { $first: "$cover" }
+                    cover: { $first: "$cover" },
+                    songCount: { $sum: 1 }
+                }
+            },
+            // Filter out artists that have only 1 song
+            {
+                $match: {
+                    songCount: { $gt: 1 }
                 }
             },
             // 6. Sort by name alphabetically
