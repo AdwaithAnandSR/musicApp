@@ -10,12 +10,10 @@ import {
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, { useSharedValue, runOnJS, withSpring, useAnimatedStyle } from "react-native-reanimated";
-import {
-    Feather,
-    MaterialCommunityIcons,
-    MaterialIcons,
-    Entypo
-} from "@expo/vector-icons";
+import Feather from "@react-native-vector-icons/feather/static";
+import MaterialCommunityIcons from "@react-native-vector-icons/material-design-icons/static";
+import MaterialIcons from "@react-native-vector-icons/material-icons/static";
+import Entypo from "@react-native-vector-icons/entypo/static";
 import * as Haptics from "expo-haptics";
 
 import { usePlayer } from "@store/player";

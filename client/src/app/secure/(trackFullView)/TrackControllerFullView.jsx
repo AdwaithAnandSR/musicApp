@@ -14,7 +14,7 @@ import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Entypo } from "@expo/vector-icons";
+import Entypo from "@react-native-vector-icons/entypo/static";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";

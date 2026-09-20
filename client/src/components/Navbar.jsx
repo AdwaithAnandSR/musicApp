@@ -6,7 +6,8 @@ import {
     TouchableOpacity,
     StyleSheet
 } from "react-native";
-import { Entypo, Ionicons } from "@expo/vector-icons";
+import Entypo from "@react-native-vector-icons/entypo/static";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 
 import { useMultiSelect, useAppStatus } from "../store/appState.store.js";
 import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";

@@ -7,7 +7,7 @@ import {
     TextInput,
     TouchableOpacity
 } from "react-native";
-import { Entypo } from "@expo/vector-icons";
+import Entypo from "@react-native-vector-icons/entypo/static";
 import { router } from "expo-router";
 
 import handleCreatePlaylist from "@controllers/playlists/handleCreatePlaylist.js";
