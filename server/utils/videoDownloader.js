@@ -92,10 +92,6 @@ export const processVideoDownload = async (songId, ytId) => {
     const jobId = Math.random().toString(36).slice(2, 9);
     const filePrefix = `vid_${ytId}_${jobId}`;
     const rawVideoPath = path.join(downloadDir, `${filePrefix}_raw.mp4`);
-    const processedVideoPath = path.join(
-        downloadDir,
-        `${filePrefix}_processed.mp4`
-    );
 
     let cookieFile = null;
     try {
@@ -139,35 +135,6 @@ export const processVideoDownload = async (songId, ytId) => {
             throw new Error("Raw video file not found after yt-dlp download");
         }
 
-        console.log(`[Video Download] Processing video with ffmpeg...`);
-
-        // 2. Process with ffmpeg
-        // crop/scale to portrait 9:16 (720x1280)
-        // preserve aspect ratio, crop excess
-        // remove audio (-an)
-        // H.264 mp4
-        const ffmpegArgs = [
-            "-i",
-            rawVideoPath,
-            "-vf",
-            "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280",
-            "-an",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "fast",
-            "-crf",
-            "28",
-            "-y",
-            processedVideoPath
-        ];
-
-        await runCommand("ffmpeg", ffmpegArgs, true);
-
-        if (!fs.existsSync(processedVideoPath)) {
-            throw new Error("Processed video file not found after ffmpeg");
-        }
-
         // 3. Upload to Cloudinary using _VIDEO credentials
         console.log(`[Video Download] Uploading to Cloudinary...`);
         const cloudName = process.env.CLOUDINARY_CLOUD_NAME_VIDEO;
@@ -175,7 +142,7 @@ export const processVideoDownload = async (songId, ytId) => {
         const apiSecret = process.env.CLOUDINARY_API_SECRET_VIDEO;
 
         const uploadResult = await cloudinary.uploader.upload(
-            processedVideoPath,
+            rawVideoPath,
             {
                 resource_type: "video",
                 folder: "musicApp/backgrounds",
@@ -205,10 +172,6 @@ export const processVideoDownload = async (songId, ytId) => {
         }
         try {
             if (fs.existsSync(rawVideoPath)) fs.unlinkSync(rawVideoPath);
-        } catch (e) {}
-        try {
-            if (fs.existsSync(processedVideoPath))
-                fs.unlinkSync(processedVideoPath);
         } catch (e) {}
 
         // clean up any other files yt-dlp might have left (like .part)
