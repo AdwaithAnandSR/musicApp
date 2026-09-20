@@ -19,6 +19,8 @@ const toggleFavourite = async (req, res) => {
         music.favAt = music.isFav ? new Date() : null;
         await music.save();
 
+        console.log("toggled fav")
+
         if (music.isFav && !music.videoUrl && music.ytId) {
             // Trigger background download, do not await it
             processVideoDownload(music._id, music.ytId).catch(err => {
