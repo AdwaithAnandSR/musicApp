@@ -24,6 +24,8 @@ import Footer from "@components/fullView/Footer.jsx";
 import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
 import PlaylistBottomSheet from "@components/fullView/PlaylistBottomSheet.jsx";
 import { isDarkColor , makeLightColor} from "@services/colors"
+import handleToggleFavourite from "../../../controllers/playlists/handleToggleFavourite.js";
+import * as Haptics from "expo-haptics";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -161,6 +163,39 @@ const TrackControllerFullView = () => {
                 }
             }
         });
+        
+    const toggleFavourite = async () => {
+        if (!track) return;
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {}
+
+        const isFav = track?.isFav || false;
+        usePlayer.setState(state => ({
+            currentTrack: { ...state.currentTrack, isFav: !isFav }
+        }));
+
+        const newFavState = await handleToggleFavourite(track._id || track.id);
+        
+        if (newFavState === null) {
+            usePlayer.setState(state => ({
+                currentTrack: { ...state.currentTrack, isFav: isFav }
+            }));
+        } else if (newFavState !== !isFav) {
+            usePlayer.setState(state => ({
+                currentTrack: { ...state.currentTrack, isFav: newFavState }
+            }));
+        }
+    };
+
+    const doubleTapGesture = Gesture.Tap()
+        .numberOfTaps(2)
+        .onEnd(() => {
+            "worklet";
+            runOnJS(toggleFavourite)();
+        });
+
+    const composedGesture = Gesture.Simultaneous(panGesture, doubleTapGesture);
 
     const animatedStyle = useAnimatedStyle(() => {
         "worklet";
@@ -177,7 +212,7 @@ const TrackControllerFullView = () => {
     const lightColor = isDarkColor(colors?.lightVibrant) ? makeLightColor(colors?.lightVibrant) : colors?.lightVibrant
     
     return (
-        <GestureDetector gesture={panGesture}>
+        <GestureDetector gesture={composedGesture}>
             <Animated.View
                 style={[
                     styles.container,

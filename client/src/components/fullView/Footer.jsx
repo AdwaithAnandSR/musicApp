@@ -14,7 +14,7 @@ import {
     Feather,
     MaterialCommunityIcons,
     MaterialIcons,
-    AntDesign
+    Entypo
 } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -161,15 +161,14 @@ const TimerButton = () => {
         setPopupVisible(false);
     }, [highlightIndex]);
 
-    const timerTapGesture = Gesture.Tap()
-        .onEnd(() => {
-            "worklet";
-            if (popupVisible) {
-                runOnJS(closePopup)();
-            } else {
-                runOnJS(openPopup)();
-            }
-        });
+    const timerTapGesture = Gesture.Tap().onEnd(() => {
+        "worklet";
+        if (popupVisible) {
+            runOnJS(closePopup)();
+        } else {
+            runOnJS(openPopup)();
+        }
+    });
 
     const timerGesture = Gesture.Pan()
         .activateAfterLongPress(LONG_PRESS_DURATION)
@@ -224,11 +223,11 @@ const FavoriteButton = () => {
     const track = usePlayer(state => state.currentTrack);
     const isFav = track?.isFav || false;
 
-    console.log(track)
+    console.log(track);
 
     const handlePress = async () => {
         if (!track) return;
-        
+
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } catch {}
@@ -239,7 +238,7 @@ const FavoriteButton = () => {
         }));
 
         const newFavState = await handleToggleFavourite(track._id || track.id);
-        
+
         // Revert if failed (or just sync with server state)
         if (newFavState === null) {
             usePlayer.setState(state => ({
@@ -258,9 +257,9 @@ const FavoriteButton = () => {
             onPress={handlePress}
             activeOpacity={0.7}
         >
-            <AntDesign
-                name={isFav ? "heart" : "heart"}
-                size={ICON_SIZE}
+            <Entypo
+                name={isFav ? "heart" : "heart-outlined"}
+                size={ICON_SIZE + 5}
                 color={isFav ? "#ef4444" : "white"}
             />
         </TouchableOpacity>
