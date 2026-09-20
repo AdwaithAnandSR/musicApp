@@ -3,6 +3,8 @@ import PlaylistSong from "../../models/playlistSong.js";
 
 import mongoose from "mongoose";
 
+const MUSIC_SELECT_FIELDS = "_id title cover artist duration url videoUrl createdAt ytId synced lyrics lyricsAsText isFav";
+
 export const getSongs = async (req, res) => {
     try {
         const { playlistId, cursor, limit = 50, random, seed, artistName } = req.query;
@@ -33,9 +35,7 @@ export const getSongs = async (req, res) => {
             query.artist = { $regex: regex };
 
             songs = await Music.find(query)
-                .select(
-                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
-                )
+                .select(MUSIC_SELECT_FIELDS)
                 .sort({ createdAt: -1 })
                 .limit(parsedLimit);
         }
@@ -48,9 +48,7 @@ export const getSongs = async (req, res) => {
             if (cursor) query.createdAt = { $lt: new Date(Number(cursor)) };
 
             songs = await Music.find(query)
-                .select(
-                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
-                )
+                .select(MUSIC_SELECT_FIELDS)
                 .sort({ createdAt: -1 })
                 .limit(parsedLimit);
         }
@@ -62,9 +60,7 @@ export const getSongs = async (req, res) => {
             if (cursor) query.favAt = { $lt: new Date(Number(cursor)) };
 
             songs = await Music.find(query)
-                .select(
-                    "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav favAt"
-                )
+                .select(`${MUSIC_SELECT_FIELDS} favAt`)
                 .sort({ favAt: -1 })
                 .limit(parsedLimit);
         }
@@ -132,9 +128,7 @@ export const getSongs = async (req, res) => {
 
             const songsRaw = await Music.find({
                 _id: { $in: songIds }
-            }).select(
-                "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
-            );
+            }).select(MUSIC_SELECT_FIELDS);
 
             // preserve order
             const map = new Map(songsRaw.map(s => [s._id.toString(), s]));
