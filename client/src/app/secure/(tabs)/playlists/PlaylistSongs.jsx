@@ -30,12 +30,13 @@ const limit = 50,
 const PlaylistSongs = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
-    const { playlistId, playlistName } = useLocalSearchParams();
+    const { playlistId, playlistName, artistName } = useLocalSearchParams();
+    const computedPlaylistId = artistName ? `artist_${artistName}` : playlistId;
 
     const [isRandom, setIsRandom] = useState(() => {
         const playerState = usePlayer.getState();
         return (
-            playerState.currentPlaylistId === playlistId &&
+            playerState.currentPlaylistId === computedPlaylistId &&
             playerState.isRandomPlaylist
         );
     });
@@ -43,7 +44,7 @@ const PlaylistSongs = () => {
     const [seed, setSeed] = useState(() => {
         const playerState = usePlayer.getState();
         if (
-            playerState.currentPlaylistId === playlistId &&
+            playerState.currentPlaylistId === computedPlaylistId &&
             playerState.isRandomPlaylist &&
             playerState.randomSeed
         ) {
@@ -73,7 +74,7 @@ const PlaylistSongs = () => {
         ? description.trim()
         : playlistName;
 
-    const queryKey = isRandom ? [playlistId, "random", seed] : [playlistId];
+    const queryKey = isRandom ? [computedPlaylistId, "random", seed] : [computedPlaylistId];
 
     const {
         data,
@@ -90,6 +91,7 @@ const PlaylistSongs = () => {
             getPlaylistSongs({
                 limit,
                 playlistId,
+                artistName,
                 pageParam,
                 random: isRandom,
                 seed
@@ -132,13 +134,15 @@ const PlaylistSongs = () => {
             const res = await getPlaylistSongs({
                 limit,
                 playlistId,
+                artistName,
                 pageParam: null,
                 random: true,
                 seed: newSeed
             });
 
             if (res) {
-                queryClient.setQueryData([playlistId, "random", newSeed], {
+                const newQueryKey = [computedPlaylistId, "random", newSeed];
+                queryClient.setQueryData(newQueryKey, {
                     pages: [res],
                     pageParams: [null]
                 });
@@ -163,7 +167,7 @@ const PlaylistSongs = () => {
 
         if (targetTracks.length > 0) {
             usePlayer.getState().changePlaylistAndPlay({
-                playlistId,
+                playlistId: computedPlaylistId,
                 trackId: targetTracks[0].id || targetTracks[0]._id,
                 tracksOverride: targetTracks,
                 isRandomPlaylist: true,
@@ -181,12 +185,12 @@ const PlaylistSongs = () => {
     };
 
     useEffect(() => {
-        usePlayer.getState().setPlaylistController(playlistId, {
+        usePlayer.getState().setPlaylistController(computedPlaylistId, {
             fetchNextPage,
             hasNextPage,
             isFetchingNextPage
         });
-    }, [playlistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
+    }, [computedPlaylistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     useEffect(() => {
         try {
@@ -267,7 +271,7 @@ const PlaylistSongs = () => {
         }
 
         try {
-            const downloadedSongs = await getDownloadedSongs(playlistId);
+            const downloadedSongs = await getDownloadedSongs(computedPlaylistId);
             const downloadedIds = new Set(
                 downloadedSongs.map(s => s.id || s._id)
             );
@@ -277,7 +281,7 @@ const PlaylistSongs = () => {
                 const sId = s.id || s._id;
                 return (
                     !downloadedIds.has(sId) &&
-                    !downloadingTasks[`${playlistId}:${sId}`]
+                    !downloadingTasks[`${computedPlaylistId}:${sId}`]
                 );
             });
 
@@ -297,7 +301,7 @@ const PlaylistSongs = () => {
             );
 
             const playlistToSave = {
-                id: playlistId,
+                id: computedPlaylistId,
                 name: playlistName,
                 cover:
                     currentSelectedPlaylist?.cover ||
@@ -326,7 +330,7 @@ const PlaylistSongs = () => {
                 HEADER_HEIGHT={HEADER_HEIGHT}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
-                ID={playlistId}
+                ID={computedPlaylistId}
                 containerStyles={{ height: HEADER_HEIGHT }}
                 isRandom={isRandom}
                 onToggleRandom={handleToggleRandom}
@@ -341,7 +345,7 @@ const PlaylistSongs = () => {
                 estimatedItemSize={70}
                 renderItem={({ item }) => (
                     <ListItem
-                        ID={playlistId}
+                        ID={computedPlaylistId}
                         item={item}
                         isRandomPlaylist={isRandom}
                         randomSeed={seed}

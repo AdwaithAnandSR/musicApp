@@ -25,11 +25,13 @@ export const getPlaylistSongs = async ({
     pageParam = null,
     limit = 50,
     playlistId,
+    artistName,
     random = false,
     seed = null
 }) => {
     try {
         const params = { playlistId, limit };
+        if (artistName) params.artistName = artistName;
         if (pageParam) params.cursor = pageParam;
         if (random) {
             params.random = true;
@@ -40,9 +42,25 @@ export const getPlaylistSongs = async ({
 
         const { data } = await axios.get("/playlist/getSongs", { params });
 
-        usePlayer.getState().appendToQueue(playlistId, data?.musics ?? []);
+        const queueId = artistName ? `artist_${artistName}` : playlistId;
+        usePlayer.getState().appendToQueue(queueId, data?.musics ?? []);
 
         return data ?? { musics: [], nextCursor: null };
+    } catch (err) {
+        console.log(err);
+        throw err;
+    }
+};
+
+export const fetchArtists = async ({ pageParam = 1 }) => {
+    try {
+        const res = await axios.get(`/playlist/artists`, {
+            params: {
+                page: pageParam,
+                limit: 20
+            }
+        });
+        return res.data ?? { playlists: [], nextPage: null };
     } catch (err) {
         console.log(err);
         throw err;
