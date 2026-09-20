@@ -52,7 +52,8 @@
       ],
       "expo-image",
       "expo-status-bar",
-      "@preeternal/react-native-cookie-manager"
+      "@preeternal/react-native-cookie-manager",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
