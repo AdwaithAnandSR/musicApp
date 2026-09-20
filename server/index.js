@@ -21,6 +21,7 @@ import streamRoutes from "./routes/stream.routes.js";
 import statusRoutes from "./routes/status.routes.js";
 import AppDetail from "./models/appDetails.js";
 import { updateChannels } from "./scripts/channelWorker.js";
+import { syncFavoriteVideos } from "./scripts/videoSync.js";
 
 import { requireAuth, requireAdmin } from "./moddileware/auth.js";
 
@@ -67,8 +68,10 @@ if (!process.env.VERCEL) {
 
         try {
             console.log("[Cron] Triggering daily channel sync...");
-
             await updateChannels();
+            
+            console.log("[Cron] Triggering daily video sync for favorited songs...");
+            await syncFavoriteVideos();
 
             console.log("[Daily Sync] Completed.");
         } catch (err) {
