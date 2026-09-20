@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import Entypo from "@react-native-vector-icons/entypo/static";
+import { VideoView, useVideoPlayer } from "expo-video";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -42,6 +43,8 @@ const blurhashPlaceholder = { blurhash };
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
+    const [showVideo, setShowVideo] = useState(false);
+    
     const showLyrics = useStatus(
         state => state.showLyrics1 || state.showLyrics2
     );
@@ -49,6 +52,19 @@ const TrackControllerFullView = () => {
     const track = usePlayer(state => state.currentTrack);
     const trackId = track?._id || track?.id;
     const coverUrl = track?.cover || track?.artwork;
+    const videoUrl = track?.videoUrl;
+
+    const player = useVideoPlayer(videoUrl, p => {
+        p.loop = true;
+        p.muted = true;
+    });
+
+    useEffect(() => {
+        if (player) {
+            if (showVideo) player.play();
+            else player.pause();
+        }
+    }, [showVideo, player]);
 
     useEffect(() => {
         if (!trackId) {
@@ -240,6 +256,16 @@ const TrackControllerFullView = () => {
             }
         });
 
+    const longPressGesture = Gesture.LongPress()
+        .minDuration(500)
+        .onStart(() => {
+            "worklet";
+            if (videoUrl) {
+                runOnJS(setShowVideo)(!showVideo);
+                runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Heavy);
+            }
+        });
+
     const composedGesture = Gesture.Simultaneous(panGesture, doubleTapGesture);
 
     const animatedStyle = useAnimatedStyle(() => {
@@ -267,6 +293,17 @@ const TrackControllerFullView = () => {
                     colors={[topColor, "#000000"]}
                     style={[styles.container]}
                 >
+                    {showVideo && videoUrl && (
+                        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                            <VideoView
+                                player={player}
+                                style={[StyleSheet.absoluteFillObject, { opacity: 0.3 }]}
+                                contentFit="cover"
+                                nativeControls={false}
+                            />
+                        </View>
+                    )}
+                    
                     {/* navbar */}
                     <NavBar />
 
@@ -279,14 +316,15 @@ const TrackControllerFullView = () => {
 
                     <OptionsContainer lightVibrant={lightColor} />
 
-                    <View
-                        style={[
-                            styles.imageContainer,
-                            {
-                                boxShadow: `0px 30px 100px ${colors?.lightMuted}b0`
-                            }
-                        ]}
-                    >
+                    <GestureDetector gesture={longPressGesture}>
+                        <View
+                            style={[
+                                styles.imageContainer,
+                                {
+                                    boxShadow: `0px 30px 100px ${colors?.lightMuted}b0`
+                                }
+                            ]}
+                        >
                         <Image
                             source={
                                 coverUrl
@@ -315,6 +353,7 @@ const TrackControllerFullView = () => {
                             <Entypo name="heart" size={150} color={colors?.dominant ?? "#ef448c"} />
                         </Animated.View>
                     </View>
+                    </GestureDetector>
 
                     {/* slider */}
 

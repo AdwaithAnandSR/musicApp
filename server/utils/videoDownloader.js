@@ -103,6 +103,15 @@ export const processVideoDownload = async (songId, ytId) => {
             "-f", "bestvideo[height<=1080][ext=mp4]/bestvideo[ext=mp4]/best[ext=mp4]",
             "--no-playlist",
             "--no-cache-dir",
+            "--no-progress",
+            "--js-runtimes",
+            "node",
+            "--retries",
+            "3",
+            "--fragment-retries",
+            "3",
+            "--socket-timeout",
+            "30",
             "-o", rawVideoPath,
             ...cookieArgs,
             `https://www.youtube.com/watch?v=${ytId}`
@@ -141,9 +150,9 @@ export const processVideoDownload = async (songId, ytId) => {
 
         // 3. Upload to Cloudinary using _VIDEO credentials
         console.log(`[Video Download] Uploading to Cloudinary...`);
-        const cloudName = process.env.CLOUDINARY_CLOUD_NAME_VIDEO || process.env.CLOUDINARY_CLOUD_NAME;
-        const apiKey = process.env.CLOUDINARY_API_KEY_VIDEO || process.env.CLOUDINARY_API_KEY;
-        const apiSecret = process.env.CLOUDINARY_API_SECRET_VIDEO || process.env.CLOUDINARY_API_SECRET;
+        const cloudName = process.env.CLOUDINARY_CLOUD_NAME_VIDEO;
+        const apiKey = process.env.CLOUDINARY_API_KEY_VIDEO;
+        const apiSecret = process.env.CLOUDINARY_API_SECRET_VIDEO ;
 
         const uploadResult = await cloudinary.uploader.upload(processedVideoPath, {
             resource_type: "video",
