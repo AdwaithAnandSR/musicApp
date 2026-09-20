@@ -44,7 +44,7 @@ const blurhashPlaceholder = { blurhash };
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
     const [showVideo, setShowVideo] = useState(false);
-    
+
     const showLyrics = useStatus(
         state => state.showLyrics1 || state.showLyrics2
     );
@@ -294,16 +294,32 @@ const TrackControllerFullView = () => {
                     style={[styles.container]}
                 >
                     {showVideo && videoUrl && (
-                        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+                        <>
                             <VideoView
                                 player={player}
-                                style={[StyleSheet.absoluteFillObject, { opacity: 0.3 }]}
+                                style={[
+                                    StyleSheet.absoluteFill,
+                                    {
+                                        width: "100%",
+                                        height: "100%"
+                                    }
+                                ]}
                                 contentFit="cover"
                                 nativeControls={false}
                             />
-                        </View>
+                            <View
+                                style={[
+                                    StyleSheet.absoluteFill,
+                                    {
+                                        width: "100%",
+                                        height: "100%",
+                                        backgroundColor: "#000000c0"
+                                    }
+                                ]}
+                            />
+                        </>
                     )}
-                    
+
                     {/* navbar */}
                     <NavBar />
 
@@ -325,34 +341,40 @@ const TrackControllerFullView = () => {
                                 }
                             ]}
                         >
-                        <Image
-                            source={
-                                coverUrl
-                                    ? { uri: coverUrl }
-                                    : require("@assets/images/images.jpeg")
-                            }
-                            placeholder={blurhashPlaceholder}
-                            contentFit="cover"
-                            transition={1000}
-                            filter="contrast(1.25) brightness(0.8)"
-                            style={styles.imageFill}
-                        />
-                        {showLyrics && (
-                            <Lyrics track={track} lightVibrant={lightColor} />
-                        )}
-                        <Animated.View
-                            style={[
-                                heartAnimatedStyle,
-                                {
-                                    alignItems: "center",
-                                    width: "100%"
+                            <Image
+                                source={
+                                    coverUrl
+                                        ? { uri: coverUrl }
+                                        : require("@assets/images/images.jpeg")
                                 }
-                            ]}
-                            
-                        >
-                            <Entypo name="heart" size={150} color={colors?.dominant ?? "#ef448c"} />
-                        </Animated.View>
-                    </View>
+                                placeholder={blurhashPlaceholder}
+                                contentFit="cover"
+                                transition={1000}
+                                filter="contrast(1.25) brightness(0.8)"
+                                style={styles.imageFill}
+                            />
+                            {showLyrics && (
+                                <Lyrics
+                                    track={track}
+                                    lightVibrant={lightColor}
+                                />
+                            )}
+                            <Animated.View
+                                style={[
+                                    heartAnimatedStyle,
+                                    {
+                                        alignItems: "center",
+                                        width: "100%"
+                                    }
+                                ]}
+                            >
+                                <Entypo
+                                    name="heart"
+                                    size={150}
+                                    color={colors?.dominant ?? "#ef448c"}
+                                />
+                            </Animated.View>
+                        </View>
                     </GestureDetector>
 
                     {/* slider */}

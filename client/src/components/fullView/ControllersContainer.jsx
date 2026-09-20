@@ -101,6 +101,7 @@ const ControllersContainer = () => {
                             name="pause"
                             size={playPauseIconSize}
                             color="white"
+                            solid
                         />
                     </TouchableOpacity>
                 ) : (
@@ -112,6 +113,7 @@ const ControllersContainer = () => {
                             name="play"
                             size={playPauseIconSize}
                             color="white"
+                            solid
                         />
                     </TouchableOpacity>
                 )}
