@@ -5,13 +5,16 @@ import Animated, {
     useAnimatedStyle,
     withSpring,
     withTiming,
-    runOnJS
+    runOnJS,
+    withSequence,
+    withDelay
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
+import { Entypo } from "@expo/vector-icons";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -23,7 +26,7 @@ import NavBar from "@components/fullView/NavBar.jsx";
 import Footer from "@components/fullView/Footer.jsx";
 import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
 import PlaylistBottomSheet from "@components/fullView/PlaylistBottomSheet.jsx";
-import { isDarkColor , makeLightColor} from "@services/colors"
+import { isDarkColor, makeLightColor } from "@services/colors";
 import handleToggleFavourite from "../../../controllers/playlists/handleToggleFavourite.js";
 import * as Haptics from "expo-haptics";
 
@@ -86,25 +89,25 @@ const TrackControllerFullView = () => {
             let target = context.value.target;
             if (!target) {
                 if (context.value.y < PLAYLIST_CLOSED_Y) {
-                    target = 'playlist';
+                    target = "playlist";
                 } else if (context.value.startY > 0) {
-                    target = 'fullView';
+                    target = "fullView";
                 } else if (event.translationY < 0) {
-                    target = 'playlist';
+                    target = "playlist";
                 } else if (event.translationY > 0) {
-                    target = 'fullView';
+                    target = "fullView";
                 }
-                
+
                 if (target) {
                     context.value = { ...context.value, target };
                 }
             }
 
-            if (target === 'playlist') {
+            if (target === "playlist") {
                 let newY = context.value.y + event.translationY;
                 newY = Math.max(0, Math.min(newY, PLAYLIST_CLOSED_Y));
                 playlistTranslateY.value = newY;
-            } else if (target === 'fullView') {
+            } else if (target === "fullView") {
                 let newY = context.value.startY + event.translationY;
                 translateY.value = newY > 0 ? newY : 0;
             }
@@ -112,8 +115,11 @@ const TrackControllerFullView = () => {
         .onEnd(event => {
             "worklet";
             const target = context.value.target;
-            if (target === 'playlist') {
-                if (event.velocityY > 500 || event.translationY > SWIPE_THRESHOLD) {
+            if (target === "playlist") {
+                if (
+                    event.velocityY > 500 ||
+                    event.translationY > SWIPE_THRESHOLD
+                ) {
                     playlistTranslateY.value = withTiming(PLAYLIST_CLOSED_Y, {
                         duration: 250
                     });
@@ -128,9 +134,12 @@ const TrackControllerFullView = () => {
                     });
                 } else {
                     if (playlistTranslateY.value > PLAYLIST_MID) {
-                        playlistTranslateY.value = withTiming(PLAYLIST_CLOSED_Y, {
-                            duration: 250
-                        });
+                        playlistTranslateY.value = withTiming(
+                            PLAYLIST_CLOSED_Y,
+                            {
+                                duration: 250
+                            }
+                        );
                     } else {
                         playlistTranslateY.value = withSpring(0, {
                             damping: 20,
@@ -141,7 +150,8 @@ const TrackControllerFullView = () => {
                 }
             } else {
                 if (
-                    (event.translationY > SWIPE_THRESHOLD && event.velocityY >= 0) ||
+                    (event.translationY > SWIPE_THRESHOLD &&
+                        event.velocityY >= 0) ||
                     (event.velocityY > 500 && event.translationY > 30)
                 ) {
                     translateY.value = withTiming(
@@ -163,7 +173,34 @@ const TrackControllerFullView = () => {
                 }
             }
         });
-        
+
+    const heartScale = useSharedValue(0);
+    const heartOpacity = useSharedValue(0);
+
+    const triggerHeartAnimation = () => {
+        "worklet";
+        heartScale.value = 0; // reset
+        heartScale.value = withSequence(
+            withSpring(1.5, { damping: 10, stiffness: 200 }),
+            withSpring(1, { damping: 10, stiffness: 500 })
+        );
+        heartOpacity.value = 0; // reset
+        heartOpacity.value = withSequence(
+            withTiming(1, { duration: 300 }),
+            withDelay(300, withTiming(0, { duration: 300 }))
+        );
+    };
+
+    const heartAnimatedStyle = useAnimatedStyle(() => {
+        "worklet";
+        return {
+            transform: [{ scale: heartScale.value }],
+            opacity: heartOpacity.value,
+            position: "absolute",
+            zIndex: 10
+        };
+    });
+
     const toggleFavourite = async () => {
         if (!track) return;
         try {
@@ -172,16 +209,16 @@ const TrackControllerFullView = () => {
 
         const isFav = track?.isFav || false;
         usePlayer.setState(state => ({
-            currentTrack: { ...state.currentTrack, isFav: !isFav }
+            currentTrack: { ...state.currentTrack, isFav: true }
         }));
 
         const newFavState = await handleToggleFavourite(track._id || track.id);
-        
+
         if (newFavState === null) {
             usePlayer.setState(state => ({
                 currentTrack: { ...state.currentTrack, isFav: isFav }
             }));
-        } else if (newFavState !== !isFav) {
+        } else if (newFavState !== true) {
             usePlayer.setState(state => ({
                 currentTrack: { ...state.currentTrack, isFav: newFavState }
             }));
@@ -192,7 +229,15 @@ const TrackControllerFullView = () => {
         .numberOfTaps(2)
         .onEnd(() => {
             "worklet";
-            runOnJS(toggleFavourite)();
+            triggerHeartAnimation();
+
+            // Only like, don't unlike on double tap (like Instagram)
+            if (!track?.isFav) {
+                runOnJS(toggleFavourite)();
+            } else {
+                // Just trigger haptics and animation if already liked
+                runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
+            }
         });
 
     const composedGesture = Gesture.Simultaneous(panGesture, doubleTapGesture);
@@ -209,16 +254,14 @@ const TrackControllerFullView = () => {
     const topColor =
         colors?.darkVibrant || colors?.dominant || colors?.average || "#111111";
 
-    const lightColor = isDarkColor(colors?.lightVibrant) ? makeLightColor(colors?.lightVibrant) : colors?.lightVibrant
-    
+    const lightColor = isDarkColor(colors?.lightVibrant)
+        ? makeLightColor(colors?.lightVibrant)
+        : colors?.lightVibrant;
+
     return (
         <GestureDetector gesture={composedGesture}>
             <Animated.View
-                style={[
-                    styles.container,
-                    styles.bgBlack,
-                    animatedStyle
-                ]}
+                style={[styles.container, styles.bgBlack, animatedStyle]}
             >
                 <LinearGradient
                     colors={[topColor, "#000000"]}
@@ -239,7 +282,9 @@ const TrackControllerFullView = () => {
                     <View
                         style={[
                             styles.imageContainer,
-                            { boxShadow: `0px 30px 100px ${colors?.lightMuted}b0`, }
+                            {
+                                boxShadow: `0px 30px 100px ${colors?.lightMuted}b0`
+                            }
                         ]}
                     >
                         <Image
@@ -255,11 +300,20 @@ const TrackControllerFullView = () => {
                             style={styles.imageFill}
                         />
                         {showLyrics && (
-                            <Lyrics
-                                track={track}
-                                lightVibrant={lightColor}
-                            />
+                            <Lyrics track={track} lightVibrant={lightColor} />
                         )}
+                        <Animated.View
+                            style={[
+                                heartAnimatedStyle,
+                                {
+                                    alignItems: "center",
+                                    width: "100%"
+                                }
+                            ]}
+                            
+                        >
+                            <Entypo name="heart" size={150} color={colors?.dominant ?? "#ef448c"} />
+                        </Animated.View>
                     </View>
 
                     {/* slider */}
@@ -309,6 +363,7 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         alignSelf: "center",
         marginVertical: vh * 0.03,
+        justifyContent: "center"
     },
     imageFill: {
         width: "100%",

@@ -9,7 +9,7 @@ import {
     Platform
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import Animated, { useSharedValue, runOnJS } from "react-native-reanimated";
+import Animated, { useSharedValue, runOnJS, withSpring, useAnimatedStyle } from "react-native-reanimated";
 import {
     Feather,
     MaterialCommunityIcons,
@@ -225,12 +225,25 @@ const FavoriteButton = () => {
 
     console.log(track);
 
+    const scale = useSharedValue(1);
+    
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ scale: scale.value }]
+        };
+    });
+
     const handlePress = async () => {
         if (!track) return;
 
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } catch {}
+
+        // Bounce animation
+        scale.value = withSpring(1.3, { damping: 10, stiffness: 300 }, () => {
+            scale.value = withSpring(1);
+        });
 
         // Optimistic update
         usePlayer.setState(state => ({
@@ -257,11 +270,13 @@ const FavoriteButton = () => {
             onPress={handlePress}
             activeOpacity={0.7}
         >
-            <Entypo
-                name={isFav ? "heart" : "heart-outlined"}
-                size={ICON_SIZE + 5}
-                color={isFav ? "#ef4444" : "white"}
-            />
+            <Animated.View style={animatedStyle}>
+                <Entypo
+                    name={isFav ? "heart" : "heart-outlined"}
+                    size={ICON_SIZE + 5}
+                    color={isFav ? "#ef4444" : "white"}
+                />
+            </Animated.View>
         </TouchableOpacity>
     );
 };
