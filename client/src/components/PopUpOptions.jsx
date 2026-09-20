@@ -9,7 +9,7 @@ import Animated, {
     runOnJS
 } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import * as Haptics from "expo-haptics";
 
 import { useAppStatus, useMultiSelect } from "../store/appState.store.js";

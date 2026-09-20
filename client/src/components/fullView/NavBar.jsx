@@ -9,7 +9,7 @@ import {
     Modal,
     Pressable
 } from "react-native";
-import { Entypo } from "@expo/vector-icons";
+import Entypo from "@react-native-vector-icons/entypo/static";
 import { router } from "expo-router";
 
 import { usePlayer } from "@store/player.js";

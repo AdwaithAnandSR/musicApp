@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     Animated
 } from "react-native";
-import { Entypo } from "@expo/vector-icons";
+import Entypo from "@react-native-vector-icons/entypo/static";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as Haptics from "expo-haptics";

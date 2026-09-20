@@ -15,7 +15,7 @@ import Animated, {
     runOnJS
 } from "react-native-reanimated";
 import { BlurView } from "expo-blur";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 
 import handleDelete from "@controllers/playlists/handleDeletePlaylist.js";
 import { deleteDownloadedPlaylist } from "@services/downloads/downloadService.js";

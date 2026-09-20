@@ -7,7 +7,7 @@ import {
     View,
     Alert
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 
 import { useMultiSelect, useAppStatus } from "../store/appState.store.js";
 import { usePlayer } from "../store/player.js";

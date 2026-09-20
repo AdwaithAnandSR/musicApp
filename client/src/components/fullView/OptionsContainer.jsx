@@ -6,7 +6,8 @@ import {
     Dimensions,
     TouchableOpacity
 } from "react-native";
-import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@react-native-vector-icons/material-design-icons/static";
+import Feather from "@react-native-vector-icons/feather/static";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";

@@ -6,7 +6,7 @@ import {
     Dimensions,
     TouchableOpacity
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import Feather from "@react-native-vector-icons/feather/static";
 
 import { useAppStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player.js";

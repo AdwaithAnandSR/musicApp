@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
-import { FontAwesome5, AntDesign } from "@expo/vector-icons";
+import FontAwesome5 from "@react-native-vector-icons/fontawesome5/static";
+import AntDesign from "@react-native-vector-icons/ant-design/static";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";

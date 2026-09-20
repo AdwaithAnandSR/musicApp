@@ -53,7 +53,14 @@
       "expo-image",
       "expo-status-bar",
       "@preeternal/react-native-cookie-manager",
-      "expo-video"
+      "expo-video",
+      "@react-native-vector-icons/ionicons",
+      "@react-native-vector-icons/entypo",
+      "@react-native-vector-icons/material-design-icons",
+      "@react-native-vector-icons/feather",
+      "@react-native-vector-icons/fontawesome5",
+      "@react-native-vector-icons/ant-design",
+      "@react-native-vector-icons/material-icons"
     ],
     "experiments": {
       "typedRoutes": true,

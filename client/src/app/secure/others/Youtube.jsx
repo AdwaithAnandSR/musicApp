@@ -14,7 +14,7 @@ import {
     ScrollView
 } from "react-native";
 import { WebView } from "react-native-webview";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 import axios from "@services/axios.js";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
