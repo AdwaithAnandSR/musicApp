@@ -3,6 +3,7 @@ const router = express.Router();
 
 import create from "../handlers/playlists/create.playlist.js"
 import getPlaylists from "../handlers/playlists/get.playlist.js"
+import getArtists from "../handlers/playlists/get.artists.js"
 import deletePlaylist from "../handlers/playlists/delete.playlist.js"
 import addSongs from "../handlers/playlists/add.playlist.js"
 import { getSongs } from "../handlers/playlists/songs.playlist.js"
@@ -14,6 +15,7 @@ import { cleanupPlaylists } from "../handlers/playlists/cleanup.playlist.js"
 router.post("/create", create);
 
 router.post("/get", getPlaylists);
+router.get("/artists", getArtists);
 
 router.post("/delete", deletePlaylist);
 

@@ -36,7 +36,9 @@ const ListItem = ({ item, index = 0, scrollY }) => {
     const handleLongPress = () => {
         if (
             item.isLocalDownloadsFolder ||
-            item._id === "6a3e689cfba948ae55682fe3"
+            item._id === "6a3e689cfba948ae55682fe3" ||
+            item._id === "ARTISTS_PLAYLIST_ID" ||
+            item.isArtistPlaylist
         )
             return;
         Haptics.impactAsync("light");
@@ -49,11 +51,24 @@ const ListItem = ({ item, index = 0, scrollY }) => {
             return;
         }
 
+        if (item.isArtistsFolder) {
+            router.push({ pathname: "secure/playlists/ArtistsPlaylists" });
+            return;
+        }
+
         setCurrentSelectedPlaylist(item);
         if (item.isLocalFolder) {
             router.push({
                 pathname: "secure/playlists/DownloadedPlaylistSongs",
                 params: { playlistId: item._id, playlistName: item.name }
+            });
+            return;
+        }
+
+        if (item.isArtistPlaylist) {
+            router.push({
+                pathname: "secure/playlists/PlaylistSongs",
+                params: { playlistName: item.name, artistName: item.name }
             });
             return;
         }
