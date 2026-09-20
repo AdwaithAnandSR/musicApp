@@ -43,7 +43,7 @@ const getArtists = async (req, res) => {
             // Filter out artists that have only 1 song
             {
                 $match: {
-                    songCount: { $gt: 1 }
+                    songCount: { $gt: 5 }
                 }
             },
             // 6. Sort by name alphabetically
