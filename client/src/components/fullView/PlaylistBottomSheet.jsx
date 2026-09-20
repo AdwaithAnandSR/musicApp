@@ -17,7 +17,7 @@ import Animated, {
     Extrapolation
 } from "react-native-reanimated";
 import { ScrollView } from "react-native-gesture-handler";
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "@react-native-vector-icons/ionicons/static";
 
 import { usePlayer } from "@store/player.js";
 import queryClient from "@services/queryClient";
