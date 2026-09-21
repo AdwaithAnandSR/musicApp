@@ -24,20 +24,6 @@ export const getSongsWithoutColors = async (req, res) => {
     }
 };
 
-// const songs = await musicModel
-//     .find({
-//         $or: [
-//             { colors: { $exists: false } },
-//             { "colors.dominant": { $exists: false } }
-//         ]
-//     })
-
-//     .select("title artist cover url");
-
-// console.log(await musicModel.findByIdAndUpdate("6825605a2e34c559230256cc",{ videoUrl: "" }));
-
-// console.log(songs);
-
 
 export const updateSongColors = async (req, res) => {
     try {
