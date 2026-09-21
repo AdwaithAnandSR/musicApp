@@ -183,12 +183,16 @@ const runFfmpeg = async (input, output, durationSec, onProgress) => {
                 if (k === 'progress') progressState = v.trim();
             }
             
-            if (outTimeUs !== null && durationSec > 0) {
-                let currentSec = outTimeUs / 1000000;
-                let pct = Math.round((currentSec / durationSec) * 100);
-                if (pct > 100) pct = 100;
-                
-                onProgress({ message: 'FFmpeg processing: ' + pct + '% • ' + currentSpeed, percent: pct, startedAt: Date.now() });
+            if (outTimeUs !== null) {
+                if (durationSec > 0) {
+                    let currentSec = outTimeUs / 1000000;
+                    let pct = Math.round((currentSec / durationSec) * 100);
+                    if (pct > 100) pct = 100;
+                    
+                    onProgress({ message: 'FFmpeg processing: ' + pct + '% • ' + currentSpeed, percent: pct, startedAt: Date.now() });
+                } else {
+                    onProgress({ message: 'FFmpeg processing • ' + currentSpeed, percent: 0, startedAt: Date.now() });
+                }
             }
             
             if (progressState === 'end') {
@@ -290,7 +294,7 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
         const durationSec = songDoc ? (songDoc.duration || 0) : 0;
         
         internalOnProgress({ message: 'Starting video crop...', percent: 0, startedAt: Date.now() });
-        await runFfmpeg(rawVideoPath, processedVideoPath, durationSec, onProgress);
+        await runFfmpeg(rawVideoPath, processedVideoPath, durationSec, internalOnProgress);
         
         internalOnProgress({ message: 'Uploading to Cloudinary...', percent: 100, startedAt: Date.now() });
 
