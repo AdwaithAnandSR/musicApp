@@ -3,7 +3,7 @@ import PlaylistSong from "../../models/playlistSong.js";
 
 import mongoose from "mongoose";
 
-const MUSIC_SELECT_FIELDS = "_id title cover artist duration url videoUrl createdAt ytId synced lyrics lyricsAsText isFav";
+const MUSIC_SELECT_FIELDS = "_id title cover artist colors duration url videoUrl createdAt ytId synced lyrics lyricsAsText isFav";
 
 export const getSongs = async (req, res) => {
     try {
