@@ -1,0 +1,42 @@
+name: Process Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobId:
+        description: 'The Job ID from Northflank'
+        required: true
+        type: string
+      apiBase:
+        description: 'The base API URL for Northflank'
+        required: true
+        type: string
+
+jobs:
+  process-video:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Install Dependencies
+        working-directory: ./server
+        run: npm ci || npm install cloudinary
+
+      - name: Run Video Processor
+        working-directory: ./server
+        run: node scripts/githubVideoProcessor.js
+        env:
+          JOB_ID: ${{ github.event.inputs.jobId }}
+          API_BASE: ${{ github.event.inputs.apiBase }}
