@@ -14,7 +14,7 @@ const LyricItemAsText = ({ item }) => {
     );
 };
 
-const LyricsView = ({ track = {}, lightVibrant }) => {
+const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
     const showLyrics1 = useStatus(state => state.showLyrics1);
     const showLyrics2 = useStatus(state => state.showLyrics2);
     const showSyncedLyric = useStatus(state => state.showSyncedLyric);
@@ -30,7 +30,11 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
     // Memoize the data array so FlashList doesn't re-diff on every render
     const syncedData = useMemo(() => {
         if (!track?.lyrics || track.lyrics.length === 0) return [];
-        return [{ end: -1, start: -1, line: "" }, ...track.lyrics, { end: -1, start: -1, line: "" }];
+        return [
+            { end: -1, start: -1, line: "" },
+            ...track.lyrics,
+            { end: -1, start: -1, line: "" }
+        ];
     }, [track?.lyrics]);
 
     const textData = useMemo(() => {
@@ -43,7 +47,8 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
             !Array.isArray(track?.lyrics) ||
             !showSyncedLyric ||
             track?.lyrics?.length === 0
-        ) return;
+        )
+            return;
 
         const lyrics = track.lyrics;
         let index = -1;
@@ -55,7 +60,9 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
             if (!item) continue;
             const nextItem = lyrics[i + 1];
             const startTime = (item.start ?? 0) - 0.5;
-            const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
+            const endTime = nextItem
+                ? (nextItem.start ?? 0) - 0.5
+                : (item.end ?? startTime + 10);
             if (currentTime >= startTime && currentTime < endTime) {
                 index = i;
                 break;
@@ -69,7 +76,9 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
                 if (!item) continue;
                 const nextItem = lyrics[i + 1];
                 const startTime = (item.start ?? 0) - 0.5;
-                const endTime = nextItem ? (nextItem.start ?? 0) - 0.5 : (item.end ?? startTime + 10);
+                const endTime = nextItem
+                    ? (nextItem.start ?? 0) - 0.5
+                    : (item.end ?? startTime + 10);
                 if (currentTime >= startTime && currentTime < endTime) {
                     index = i;
                     break;
@@ -81,7 +90,13 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
             lastIndexRef.current = index;
             setCurrentLyricIndex(index);
         }
-    }, [currentTime, track, showSyncedLyric, currentLyricIndex, setCurrentLyricIndex]);
+    }, [
+        currentTime,
+        track,
+        showSyncedLyric,
+        currentLyricIndex,
+        setCurrentLyricIndex
+    ]);
 
     useEffect(() => {
         if (!showSyncedLyric || currentLyricIndex < 0) return;
@@ -100,16 +115,24 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
 
     if (!showLyrics1 && !showLyrics2 && !showSyncedLyric) return;
 
-    const data = (showLyrics1 || showSyncedLyric)
-        ? syncedData
-        : showLyrics2
-          ? textData
-          : [];
+    const data =
+        showLyrics1 || showSyncedLyric
+            ? syncedData
+            : showLyrics2
+              ? textData
+              : [];
 
     if (data.length === 0) return null;
 
     return (
-        <View style={styles.container}>
+        <View
+            style={[
+                styles.container,
+                {
+                    backgroundColor: !showVideo ? "#000000b0" : "transparent"
+                }
+            ]}
+        >
             <FlashList
                 ref={lyricsRef}
                 data={data}
@@ -120,7 +143,11 @@ const LyricsView = ({ track = {}, lightVibrant }) => {
                 }
                 renderItem={({ item, index }) =>
                     showLyrics1 || showSyncedLyric ? (
-                        <SyncedRenderItem item={item} index={index} lightVibrant={lightVibrant} />
+                        <SyncedRenderItem
+                            item={item}
+                            index={index}
+                            lightVibrant={lightVibrant}
+                        />
                     ) : showLyrics2 ? (
                         <LyricItemAsText item={item} />
                     ) : null
@@ -139,7 +166,7 @@ const styles = StyleSheet.create({
         top: "50%",
         left: "50%",
         transform: [{ translateX: "-50%" }, { translateY: "-50%" }],
-        backgroundColor: "#000000cd",
+
         paddingHorizontal: "2%"
     },
     lyricCont: {

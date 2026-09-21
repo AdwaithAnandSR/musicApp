@@ -70,13 +70,14 @@ const PopUpOptions = () => {
         opacity: backdropOpacity.value
     }));
 
-    const isRecentlyList = options.playId === "6a3e689cfba948ae55682fe3";
+    const isFavPlaylist = options.playId === "FAVOURITES_PLAYLIST_ID";
     const isPlaylist =
-        typeof options.playId === "string" &&
+        isFavPlaylist ||
+        (typeof options.playId === "string" &&
         options.playId !== "HOME" &&
         options.playId !== "SEARCH" &&
         !options.playId.startsWith("SEARCH-") &&
-        /^[0-9a-fA-F]{24}$/.test(options.playId);
+        /^[0-9a-fA-F]{24}$/.test(options.playId));
     const count = selectedSongs.length;
     const isMultiSelecting = count > 0;
 
@@ -116,7 +117,19 @@ const PopUpOptions = () => {
         close();
         setTimeout(async () => {
             useMultiSelect.getState().reset();
-            await removeSongsBatch({ playlistId: options.playId, songIds });
+            
+            if (isFavPlaylist) {
+                const handleToggleFavourite = require("../controllers/playlists/handleToggleFavourite.js").default;
+                Toast.show("Removing Songs...", "pending");
+                for (const sid of songIds) {
+                    await handleToggleFavourite(sid);
+                }
+                const { usePlayer } = require("../store/player.js");
+                usePlayer.getState().removeFromQueue(songIds);
+                Toast.show("Removed from Favourites", "success");
+            } else {
+                await removeSongsBatch({ playlistId: options.playId, songIds });
+            }
         }, 250);
     };
 
@@ -176,7 +189,7 @@ const PopUpOptions = () => {
                                 const res = await deleteSongsPermanentBatch(songIds);
                                 if (res?.success) {
                                     Toast.show("Songs Deleted", "success");
-                                    if (isPlaylist) {
+                                    if (isPlaylist && !isFavPlaylist) {
                                         await removeSongsBatch({
                                             playlistId: options.playId,
                                             songIds
@@ -218,7 +231,7 @@ const PopUpOptions = () => {
                                 const res = await deleteSongPermanent(options.songId);
                                 if (res?.success) {
                                     Toast.show("Song Deleted", "success");
-                                    if (isPlaylist) {
+                                    if (isPlaylist && !isFavPlaylist) {
                                         removeSong(options);
                                     }
                                     queryClient.invalidateQueries();
@@ -240,10 +253,22 @@ const PopUpOptions = () => {
 
     const handleRemoveFromPlaylist = () => {
         close();
-        setTimeout(() => removeSong(options), 250);
+        setTimeout(async () => {
+            if (isFavPlaylist) {
+                const handleToggleFavourite = require("../controllers/playlists/handleToggleFavourite.js").default;
+                Toast.show("Removing from Favourites...", "pending");
+                await handleToggleFavourite(options.songId);
+                const { usePlayer } = require("../store/player.js");
+                usePlayer.getState().removeFromQueue(options.songId);
+                Toast.show("Removed from Favourites", "success");
+            } else {
+                removeSong(options);
+            }
+        }, 250);
     };
 
     const songTitle = options.song?.title || "Options";
+    const isRecentlyList = options.playId === "6a3e689cfba948ae55682fe3";
 
 
     return (
