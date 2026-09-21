@@ -171,6 +171,8 @@ const CSS = `
     --orange-bg: rgba(255,159,10,0.12);
     --blue: #64d2ff;
     --blue-bg: rgba(100,210,255,0.12);
+    --purple: #bf5af2;
+    --purple-bg: rgba(191,90,242,0.12);
     --radius: 16px;
     --radius-sm: 10px;
     --radius-xs: 6px;
@@ -1034,10 +1036,11 @@ router.get("/", async (req, res) => {
         <!-- Cloudinary Usage -->
         <div class="cld-widget" id="cld-widget">
             <div class="cld-header">
-                <span class="cld-title">☁ Cloudinary</span>
+                <span class="cld-title">☁ Audio Cloudinary</span>
                 <div style="display:flex;align-items:center;gap:8px">
                     <span class="cld-plan" id="cld-plan">${cloudinaryUsage ? esc(cloudinaryUsage.plan) : "—"}</span>
-                    <a href="/status/cloudinary-usage" class="btn btn-outline" style="padding:4px 12px;font-size:0.68rem">View Details</a>
+                    <a href="/status/cloudinary-usage" class="btn btn-outline" style="padding:4px 12px;font-size:0.68rem">Audio Details</a>
+                    <a href="/status/video" class="btn btn-outline" style="padding:4px 12px;font-size:0.68rem;border-color:rgba(191,90,242,0.3);color:var(--purple)">Video Status</a>
                 </div>
             </div>
                 <div class="cld-bar-track">

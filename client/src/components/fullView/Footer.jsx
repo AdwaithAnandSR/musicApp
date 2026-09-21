@@ -221,8 +221,6 @@ const FavoriteButton = () => {
     const track = usePlayer(state => state.currentTrack);
     const isFav = track?.isFav || false;
 
-    console.log(track);
-
     const scale = useSharedValue(1);
     
     const animatedStyle = useAnimatedStyle(() => {
