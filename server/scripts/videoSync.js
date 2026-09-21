@@ -119,7 +119,23 @@ export const syncFavoriteVideos = async () => {
             });
 
             try {
-                await processVideoDownload(song._id, song.ytId);
+                const itemStartedAt = new Date().toISOString();
+                await processVideoDownload(song._id, song.ytId, async (progressData) => {
+                    await updateVideoSyncStatus({
+                        isSyncing: true,
+                        startedAt,
+                        totalSongs: songs.length,
+                        currentSongIndex: i + 1,
+                        currentSongTitle: song.title,
+                        successCount,
+                        errorCount,
+                        skippedCount,
+                        message: `Processing: ${song.title}`,
+                        itemMessage: progressData.message,
+                        itemProgress: progressData.percent,
+                        itemStartedAt
+                    });
+                });
                 successCount++;
             } catch (err) {
                 console.error(

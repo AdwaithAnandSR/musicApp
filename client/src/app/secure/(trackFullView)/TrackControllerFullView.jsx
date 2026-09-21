@@ -242,7 +242,8 @@ const TrackControllerFullView = () => {
             }
         });
 
-    const composedGesture = Gesture.Simultaneous(panGesture, doubleTapGesture, longPressGesture);
+    const composedGesture = panGesture;
+    const artworkGesture = Gesture.Simultaneous(doubleTapGesture, longPressGesture);
 
     const animatedStyle = useAnimatedStyle(() => {
         "worklet";
@@ -284,15 +285,19 @@ const TrackControllerFullView = () => {
                     <OptionsContainer lightVibrant={lightColor} />
 
                     {/* cover art, lyrics, heart animation */}
-                    <CoverArtwork
-                        lightColor={lightColor}
-                        shadowColor={colors?.lightMuted}
-                        dominantColor={colors?.dominant}
-                        showVideo={showVideo}
-                        videoUrl={videoUrl}
-                        heartScale={heartScale}
-                        heartOpacity={heartOpacity}
-                    />
+                    <GestureDetector gesture={artworkGesture}>
+                        <Animated.View>
+                            <CoverArtwork
+                                lightColor={lightColor}
+                                shadowColor={colors?.lightMuted}
+                                dominantColor={colors?.dominant}
+                                showVideo={showVideo}
+                                videoUrl={videoUrl}
+                                heartScale={heartScale}
+                                heartOpacity={heartOpacity}
+                            />
+                        </Animated.View>
+                    </GestureDetector>
 
                     {/* slider */}
                     <SliderContainer
