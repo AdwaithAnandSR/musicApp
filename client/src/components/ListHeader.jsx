@@ -116,7 +116,7 @@ const Header = ({
         setDestModalVisible(true);
     };
 
-    const handleDownloadSelectedSubmit = async (playlistName, concurrency) => {
+    const handleDownloadSelectedSubmit = async (playlistName, concurrency, downloadVideo = false) => {
         setDestModalVisible(false);
         const {
             downloadPlaylistSongs
@@ -130,7 +130,7 @@ const Header = ({
         const playlistToSave = {
             id: playlistId,
             name: safePlaylistName,
-            cover: null
+            cover: currentSelectedPlaylist?.cover || null
         };
 
         const songsToDownload = [...selectedSongs];
@@ -141,7 +141,9 @@ const Header = ({
             await downloadPlaylistSongs(
                 playlistToSave,
                 songsToDownload,
-                concurrency
+                concurrency,
+                null,
+                downloadVideo
             );
             Toast.show("Download Complete!", "success");
         } catch (e) {

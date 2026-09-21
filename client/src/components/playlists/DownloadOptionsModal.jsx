@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, Switch } from 'react-native';
 
 const DownloadOptionsModal = ({ visible, onClose, onSelect }) => {
     const [custom, setCustom] = useState('');
     const [concurrency, setConcurrency] = useState(1);
+    const [downloadVideo, setDownloadVideo] = useState(false);
     const options = [15, 30, 50, 100];
 
     const handleSelect = (num) => {
-        onSelect(num, concurrency);
+        onSelect(num, concurrency, downloadVideo);
         onClose();
     };
 
@@ -32,6 +33,16 @@ const DownloadOptionsModal = ({ visible, onClose, onSelect }) => {
                         >
                             <Text style={styles.concurrencyBtnText}>+</Text>
                         </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.switchContainer}>
+                        <Text style={styles.subtitle}>Download Video too:</Text>
+                        <Switch
+                            value={downloadVideo}
+                            onValueChange={setDownloadVideo}
+                            trackColor={{ false: "#767577", true: "#22f97e" }}
+                            thumbColor={downloadVideo ? "#fff" : "#f4f3f4"}
+                        />
                     </View>
 
                     <Text style={styles.subtitle}>Select the number of songs to download:</Text>
@@ -145,6 +156,12 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         borderRadius: 8,
         padding: 5
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20
     },
     concurrencyBtn: {
         backgroundColor: '#444',

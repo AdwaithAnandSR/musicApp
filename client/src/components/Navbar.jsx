@@ -30,7 +30,7 @@ const Navbar = () => {
 
     if (!isSelecting) return null;
 
-    const handleDownloadSubmit = async (playlistName, concurrency) => {
+    const handleDownloadSubmit = async (playlistName, concurrency, downloadVideo = false) => {
         const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
         
         const safePlaylistName = playlistName.trim() || "My Downloads";
@@ -47,7 +47,7 @@ const Navbar = () => {
         
         Toast.show(`Downloading ${songsToDownload.length} songs...`, "pending");
         try {
-            await downloadPlaylistSongs(playlistToSave, songsToDownload, concurrency);
+            await downloadPlaylistSongs(playlistToSave, songsToDownload, concurrency, null, downloadVideo);
             Toast.show("Download Complete!", "success");
         } catch(e) {
             Toast.show("Download Failed", "error");

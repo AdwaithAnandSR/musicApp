@@ -142,7 +142,7 @@ const PopUpOptions = () => {
         setTimeout(() => setDestModalSong(targetSong), 250);
     };
 
-    const handleDownloadSingleSubmit = async (playlistName, concurrency) => {
+    const handleDownloadSingleSubmit = async (playlistName, concurrency, downloadVideo = false) => {
         const targetSong = destModalSong;
         setDestModalSong(null);
         const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
@@ -159,7 +159,7 @@ const PopUpOptions = () => {
         
         Toast.show("Downloading song...", "pending");
         try {
-            await downloadPlaylistSongs(playlistToSave, [targetSong], 1);
+            await downloadPlaylistSongs(playlistToSave, [targetSong], 1, null, downloadVideo);
             Toast.show("Download Complete!", "success");
         } catch(e) {
             Toast.show("Download Failed", "error");

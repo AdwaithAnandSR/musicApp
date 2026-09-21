@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, ScrollView, Switch } from 'react-native';
 import { getDownloadedPlaylists } from '../../services/downloads/downloadService';
 
 const DestinationPickerModal = ({ visible, onClose, onSelect, defaultName = "My Downloads" }) => {
     const [playlistName, setPlaylistName] = useState(defaultName);
     const [concurrency, setConcurrency] = useState(3);
+    const [downloadVideo, setDownloadVideo] = useState(false);
     const [localPlaylists, setLocalPlaylists] = useState([]);
 
     useEffect(() => {
@@ -18,7 +19,7 @@ const DestinationPickerModal = ({ visible, onClose, onSelect, defaultName = "My 
 
     const handleSelect = () => {
         if (playlistName.trim()) {
-            onSelect(playlistName.trim(), concurrency);
+            onSelect(playlistName.trim(), concurrency, downloadVideo);
             onClose();
         }
     };
@@ -84,6 +85,16 @@ const DestinationPickerModal = ({ visible, onClose, onSelect, defaultName = "My 
                         >
                             <Text style={styles.concurrencyBtnText}>+</Text>
                         </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.switchContainer}>
+                        <Text style={styles.subtitle}>Download Video too:</Text>
+                        <Switch
+                            value={downloadVideo}
+                            onValueChange={setDownloadVideo}
+                            trackColor={{ false: "#767577", true: "#22f97e" }}
+                            thumbColor={downloadVideo ? "#fff" : "#f4f3f4"}
+                        />
                     </View>
 
                     <TouchableOpacity 
@@ -202,6 +213,13 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         minWidth: 20,
         textAlign: 'center'
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 20,
+        marginBottom: 5
     }
 });
 
