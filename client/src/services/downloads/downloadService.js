@@ -148,6 +148,13 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
                 try { coverFile.delete(); } catch(e) {}
             }
         }
+        const videoExtensions = ['mp4', 'webm', 'mov'];
+        for (const ext of videoExtensions) {
+            const videoFile = new File(playlistDir, `${songId}_video.${ext}`);
+            if (videoFile.exists) {
+                try { videoFile.delete(); } catch(e) {}
+            }
+        }
     } catch (e) {
         console.log("Failed to delete song file or cover:", e);
     }
@@ -197,7 +204,7 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
     });
 };
 
-export const downloadSongToLocal = async (song, playlistId) => {
+export const downloadSongToLocal = async (song, playlistId, downloadVideo = false) => {
     try {
         if (!song.url) return null;
 
@@ -289,6 +296,36 @@ export const downloadSongToLocal = async (song, playlistId) => {
             }
         }
 
+        let localVideoUrl = null;
+        if (downloadSuccess && downloadVideo && song.videoUrl) {
+            if (!song.videoUrl.startsWith("file://")) {
+                try {
+                    let videoExt = "mp4";
+                    const urlParts = song.videoUrl.split('?')[0].split('.');
+                    if (urlParts.length > 1) {
+                        const lastPart = urlParts[urlParts.length - 1];
+                        if (['mp4', 'webm', 'mov'].includes(lastPart.toLowerCase())) {
+                            videoExt = lastPart.toLowerCase();
+                        }
+                    }
+                    const videoFileName = `${songId}_video.${videoExt}`;
+                    const videoFile = new File(playlistDir, videoFileName);
+                    
+                    if (videoFile.exists) {
+                        try { videoFile.delete(); } catch(e) {}
+                    }
+                    
+                    const videoTask = File.createDownloadTask(song.videoUrl, videoFile);
+                    await videoTask.downloadAsync();
+                    localVideoUrl = videoFile.uri;
+                } catch (e) {
+                    console.log("Video download error:", e);
+                }
+            } else {
+                localVideoUrl = song.videoUrl;
+            }
+        }
+
         // Clean up legacy task state if it exists
         const legacyTaskKey = `download_task_${playlistId}:${songId}`;
         storage.delete(legacyTaskKey);
@@ -298,7 +335,7 @@ export const downloadSongToLocal = async (song, playlistId) => {
             return { downloadTasks: rest };
         });
 
-        return downloadSuccess ? { localUrl: file.uri, localCoverUrl } : null;
+        return downloadSuccess ? { localUrl: file.uri, localCoverUrl, localVideoUrl } : null;
     } catch (e) {
         console.log("Download error:", e, e?.message);
         return null;
@@ -309,11 +346,16 @@ export const downloadPlaylistSongs = async (
     playlist,
     songsToDownload,
     concurrency = 1,
-    onProgress
+    onProgress,
+    downloadVideo = false
 ) => {
     if (typeof concurrency === 'function') {
+        downloadVideo = typeof onProgress === 'boolean' ? onProgress : false;
         onProgress = concurrency;
         concurrency = 1;
+    } else if (typeof onProgress === 'boolean') {
+        downloadVideo = onProgress;
+        onProgress = undefined;
     }
 
     let downloadedSongs = await getDownloadedSongs(playlist.id);
@@ -401,12 +443,12 @@ export const downloadPlaylistSongs = async (
 
             useDownloadStatus.getState().setDownloadingSong(songId, "downloading");
 
-            const downloadResult = await downloadSongToLocal(song, playlist.id);
+            const downloadResult = await downloadSongToLocal(song, playlist.id, downloadVideo);
 
             useDownloadStatus.getState().removeDownloadingSong(songId);
 
             if (downloadResult && downloadResult.localUrl) {
-                const { localUrl, localCoverUrl } = downloadResult;
+                const { localUrl, localCoverUrl, localVideoUrl } = downloadResult;
                 const progressData =
                     useDownloadStatus
                         .getState()
@@ -425,6 +467,10 @@ export const downloadPlaylistSongs = async (
                 if (localCoverUrl) {
                     songToSave.cover = localCoverUrl;
                     songToSave.artwork = localCoverUrl;
+                }
+                
+                if (localVideoUrl) {
+                    songToSave.videoUrl = localVideoUrl;
                 }
 
                 await new Promise(resolve => {
