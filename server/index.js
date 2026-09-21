@@ -20,6 +20,7 @@ import temp from "./routes/temp.routes.js";
 import streamRoutes from "./routes/stream.routes.js";
 import statusRoutes from "./routes/status.routes.js";
 import videoStatusRoutes from "./routes/videoStatus.routes.js";
+import internalRoutes from "./routes/internal.routes.js";
 import AppDetail from "./models/appDetails.js";
 import { updateChannels } from "./scripts/channelWorker.js";
 import { syncFavoriteVideos } from "./scripts/videoSync.js";
@@ -49,6 +50,7 @@ app.use("/auth", authRoutes);
 app.use("/stream", streamRoutes);
 
 app.use("/status/video", videoStatusRoutes);
+app.use("/internal", internalRoutes);
 app.use("/status", statusRoutes);
 
 app.use("/", requireAuth, indexRoutes);
