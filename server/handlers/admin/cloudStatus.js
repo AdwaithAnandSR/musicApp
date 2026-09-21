@@ -13,14 +13,12 @@ const cloudStatus = async (req, res) => {
     };
 
     const checkAccount = async account => {
-        cloudinary.config({
-            cloud_name: account.CLOUDINARY_CLOUD_NAME,
-            api_key: account.CLOUDINARY_API_KEY,
-            api_secret: account.CLOUDINARY_API_SECRET
-        });
-
         try {
-            const usage = await cloudinary.api.usage();
+            const usage = await cloudinary.api.usage({
+                cloud_name: account.CLOUDINARY_CLOUD_NAME,
+                api_key: account.CLOUDINARY_API_KEY,
+                api_secret: account.CLOUDINARY_API_SECRET
+            });
 
             return {
                 email: account.email,
