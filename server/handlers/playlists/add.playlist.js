@@ -12,6 +12,21 @@ const addSongs = async (req, res) => {
             });
         }
 
+        if (id === "FAVOURITES_PLAYLIST_ID") {
+            const songIds = [...new Set(selectedSongIds)]
+                .filter(sid => mongoose.Types.ObjectId.isValid(sid))
+                .map(sid => new mongoose.Types.ObjectId(sid));
+            
+            const Music = (await import("../../models/musics.js")).default;
+            await Music.updateMany(
+                { _id: { $in: songIds } },
+                { $set: { isFav: true, favAt: new Date() } }
+            );
+            return res.status(200).json({
+                message: "Songs added to Favourites"
+            });
+        }
+
         const playlistId = new mongoose.Types.ObjectId(id);
 
         const playlist = await Playlist.findById(playlistId);
