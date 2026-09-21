@@ -46,6 +46,8 @@ router.post("/video-callback/:jobId/progress", (req, res) => {
 
     if (!global.activeVideoDownloads) global.activeVideoDownloads = {};
     
+    if (job.onProgress) job.onProgress({ message, percent, startedAt });
+    if (job.onProgress) job.onProgress({ message, percent, startedAt });
     global.activeVideoDownloads[job.ytId] = {
         message: message,
         percent: percent,
@@ -71,9 +73,12 @@ router.post("/video-callback/:jobId/status", async (req, res) => {
             await musicModel.findByIdAndUpdate(songId, { videoUrl });
             logVideoDownload('Video', ytId, songId, 'SUCCESS', `Uploaded to Cloudinary: ${videoUrl}`, 'individual');
             console.log(`[GitHub Actions Callback] Successfully updated videoUrl for song ${songId}`);
+            if (job.resolve) job.resolve();
+            if (job.resolve) job.resolve();
         } else {
             console.error(`[GitHub Actions Callback] Error processing video for ${ytId}:`, error);
             logVideoDownload('Video', ytId, songId, 'ERROR', error || 'Unknown error', 'individual');
+            if (job.reject) job.reject(new Error(error || 'Unknown error'));
         }
     } catch (err) {
         console.error("[GitHub Actions Callback] DB Error:", err);

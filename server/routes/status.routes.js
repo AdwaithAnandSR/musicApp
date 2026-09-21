@@ -49,7 +49,11 @@ const getCloudinaryUsage = async () => {
         return _cloudinaryCache;
     }
     try {
-        const usage = await cloudinary.api.usage();
+        const usage = await cloudinary.api.usage({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME_1,
+            api_key: process.env.CLOUDINARY_API_KEY || process.env.CLOUDINARY_API_KEY_1,
+            api_secret: process.env.CLOUDINARY_API_SECRET || process.env.CLOUDINARY_API_SECRET_1
+        });
         const formatBytes = b => {
             if (!b || b === 0) return "0 B";
             const units = ["B", "KB", "MB", "GB", "TB"];

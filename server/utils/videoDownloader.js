@@ -219,13 +219,17 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
         const durationSec = songDoc ? (songDoc.duration || 0) : 0;
         
         // Register the job
-        global.videoJobs[jobId] = {
+        return new Promise((resolve, reject) => {
+            global.videoJobs[jobId] = {
             jobId,
             ytId,
             songId,
             rawVideoPath,
             durationSec,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+                onProgress: internalOnProgress,
+                resolve,
+                reject
         };
         
         // Enqueue the GitHub Actions trigger
@@ -246,11 +250,13 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
                     try { fs.unlinkSync(job.rawVideoPath); } catch (e) {}
                 }
                 logVideoDownload('Video', ytId, songId, 'ERROR', 'Processing timed out after 60 minutes', 'individual');
+                    reject(new Error('Processing timed out after 60 minutes'));
             }
         }, 60 * 60 * 1000);
         
         // Trigger queue processing
         global.processNextVideoJob();
+        });
 
     } catch (err) {
         console.error(
