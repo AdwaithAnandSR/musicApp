@@ -7,15 +7,6 @@ let _videoCache = null;
 let _videoCacheTime = 0;
 const VIDEO_CACHE_TTL = 5 * 60 * 1000;
 
-const configureVideoCloudinary = () => {
-    cloudinary.config({
-        cloud_name: process.env.CLOUDINARY_CLOUD_NAME_VIDEO,
-        api_key: process.env.CLOUDINARY_API_KEY_VIDEO,
-        api_secret: process.env.CLOUDINARY_API_SECRET_VIDEO,
-        secure: true
-    });
-};
-
 const formatBytes = b => {
     if (!b || b === 0) return "0 B";
     const units = ["B", "KB", "MB", "GB", "TB"];
@@ -29,8 +20,11 @@ export const getVideoCloudinaryUsage = async () => {
         return _videoCache;
     }
     try {
-        configureVideoCloudinary();
-        const usage = await cloudinary.api.usage();
+        const usage = await cloudinary.api.usage({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME_VIDEO,
+            api_key: process.env.CLOUDINARY_API_KEY_VIDEO,
+            api_secret: process.env.CLOUDINARY_API_SECRET_VIDEO
+        });
 
         const result = {
             plan: usage.plan || "Free",
