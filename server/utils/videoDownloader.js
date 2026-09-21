@@ -175,7 +175,7 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
             "--socket-timeout",
             "30",
             "-o",
-            uploadPath,
+            rawVideoPath,
             ...cookieArgs,
             `https://www.youtube.com/watch?v=${ytId}`
         ];
@@ -212,7 +212,7 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
         const apiSecret = process.env.CLOUDINARY_API_SECRET_VIDEO;
 
         const uploadResult = await cloudinary.uploader.upload(
-            rawVideoPath,
+            uploadPath,
             {
                 resource_type: "video",
                 folder: "musicApp/backgrounds",
