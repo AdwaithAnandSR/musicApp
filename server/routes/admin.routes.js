@@ -71,12 +71,26 @@ router.get("/cloudStatus", cloudStatus);
 router.post("/youtubeDownload", youtubeDownload);
 
 import { processVideoDownload } from "../utils/videoDownloader.js";
+import { isVideoDownloadBlocked, logVideoDownload } from "../utils/videoCredits.js";
 
 router.post("/video-download", async (req, res) => {
     try {
         const { songId, ytId } = req.body;
         if (!songId || !ytId) {
             return res.status(400).json({ success: false, message: "songId and ytId required" });
+        }
+
+        // Check video Cloudinary credits before starting
+        const creditCheck = await isVideoDownloadBlocked();
+        if (creditCheck.blocked) {
+            logVideoDownload(
+                'Manual', ytId, songId, 'BLOCKED',
+                creditCheck.reason, 'individual'
+            );
+            return res.status(403).json({
+                success: false,
+                message: creditCheck.reason
+            });
         }
 
         // Run background download

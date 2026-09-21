@@ -1,45 +1,40 @@
 import { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
     withTiming,
-    runOnJS,
     withSequence,
-    withDelay
+    withDelay,
+    runOnJS
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { getColors } from "react-native-image-colors";
 import { router } from "expo-router";
-import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import Entypo from "@react-native-vector-icons/entypo/static";
-import { VideoView, useVideoPlayer } from "expo-video";
+import * as Haptics from "expo-haptics";
 
 import { useStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
 
+import VideoBackground from "@components/fullView/VideoBackground.jsx";
+import CoverArtwork from "@components/fullView/CoverArtwork.jsx";
+import TrackTitle from "@components/fullView/TrackTitle.jsx";
 import Controllers from "@components/fullView/ControllersContainer.jsx";
 import SliderContainer from "@components/fullView/SliderContainer.jsx";
-import Lyrics from "@components/fullView/LyricsView.jsx";
 import NavBar from "@components/fullView/NavBar.jsx";
 import Footer from "@components/fullView/Footer.jsx";
 import OptionsContainer from "@components/fullView/OptionsContainer.jsx";
 import PlaylistBottomSheet from "@components/fullView/PlaylistBottomSheet.jsx";
 import { isDarkColor, makeLightColor } from "@services/colors";
 import handleToggleFavourite from "../../../controllers/playlists/handleToggleFavourite.js";
-import * as Haptics from "expo-haptics";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
 const PLAYLIST_CLOSED_Y = vh * 0.7;
 const SWIPE_THRESHOLD = vh * 0.15;
 const PLAYLIST_MID = vh * 0.35;
-
-const blurhash =
-    "|rF?hV%2WCj[ayj[a|j[az_NaeWBj@ayfRayfQfQM{M|azj[azf6fQfQfQIpWXofj[ayj[j[fQayWCoeoeaya}j[ayfQa{oLj?j[WVj[ayayj[fQoff7azayj[ayj[j[ayofayayayj[fQj[ayayj[ayfjj[j[ayjuayj[";
-const blurhashPlaceholder = { blurhash };
 
 const TrackControllerFullView = () => {
     const [colors, setColors] = useState(null);
@@ -49,43 +44,13 @@ const TrackControllerFullView = () => {
         state => state.showLyrics1 || state.showLyrics2
     );
 
+    // Subscribe only to identity-level track data (not position/isPlaying/isBuffering)
     const track = usePlayer(state => state.currentTrack);
     const trackId = track?._id || track?.id;
     const coverUrl = track?.cover || track?.artwork;
     const videoUrl = track?.videoUrl;
 
-    const isPlaying = usePlayer(state => state.isPlaying);
-    const isBuffering = usePlayer(state => state.isBuffering);
-    const audioPosition = usePlayer(state => state.position); // In seconds
-
-    const player = useVideoPlayer(videoUrl, p => {
-        p.loop = true;
-        p.muted = true;
-    });
-
-    useEffect(() => {
-        if (player) {
-            if (showVideo && isPlaying && !isBuffering) {
-                player.play();
-            } else {
-                player.pause();
-            }
-        }
-    }, [showVideo, isPlaying, isBuffering, player]);
-
-    useEffect(() => {
-        if (player && showVideo && isPlaying && !isBuffering) {
-            // Don't force sync if video is currently trying to buffer its own stream
-            if (player.status === "loading" || player.status === "idle") return;
-
-            const diff = Math.abs(player.currentTime - audioPosition);
-            // Sync video if it's lagging or ahead by more than 1.5s
-            if (diff > 1.5) {
-                player.currentTime = audioPosition;
-            }
-        }
-    }, [audioPosition, player, showVideo, isPlaying, isBuffering]);
-
+    // Color extraction — only runs when track changes
     useEffect(() => {
         if (!trackId) {
             if (router.canGoBack()) {
@@ -102,12 +67,56 @@ const TrackControllerFullView = () => {
         }
     }, [trackId, coverUrl, track?.colors]);
 
+    // ── Gesture shared values ──
     const translateY = useSharedValue(0);
     const playlistTranslateY = useSharedValue(PLAYLIST_CLOSED_Y);
     const context = useSharedValue({ y: PLAYLIST_CLOSED_Y, startY: 0 });
 
+    // ── Heart animation shared values ──
+    const heartScale = useSharedValue(0);
+    const heartOpacity = useSharedValue(0);
+
     const goBack = () => router.back();
 
+    const triggerHeartAnimation = () => {
+        "worklet";
+        heartScale.value = 0;
+        heartScale.value = withSequence(
+            withSpring(1.5, { damping: 12, stiffness: 150 }),
+            withSpring(1, { damping: 12, stiffness: 100 })
+        );
+        heartOpacity.value = 0;
+        heartOpacity.value = withSequence(
+            withTiming(1, { duration: 250 }),
+            withDelay(700, withTiming(0, { duration: 400 }))
+        );
+    };
+
+    const toggleFavourite = async () => {
+        if (!track) return;
+        try {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {}
+
+        const isFav = track?.isFav || false;
+        usePlayer.setState(state => ({
+            currentTrack: { ...state.currentTrack, isFav: true }
+        }));
+
+        const newFavState = await handleToggleFavourite(track._id || track.id);
+
+        if (newFavState === null) {
+            usePlayer.setState(state => ({
+                currentTrack: { ...state.currentTrack, isFav: isFav }
+            }));
+        } else if (newFavState !== true) {
+            usePlayer.setState(state => ({
+                currentTrack: { ...state.currentTrack, isFav: newFavState }
+            }));
+        }
+    };
+
+    // ── Gestures ──
     const panGesture = Gesture.Pan()
         .enabled(!showLyrics)
         .activeOffsetY([-20, 20])
@@ -210,68 +219,15 @@ const TrackControllerFullView = () => {
             }
         });
 
-    const heartScale = useSharedValue(0);
-    const heartOpacity = useSharedValue(0);
-
-    const triggerHeartAnimation = () => {
-        "worklet";
-        heartScale.value = 0; // reset
-        heartScale.value = withSequence(
-            withSpring(1.5, { damping: 12, stiffness: 150 }),
-            withSpring(1, { damping: 12, stiffness: 100 })
-        );
-        heartOpacity.value = 0; // reset
-        heartOpacity.value = withSequence(
-            withTiming(1, { duration: 250 }),
-            withDelay(700, withTiming(0, { duration: 400 }))
-        );
-    };
-
-    const heartAnimatedStyle = useAnimatedStyle(() => {
-        "worklet";
-        return {
-            transform: [{ scale: heartScale.value }],
-            opacity: heartOpacity.value,
-            position: "absolute",
-            zIndex: 10
-        };
-    });
-
-    const toggleFavourite = async () => {
-        if (!track) return;
-        try {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        } catch {}
-
-        const isFav = track?.isFav || false;
-        usePlayer.setState(state => ({
-            currentTrack: { ...state.currentTrack, isFav: true }
-        }));
-
-        const newFavState = await handleToggleFavourite(track._id || track.id);
-
-        if (newFavState === null) {
-            usePlayer.setState(state => ({
-                currentTrack: { ...state.currentTrack, isFav: isFav }
-            }));
-        } else if (newFavState !== true) {
-            usePlayer.setState(state => ({
-                currentTrack: { ...state.currentTrack, isFav: newFavState }
-            }));
-        }
-    };
-
     const doubleTapGesture = Gesture.Tap()
         .numberOfTaps(2)
         .onEnd(() => {
             "worklet";
             triggerHeartAnimation();
 
-            // Only like, don't unlike on double tap (like Instagram)
             if (!track?.isFav) {
                 runOnJS(toggleFavourite)();
             } else {
-                // Just trigger haptics and animation if already liked
                 runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
             }
         });
@@ -286,7 +242,7 @@ const TrackControllerFullView = () => {
             }
         });
 
-    const composedGesture = Gesture.Simultaneous(panGesture, doubleTapGesture);
+    const composedGesture = Gesture.Simultaneous(panGesture, doubleTapGesture, longPressGesture);
 
     const animatedStyle = useAnimatedStyle(() => {
         "worklet";
@@ -311,97 +267,34 @@ const TrackControllerFullView = () => {
             >
                 <LinearGradient
                     colors={[topColor, "#000000"]}
-                    style={[styles.container]}
+                    style={styles.container}
                 >
-                    {showVideo && videoUrl && (
-                        <>
-                            <VideoView
-                                player={player}
-                                style={[
-                                    StyleSheet.absoluteFill,
-                                    {
-                                        width: "100%",
-                                        height: "100%"
-                                    }
-                                ]}
-                                contentFit="cover"
-                                nativeControls={false}
-                            />
-                            <View
-                                style={[
-                                    StyleSheet.absoluteFill,
-                                    {
-                                        width: "100%",
-                                        height: "100%",
-                                        backgroundColor: "#000000a0"
-                                    }
-                                ]}
-                            />
-                        </>
-                    )}
+                    {/* Video background — self-manages position sync & player lifecycle */}
+                    <VideoBackground
+                        videoUrl={videoUrl}
+                        showVideo={showVideo}
+                    />
 
                     {/* navbar */}
                     <NavBar />
 
-                    {/* title */}
-                    <View style={styles.titleWrapper}>
-                        <Text numberOfLines={2} style={styles.title}>
-                            {track?.title}
-                        </Text>
-                    </View>
+                    {/* title — subscribes to track.title independently */}
+                    <TrackTitle />
 
                     <OptionsContainer lightVibrant={lightColor} />
 
-                    <GestureDetector gesture={longPressGesture}>
-                        <View
-                            style={[
-                                styles.imageContainer,
-                                {
-                                    boxShadow: `0px 30px 100px ${colors?.lightMuted}b0`
-                                }
-                            ]}
-                        >
-                            <Image
-                                source={
-                                    coverUrl
-                                        ? { uri: coverUrl }
-                                        : require("@assets/images/images.jpeg")
-                                }
-                                placeholder={blurhashPlaceholder}
-                                contentFit="cover"
-                                transition={1000}
-                                filter="contrast(1.25) brightness(0.8)"
-                                style={[
-                                    styles.imageFill,
-                                    { opacity: showVideo && videoUrl ? 0.4 : 1 }
-                                ]}
-                            />
-                            {showLyrics && (
-                                <Lyrics
-                                    track={track}
-                                    lightVibrant={lightColor}
-                                />
-                            )}
-                            <Animated.View
-                                style={[
-                                    heartAnimatedStyle,
-                                    {
-                                        alignItems: "center",
-                                        width: "100%"
-                                    }
-                                ]}
-                            >
-                                <Entypo
-                                    name="heart"
-                                    size={150}
-                                    color={colors?.dominant ?? "#ef448c"}
-                                />
-                            </Animated.View>
-                        </View>
-                    </GestureDetector>
+                    {/* cover art, lyrics, heart animation */}
+                    <CoverArtwork
+                        lightColor={lightColor}
+                        shadowColor={colors?.lightMuted}
+                        dominantColor={colors?.dominant}
+                        showVideo={showVideo}
+                        videoUrl={videoUrl}
+                        heartScale={heartScale}
+                        heartOpacity={heartOpacity}
+                    />
 
                     {/* slider */}
-
                     <SliderContainer
                         defaultDuration={track?.duration}
                         lightVibrant={lightColor}
@@ -426,32 +319,6 @@ const styles = StyleSheet.create({
     },
     bgBlack: {
         backgroundColor: "black"
-    },
-    titleWrapper: {
-        minHeight: vh * 0.08,
-        justifyContent: "center"
-    },
-    title: {
-        color: "white",
-        fontSize: vw * 0.045,
-        fontWeight: "bold",
-        alignSelf: "center",
-        width: "80%",
-        textAlign: "center",
-        marginTop: vh * 0.03
-    },
-    imageContainer: {
-        width: vw * 0.85,
-        height: vw * 0.85,
-        borderRadius: vw * 0.1,
-        overflow: "hidden",
-        alignSelf: "center",
-        marginVertical: vh * 0.03,
-        justifyContent: "center"
-    },
-    imageFill: {
-        width: "100%",
-        height: "100%"
     }
 });
 

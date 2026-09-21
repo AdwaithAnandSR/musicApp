@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Music from "../models/musics.js";
 import { processVideoDownload } from "../utils/videoDownloader.js";
+import { isVideoDownloadBlocked, logVideoDownload } from "../utils/videoCredits.js";
 
 export const initVideoChangeListener = () => {
     try {
@@ -35,6 +36,17 @@ export const initVideoChangeListener = () => {
 
                     if (song.videoUrl) {
                         console.log(`[Change Stream] Song "${song.title}" (${songId}) already has a videoUrl. Skipping.`);
+                        return;
+                    }
+
+                    // Check video Cloudinary credits before downloading
+                    const creditCheck = await isVideoDownloadBlocked();
+                    if (creditCheck.blocked) {
+                        console.log(`[Change Stream] BLOCKED for "${song.title}": ${creditCheck.reason}`);
+                        logVideoDownload(
+                            song.title, song.ytId, song._id.toString(), 'BLOCKED',
+                            creditCheck.reason, 'change_stream'
+                        );
                         return;
                     }
 

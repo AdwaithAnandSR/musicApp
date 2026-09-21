@@ -4,6 +4,7 @@ import { spawn } from "child_process";
 import { v2 as cloudinary } from "cloudinary";
 import musicModel from "../models/musics.js";
 import AppDetail from "../models/appDetails.js";
+import { isVideoDownloadBlocked, logVideoDownload } from './videoCredits.js';
 
 const MAX_LOG_CHARS = 4000;
 
@@ -82,6 +83,18 @@ const writeCookieFile = netscapeContent => {
 
 export const processVideoDownload = async (songId, ytId) => {
     console.log("start processing");
+
+    // Check video Cloudinary credits before proceeding
+    const creditCheck = await isVideoDownloadBlocked();
+    if (creditCheck.blocked) {
+        console.log(`[Video Download] BLOCKED: ${creditCheck.reason}`);
+        logVideoDownload(
+            'Unknown', ytId, songId, 'BLOCKED',
+            creditCheck.reason, 'individual'
+        );
+        return;
+    }
+
     const { command, prefix, env } = getYtDlpRunner();
     const downloadDir = path.resolve(process.cwd(), "downloads");
     if (!fs.existsSync(downloadDir))
@@ -156,6 +169,10 @@ export const processVideoDownload = async (songId, ytId) => {
 
         // 4. Save to DB
         await musicModel.findByIdAndUpdate(songId, { videoUrl });
+        logVideoDownload(
+            'Video', ytId, songId, 'SUCCESS',
+            `Uploaded to Cloudinary: ${videoUrl}`, 'individual'
+        );
         console.log(
             `[Video Download] Successfully updated videoUrl for song ${songId}`
         );
@@ -163,6 +180,10 @@ export const processVideoDownload = async (songId, ytId) => {
         console.error(
             `[Video Download] Error processing video for ${ytId}:`,
             err
+        );
+        logVideoDownload(
+            'Video', ytId, songId, 'ERROR',
+            err.message || 'Unknown error', 'individual'
         );
     } finally {
         if (cookieFile && fs.existsSync(cookieFile)) {
