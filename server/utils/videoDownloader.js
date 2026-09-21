@@ -1,3 +1,5 @@
+
+if (!global.activeVideoDownloads) global.activeVideoDownloads = {};
 import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
@@ -82,35 +84,120 @@ const writeCookieFile = netscapeContent => {
 };
 
 
-const runFfmpeg = (input, output, durationSec, onProgress) => {
+
+const runFfmpeg = async (input, output, durationSec, onProgress) => {
+    // Pass 1: cropdetect
+    onProgress({ message: 'Detecting borders...', percent: 0, startedAt: Date.now() });
+    
+    let cropVal = null;
+    try {
+        const detectArgs = [
+            '-y', '-ss', '00:00:15', '-i', input,
+            '-t', '2',
+            '-vf', 'cropdetect=24:16:0',
+            '-f', 'null', '-'
+        ];
+        
+        const detectOut = await new Promise((resolve, reject) => {
+            const proc = spawn('ffmpeg', detectArgs);
+            let stderr = '';
+            proc.stderr.on('data', d => stderr += d.toString());
+            proc.on('close', code => resolve(stderr));
+            proc.on('error', reject);
+        });
+        
+        const matches = detectOut.match(/crop=(\d+:\d+:\d+:\d+)/g);
+        if (matches && matches.length > 0) {
+            cropVal = matches[matches.length - 1];
+        }
+    } catch(e) {
+        console.error('[FFmpeg] cropdetect failed:', e);
+    }
+    
+    // Fallback detection without -ss if 15s seek failed (e.g., short video)
+    if (!cropVal) {
+        try {
+            const detectArgs = [
+                '-y', '-i', input,
+                '-t', '2',
+                '-vf', 'cropdetect=24:16:0',
+                '-f', 'null', '-'
+            ];
+            const detectOut = await new Promise((resolve, reject) => {
+                const proc = spawn('ffmpeg', detectArgs);
+                let stderr = '';
+                proc.stderr.on('data', d => stderr += d.toString());
+                proc.on('close', code => resolve(stderr));
+                proc.on('error', reject);
+            });
+            const matches = detectOut.match(/crop=(\d+:\d+:\d+:\d+)/g);
+            if (matches && matches.length > 0) {
+                cropVal = matches[matches.length - 1];
+            }
+        } catch(e) {}
+    }
+    
+    // Construct final filter chain
+    // If cropVal found (e.g. crop=1920:800:0:140), apply it first, then crop to 9:16 portrait.
+    // The second crop min(ow, ih*9/16):ih ensures it fits vertically and centers horizontally.
+    let vfFilter = 'crop=min(ow\\,ih*9/16):ih';
+    if (cropVal) {
+        console.log('[FFmpeg] Detected border crop:', cropVal);
+        vfFilter = `${cropVal},crop=min(ow\\,ih*9/16):ih`;
+    } else {
+        console.log('[FFmpeg] No borders detected, using default crop.');
+    }
+    
+    onProgress({ message: 'Cropping and Encoding...', percent: 0, startedAt: Date.now() });
+    
     return new Promise((resolve, reject) => {
-        // crop=min(ow\,ih*9/16):ih
         const args = [
             '-y', '-i', input,
-            '-vf', 'crop=min(ow\\,ih*9/16):ih',
+            '-vf', vfFilter,
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '28',
             '-c:a', 'copy',
+            '-progress', 'pipe:1',
             output
         ];
+        
         const proc = spawn('ffmpeg', args);
         let stderr = '';
+        let stdoutBuf = '';
         
-        proc.stderr.on('data', data => {
-            const str = data.toString();
-            stderr += str;
+        let currentSpeed = '1.0x';
+        
+        proc.stdout.on('data', data => {
+            stdoutBuf += data.toString();
+            const lines = stdoutBuf.split('\n');
+            stdoutBuf = lines.pop(); // keep the last incomplete line in buffer
             
-            // extract time=00:00:05.23
-            const timeMatch = str.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d+)/);
-            if (timeMatch && durationSec > 0) {
-                const h = parseInt(timeMatch[1], 10);
-                const m = parseInt(timeMatch[2], 10);
-                const s = parseFloat(timeMatch[3]);
-                const currentSec = h * 3600 + m * 60 + s;
+            let outTimeUs = null;
+            let progressState = null;
+            
+            for (const line of lines) {
+                const [k, ...vParts] = line.split('=');
+                const v = vParts.join('=');
+                
+                if (k === 'speed') currentSpeed = v.trim();
+                if (k === 'out_time_us') outTimeUs = parseInt(v, 10);
+                if (k === 'progress') progressState = v.trim();
+            }
+            
+            if (outTimeUs !== null && durationSec > 0) {
+                let currentSec = outTimeUs / 1000000;
                 let pct = Math.round((currentSec / durationSec) * 100);
                 if (pct > 100) pct = 100;
                 
-                onProgress({ message: 'Cropping and Encoding...', percent: pct, startedAt: Date.now() });
+                onProgress({ message: 'FFmpeg processing: ' + pct + '% • ' + currentSpeed, percent: pct, startedAt: Date.now() });
             }
+            
+            if (progressState === 'end') {
+                onProgress({ message: 'FFmpeg processing: 100% • Finished', percent: 100, startedAt: Date.now() });
+            }
+        });
+
+        proc.stderr.on('data', data => {
+            stderr += data.toString();
         });
         
         proc.on('close', code => {
@@ -121,6 +208,12 @@ const runFfmpeg = (input, output, durationSec, onProgress) => {
 };
 
 export const processVideoDownload = async (songId, ytId, onProgress = () => {}) => {
+    let internalOnProgress = (data) => {
+        global.activeVideoDownloads[ytId] = { ...data, ytId, songId };
+        onProgress(data);
+    };
+    global.activeVideoDownloads[ytId] = { message: 'Initializing...', percent: 0, startedAt: Date.now(), ytId, songId };
+
     console.log("start processing");
 
     // Check video Cloudinary credits before proceeding
@@ -181,7 +274,7 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
         ];
 
         console.log(`[Video Download] Downloading raw video for ${ytId}...`);
-        onProgress({ message: 'Downloading from YouTube...', percent: 0, startedAt: Date.now() });
+        internalOnProgress({ message: 'Downloading from YouTube...', percent: 0, startedAt: Date.now() });
         await runCommand(command, dlArgs, true, env);
 
         if (!fs.existsSync(rawVideoPath)) {
@@ -196,10 +289,10 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
         const songDoc = await musicModel.findById(songId);
         const durationSec = songDoc ? (songDoc.duration || 0) : 0;
         
-        onProgress({ message: 'Starting video crop...', percent: 0, startedAt: Date.now() });
+        internalOnProgress({ message: 'Starting video crop...', percent: 0, startedAt: Date.now() });
         await runFfmpeg(rawVideoPath, processedVideoPath, durationSec, onProgress);
         
-        onProgress({ message: 'Uploading to Cloudinary...', percent: 100, startedAt: Date.now() });
+        internalOnProgress({ message: 'Uploading to Cloudinary...', percent: 100, startedAt: Date.now() });
 
         // 3. Upload to Cloudinary using _VIDEO credentials
         console.log(`[Video Download] Uploading to Cloudinary...`);
@@ -243,6 +336,7 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
             err.message || 'Unknown error', 'individual'
         );
     } finally {
+        delete global.activeVideoDownloads[ytId];
         if (cookieFile && fs.existsSync(cookieFile)) {
             try {
                 fs.unlinkSync(cookieFile);

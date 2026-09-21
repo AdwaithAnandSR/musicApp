@@ -24,6 +24,20 @@ export const getSongsWithoutColors = async (req, res) => {
     }
 };
 
+const songs = await musicModel
+    .find({
+        $or: [
+            { colors: { $exists: false } },
+            { "colors.dominant": { $exists: false } }
+        ]
+    })
+
+    .select("title artist cover url");
+
+console.log(await musicModel.find({ ytId: "ZLtrPJgEHp4" }));
+
+console.log(songs);
+
 export const updateSongColors = async (req, res) => {
     try {
         const { id, colors } = req.body;
@@ -40,15 +54,3 @@ export const updateSongColors = async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 };
-
-console.log(
-    await musicModel
-        .find({
-            $or: [
-                { colors: { $exists: false } },
-                { "colors.dominant": { $exists: false } }
-            ]
-        })
-        .limit(1)
-        .select("title artist cover url")
-);

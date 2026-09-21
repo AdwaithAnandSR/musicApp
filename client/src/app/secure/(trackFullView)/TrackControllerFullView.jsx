@@ -67,6 +67,8 @@ const TrackControllerFullView = () => {
         }
     }, [trackId, coverUrl, track?.colors]);
 
+    console.log(track)
+
     // ── Gesture shared values ──
     const translateY = useSharedValue(0);
     const playlistTranslateY = useSharedValue(PLAYLIST_CLOSED_Y);
