@@ -264,7 +264,7 @@ const PlaylistSongs = () => {
             });
     };
 
-    const handleDownloadSelect = async (numSongs, concurrency = 1) => {
+    const handleDownloadSelect = async (numSongs, concurrency = 1, downloadVideo = false) => {
         if (!songs || songs.length === 0) {
             Toast.show("No songs to download", "error");
             return;
@@ -315,7 +315,8 @@ const PlaylistSongs = () => {
                 concurrency,
                 (current, total, progress) => {
                     // we could show a progress toast here
-                }
+                },
+                downloadVideo
             );
             Toast.show("Download Complete!", "success");
         } catch (error) {
