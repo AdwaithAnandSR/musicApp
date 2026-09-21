@@ -218,6 +218,30 @@ export const processVideoDownload = async (songId, ytId, onProgress = () => {}) 
         const songDoc = await musicModel.findById(songId);
         const durationSec = songDoc ? (songDoc.duration || 0) : 0;
         
+        internalOnProgress({ message: 'Analyzing video for static content...', percent: 0, startedAt: Date.now() });
+        const { detectStaticVideo } = await import('./staticVideoDetector.js');
+        const detectionResult = await detectStaticVideo(rawVideoPath, durationSec);
+        
+        if (detectionResult.isStatic) {
+            console.log(`[Video Download] Static video detected for ${ytId} — skipping processing.`);
+            logVideoDownload(
+                songDoc ? songDoc.title : 'Video',
+                ytId,
+                songId,
+                'SKIPPED_STATIC',
+                `Static detection: STATIC, similarity=${detectionResult.minSsim}`,
+                'individual'
+            );
+            
+            // Clean up raw video
+            try { if (fs.existsSync(rawVideoPath)) fs.unlinkSync(rawVideoPath); } catch (e) {}
+            delete global.activeVideoDownloads[ytId];
+            
+            return; // Exit early, no need to trigger GitHub Actions
+        } else {
+            console.log(`[Static Detection] MOVING, similarity=${detectionResult.minSsim}`);
+        }
+
         // Register the job
         return new Promise((resolve, reject) => {
             global.videoJobs[jobId] = {
