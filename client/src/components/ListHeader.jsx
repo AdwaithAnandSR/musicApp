@@ -47,8 +47,7 @@ const Header = ({
         typeof ID === "string" &&
         ID !== "HOME" &&
         ID !== "SEARCH" &&
-        !ID.startsWith("SEARCH-") &&
-        /^[0-9a-fA-F]{24}$/.test(ID);
+        !ID.startsWith("SEARCH-");
 
     const isRecentlyAdded = ID === "6a3e689cfba948ae55682fe3"; // Recently Added Playlist ID
 
