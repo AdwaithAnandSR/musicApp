@@ -120,7 +120,11 @@ const ListItem = ({ item, index = 0, scrollY }) => {
                 {/* Overlay for text readability */}
                 <View style={styles.overlay}>
                     <Text style={styles.name}>{item?.name}</Text>
-                    {isSelecting && (
+                    {isSelecting && 
+                        !item.isLocalDownloadsFolder && 
+                        item._id !== "6a3e689cfba948ae55682fe3" && 
+                        item._id !== "ARTISTS_PLAYLIST_ID" && 
+                        !item.isArtistPlaylist && (
                         <TouchableOpacity
                             onPress={() =>
                                 addSongsToPlaylist({
