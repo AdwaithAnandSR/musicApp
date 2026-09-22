@@ -149,7 +149,15 @@ const PopUpOptions = () => {
         const currentSelectedPlaylist = useAppStatus.getState().currentSelectedPlaylist;
         
         const safePlaylistName = playlistName.trim() || "My Downloads";
-        const playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        let playlistId;
+        
+        if (currentSelectedPlaylist && safePlaylistName === currentSelectedPlaylist.name) {
+            playlistId = currentSelectedPlaylist._id || currentSelectedPlaylist.id;
+        } else if (safePlaylistName === "My Downloads") {
+            playlistId = "local_my_downloads";
+        } else {
+            playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        }
         
         const playlistToSave = {
             id: playlistId,
