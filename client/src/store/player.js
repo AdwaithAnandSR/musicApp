@@ -207,7 +207,11 @@ export const usePlayer = create((set, get) => ({
             const isLocal = queue.length > 0 && queue[0].isLocal;
             
             if (isLocal) {
-                const downloadedSongs = await getDownloadedSongs(currentPlaylistId);
+                let actualPlaylistId = currentPlaylistId;
+                if (String(currentPlaylistId).startsWith("local-")) {
+                    actualPlaylistId = String(currentPlaylistId).replace("local-", "");
+                }
+                const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
                 if (downloadedSongs.length > queue.length) {
                     const newTracks = downloadedSongs.map(song => ({
                         ...song,
@@ -219,7 +223,7 @@ export const usePlayer = create((set, get) => ({
                     return;
                 }
                 
-                const downloading = useDownloadStatus.getState().downloadingPlaylists[currentPlaylistId];
+                const downloading = useDownloadStatus.getState().downloadingPlaylists[actualPlaylistId];
                 if (downloading && downloading.length > 0) {
                     set({ isWaitingForDownload: true });
                     return;
@@ -305,7 +309,11 @@ export const usePlayer = create((set, get) => ({
          */
 
         if (isLocal) {
-            const downloadedSongs = await getDownloadedSongs(playlistId);
+            let actualPlaylistId = playlistId;
+            if (String(playlistId).startsWith("local-")) {
+                actualPlaylistId = String(playlistId).replace("local-", "");
+            }
+            const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
 
             tracks = downloadedSongs.map(song => ({
                 ...song,
@@ -507,7 +515,11 @@ export const usePlayer = create((set, get) => ({
         const { isWaitingForDownload, currentPlaylistId, queue, currentTrackIndex } = get();
         
         if (currentPlaylistId && queue.length > 0 && queue[0].isLocal) {
-            const downloadedSongs = await getDownloadedSongs(currentPlaylistId);
+            let actualPlaylistId = currentPlaylistId;
+            if (String(currentPlaylistId).startsWith("local-")) {
+                actualPlaylistId = String(currentPlaylistId).replace("local-", "");
+            }
+            const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
             if (downloadedSongs.length > queue.length) {
                 const newTracks = downloadedSongs.map(song => ({
                     ...song,

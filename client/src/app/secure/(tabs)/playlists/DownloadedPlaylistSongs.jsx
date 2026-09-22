@@ -88,7 +88,8 @@ const DownloadedPlaylistSongs = () => {
         usePlayer.getState().changePlaylistAndPlay({
             playlistId: `local-${playlistId}`,
             trackId: targetTracks[0].id || targetTracks[0]._id,
-            tracksOverride: targetTracks
+            tracksOverride: targetTracks,
+            isLocal: true
         });
     };
 
