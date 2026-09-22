@@ -121,10 +121,17 @@ const Header = ({
             downloadPlaylistSongs
         } = require("../services/downloads/downloadService.js");
 
+        const currentSelectedPlaylist = useAppStatus.getState().currentSelectedPlaylist;
         const safePlaylistName = playlistName.trim() || "My Downloads";
-        const playlistId =
-            "local_" +
-            safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        
+        let playlistId;
+        if (title && safePlaylistName === title) {
+            playlistId = String(ID).replace("local-", "");
+        } else if (safePlaylistName === "My Downloads") {
+            playlistId = "local_my_downloads";
+        } else {
+            playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+        }
 
         const playlistToSave = {
             id: playlistId,
