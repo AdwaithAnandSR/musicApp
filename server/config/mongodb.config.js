@@ -1,11 +1,12 @@
 import mongoose from "mongoose";
 
-let pass = process.env.MONGODB_PASS;
-let dbName = "vividMusic";
-let uri = `mongodb+srv://AdwaithAnandSR:${pass}@cluster0.8os2c.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0`;
+export const connectDB = async () => {
+    let pass = process.env.MONGODB_PASS;
+    let dbName = "vividMusic";
+    let uri = `mongodb+srv://AdwaithAnandSR:${pass}@cluster0.8os2c.mongodb.net/${dbName}?retryWrites=true&w=majority&appName=Cluster0`;
 
-try {
-    mongoose.connect(uri).then(async () => {
+    try {
+        await mongoose.connect(uri);
         console.log("connected to mongodb: ", dbName);
 
         const stats = await mongoose.connection.db.stats();
@@ -23,9 +24,10 @@ try {
                 2
             )} MB`
         );
-    });
-} catch (error) {
-    console.log(`error connecting database: `, error);
-}
+    } catch (error) {
+        console.log(`error connecting database: `, error);
+        throw error; // Rethrow to allow server to handle it or crash if DB fails
+    }
+};
 
 export default mongoose;
