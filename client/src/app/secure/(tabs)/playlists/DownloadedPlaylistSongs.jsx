@@ -60,10 +60,15 @@ const DownloadedPlaylistSongs = () => {
     useFocusEffect(
         useCallback(() => {
             loadSongs();
-            const interval = setInterval(loadSongs, 1000); // Polling for changes from popup
-            return () => clearInterval(interval);
         }, [loadSongs])
     );
+
+    const [refreshing, setRefreshing] = useState(false);
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadSongs();
+        setRefreshing(false);
+    };
 
     const scrollToMiddle = index => {
         if (index === 0)
@@ -118,6 +123,8 @@ const DownloadedPlaylistSongs = () => {
                     paddingTop: HEADER_HEIGHT + 10,
                     paddingBottom: 150
                 }}
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                     { useNativeDriver: true }
