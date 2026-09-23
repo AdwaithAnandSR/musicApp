@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -17,13 +17,9 @@ const HEADER_HEIGHT = 200;
 const ArtistsPlaylists = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
 
-    const onScroll = useMemo(
-        () =>
-            Animated.event(
-                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                { useNativeDriver: true }
-            ),
-        [scrollY]
+    const onScroll = Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true }
     );
 
     const {
@@ -47,11 +43,9 @@ const ArtistsPlaylists = () => {
         refetch();
     };
 
-    const renderItem = useMemo(() => {
-        return ({ item, index }) => {
-            return <ListItem item={item} index={index} scrollY={scrollY} />;
-        };
-    }, [scrollY]);
+    const renderItem = ({ item, index }) => {
+        return <ListItem item={item} index={index} scrollY={scrollY} />;
+    };
 
     return (
         <View style={styles.container}>
