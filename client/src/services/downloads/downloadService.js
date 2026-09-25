@@ -5,6 +5,23 @@ import { useDownloadStatus } from "../../store/appState.store.js";
 const storage = new MMKV({ id: "downloads-storage" });
 let metaMutex = Promise.resolve();
 
+let cachedMeta = null;
+let songIdToLocalInfo = new Map();
+
+const buildLookupMap = (meta) => {
+    songIdToLocalInfo.clear();
+    for (const playlistId in meta.songs) {
+        for (const song of meta.songs[playlistId]) {
+            if (song.localUrl) {
+                songIdToLocalInfo.set(song.id || song._id, {
+                    localUrl: song.localUrl,
+                    localVideoUrl: song.videoUrl && song.videoUrl.startsWith('file://') ? song.videoUrl : null
+                });
+            }
+        }
+    }
+};
+
 const getMetaFile = () => {
     const downloadsDir = new Directory(Paths.document, "downloads");
     if (!downloadsDir.exists) downloadsDir.create();
@@ -12,20 +29,25 @@ const getMetaFile = () => {
 };
 
 const getMeta = async () => {
+    if (cachedMeta) return cachedMeta;
     try {
         const file = getMetaFile();
-        if (!file.exists) return { playlists: {}, songs: {} };
-        const text = file.text(); // Assuming text() is sync or returns a promise, wait, in Expo next API file.text() might be sync? If it returns a promise, await it.
-        // Actually, in expo-file-system/next, file.text() returns a string! Wait, no, it's file.text() -> string? Let's await just in case, or use readAsStringAsync if it was legacy.
-        // Wait, standard Expo SDK 57 File has .text() which is a string. But wait, we can just use `file.text()` if it's sync. If it's a promise, we should await.
+        if (!file.exists) {
+            cachedMeta = { playlists: {}, songs: {} };
+            return cachedMeta;
+        }
         const content = await file.text();
-        return JSON.parse(content);
+        cachedMeta = JSON.parse(content);
+        buildLookupMap(cachedMeta);
+        return cachedMeta;
     } catch (e) {
         return { playlists: {}, songs: {} };
     }
 };
 
 const saveMeta = async meta => {
+    cachedMeta = meta;
+    buildLookupMap(meta);
     try {
         const file = getMetaFile();
         file.write(JSON.stringify(meta));
@@ -602,28 +624,12 @@ export const downloadPlaylistSongs = async (
 };
 
 export const getLocalUrlForSong = async (songId) => {
-    const meta = await getMeta();
-    for (const playlistId in meta.songs) {
-        const songs = meta.songs[playlistId];
-        const song = songs.find(s => (s.id || s._id) === songId);
-        if (song && song.localUrl) {
-            return song.localUrl;
-        }
-    }
-    return null;
+    if (!cachedMeta) await getMeta();
+    const info = songIdToLocalInfo.get(songId);
+    return info ? info.localUrl : null;
 };
 
 export const getLocalSongInfo = async (songId) => {
-    const meta = await getMeta();
-    for (const playlistId in meta.songs) {
-        const songs = meta.songs[playlistId];
-        const song = songs.find(s => (s.id || s._id) === songId);
-        if (song && song.localUrl) {
-            return {
-                localUrl: song.localUrl,
-                localVideoUrl: song.videoUrl && song.videoUrl.startsWith('file://') ? song.videoUrl : null
-            };
-        }
-    }
-    return null;
+    if (!cachedMeta) await getMeta();
+    return songIdToLocalInfo.get(songId) || null;
 };
