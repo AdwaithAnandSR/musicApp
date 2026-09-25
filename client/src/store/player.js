@@ -74,14 +74,20 @@ export const usePlayer = create((set, get) => ({
         set({ _playSeqId: seqId });
 
         let trackUrl = track.url;
+        let trackToUse = { ...track };
 
         // Check if there's a local downloaded version of this song
         if (!track.isLocal && (track._id || track.id)) {
             try {
-                const { getLocalUrlForSong } = require("@services/downloads/downloadService");
-                const localUrl = await getLocalUrlForSong(track._id || track.id);
-                if (localUrl) {
-                    trackUrl = localUrl;
+                const { getLocalSongInfo } = require("@services/downloads/downloadService");
+                const localInfo = await getLocalSongInfo(track._id || track.id);
+                if (localInfo && localInfo.localUrl) {
+                    trackUrl = localInfo.localUrl;
+                    trackToUse.url = localInfo.localUrl;
+                    trackToUse.isLocal = true;
+                    if (localInfo.localVideoUrl) {
+                        trackToUse.videoUrl = localInfo.localVideoUrl;
+                    }
                 }
             } catch (err) {
                 console.log("Error checking local version:", err);
@@ -94,7 +100,7 @@ export const usePlayer = create((set, get) => ({
         }
 
         // Only update metadata after we've confirmed this is still the active request
-        set({ currentTrackIndex: index, currentTrackId: track._id || track.id, currentTrack: track });
+        set({ currentTrackIndex: index, currentTrackId: track._id || track.id, currentTrack: trackToUse });
 
         const player = get().player;
         let newPlayer = player;

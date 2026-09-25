@@ -612,3 +612,18 @@ export const getLocalUrlForSong = async (songId) => {
     }
     return null;
 };
+
+export const getLocalSongInfo = async (songId) => {
+    const meta = await getMeta();
+    for (const playlistId in meta.songs) {
+        const songs = meta.songs[playlistId];
+        const song = songs.find(s => (s.id || s._id) === songId);
+        if (song && song.localUrl) {
+            return {
+                localUrl: song.localUrl,
+                localVideoUrl: song.videoUrl && song.videoUrl.startsWith('file://') ? song.videoUrl : null
+            };
+        }
+    }
+    return null;
+};
