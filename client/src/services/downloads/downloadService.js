@@ -226,23 +226,52 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
             try { file.delete(); } catch(e) {}
         }
 
-        const onProgress = ({ bytesWritten, totalBytes }) => {
+        const hasVideoToDownload = downloadVideo && song.videoUrl && !song.videoUrl.startsWith("file://");
+        let audioBytesWritten = 0;
+        let audioTotalBytes = 0;
+        let videoBytesWritten = 0;
+        let videoTotalBytes = 0;
+
+        const onAudioProgress = ({ bytesWritten, totalBytes }) => {
+            audioBytesWritten = bytesWritten;
+            audioTotalBytes = totalBytes;
             let progress = 0;
             if (totalBytes > 0) {
                 progress = bytesWritten / totalBytes;
             }
+            if (hasVideoToDownload) {
+                progress = progress * 0.2; // Audio is 20% of the progress
+            }
             useDownloadStatus
                 .getState()
                 .updateSongProgress(playlistId, songId, {
-                    bytesWritten,
-                    totalBytes,
+                    bytesWritten: audioBytesWritten + videoBytesWritten,
+                    totalBytes: audioTotalBytes + videoTotalBytes,
                     progress,
                     status: "downloading"
                 });
         };
 
+        const onVideoProgress = ({ bytesWritten, totalBytes }) => {
+            videoBytesWritten = bytesWritten;
+            videoTotalBytes = totalBytes;
+            let progress = 0;
+            if (totalBytes > 0) {
+                progress = bytesWritten / totalBytes;
+            }
+            const combinedProgress = 0.2 + (progress * 0.8);
+            useDownloadStatus
+                .getState()
+                .updateSongProgress(playlistId, songId, {
+                    bytesWritten: audioTotalBytes + videoBytesWritten,
+                    totalBytes: audioTotalBytes + videoTotalBytes,
+                    progress: combinedProgress,
+                    status: "downloading"
+                });
+        };
+
         const task = File.createDownloadTask(song.url, file, {
-            onProgress
+            onProgress: onAudioProgress
         });
 
         const taskKey = `${playlistId}:${songId}`;
@@ -298,7 +327,7 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
 
         let localVideoUrl = null;
         if (downloadSuccess && downloadVideo && song.videoUrl) {
-            if (!song.videoUrl.startsWith("file://")) {
+            if (hasVideoToDownload) {
                 try {
                     let videoExt = "mp4";
                     const urlParts = song.videoUrl.split('?')[0].split('.');
@@ -315,7 +344,17 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
                         try { videoFile.delete(); } catch(e) {}
                     }
                     
-                    const videoTask = File.createDownloadTask(song.videoUrl, videoFile);
+                    const videoTask = File.createDownloadTask(song.videoUrl, videoFile, {
+                        onProgress: onVideoProgress
+                    });
+                    
+                    useDownloadStatus.setState(state => ({
+                        downloadTasks: {
+                            ...state.downloadTasks,
+                            [taskKey]: videoTask
+                        }
+                    }));
+
                     await videoTask.downloadAsync();
                     localVideoUrl = videoFile.uri;
                 } catch (e) {
