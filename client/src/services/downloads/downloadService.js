@@ -88,22 +88,57 @@ export const deleteDownloadedPlaylist = async playlistId => {
         return { downloadingPlaylists: rest };
     });
 
-    // 2. Delete the entire local playlist directory to ensure all files (including partials) are removed
-    try {
-        const downloadsDir = new Directory(Paths.document, "downloads");
-        const playlistDir = new Directory(downloadsDir, String(playlistId));
-        if (playlistDir.exists) {
-            playlistDir.delete();
-        }
-    } catch (e) {
-        console.log("Failed to delete playlist directory:", e);
-    }
-
-    // 3. Clear state from storage
+    // 2 & 3. Delete files safely and clear state
     return new Promise(resolve => {
         metaMutex = metaMutex.then(async () => {
             try {
                 const meta = await getMeta();
+                const songs = meta.songs[playlistId] || [];
+
+                const downloadsDir = new Directory(Paths.document, "downloads");
+                const playlistDir = new Directory(downloadsDir, String(playlistId));
+                let playlistDirSafeToDelete = true;
+
+                for (const song of songs) {
+                    const songId = song.id || song._id;
+                    let isShared = false;
+                    for (const pId in meta.songs) {
+                        if (pId !== String(playlistId) && meta.songs[pId].find(s => (s.id || s._id) === songId)) {
+                            isShared = true;
+                            break;
+                        }
+                    }
+
+                    if (isShared) {
+                        if (song.localUrl && song.localUrl.includes(`/${playlistId}/`)) {
+                            playlistDirSafeToDelete = false;
+                        }
+                    } else if (song.localUrl) {
+                        try {
+                            const parts = song.localUrl.split('/');
+                            const fileName = parts[parts.length - 1];
+                            const parentDirName = parts[parts.length - 2];
+                            const targetDir = new Directory(downloadsDir, parentDirName);
+                            new File(targetDir, fileName).delete();
+                            const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                            for (const ext of extensions) {
+                                try { new File(targetDir, `${songId}_cover.${ext}`).delete(); } catch(e){}
+                            }
+                            const videoExts = ['mp4', 'webm', 'mov'];
+                            for (const ext of videoExts) {
+                                try { new File(targetDir, `${songId}_video.${ext}`).delete(); } catch(e){}
+                            }
+                        } catch(e) {}
+                    }
+                }
+
+                if (playlistDirSafeToDelete && playlistDir.exists) {
+                    playlistDir.delete();
+                } else if (playlistDir.exists) {
+                    try { new File(playlistDir, 'playlist_cover.jpg').delete(); } catch(e){}
+                    try { new File(playlistDir, 'playlist_cover.png').delete(); } catch(e){}
+                }
+
                 delete meta.playlists[playlistId];
                 delete meta.songs[playlistId];
                 await saveMeta(meta);
@@ -115,44 +150,40 @@ export const deleteDownloadedPlaylist = async playlistId => {
     });
 };
 
-export const deleteDownloadedSong = async (playlistId, songId) => {
-    // 1. Cancel active download task if it exists
-    const taskKey = `${playlistId}:${songId}`;
-    const task = useDownloadStatus.getState().downloadTasks[taskKey];
-    if (task) {
-        try {
-            await task.cancelAsync();
-        } catch (e) {
-            console.log("Failed to cancel task:", e);
-        }
-    }
-    useDownloadStatus.getState().removeDownloadingSong(songId);
-    useDownloadStatus
-        .getState()
-        .removeDownloadingPlaylistSong(playlistId, songId);
-
-    storage.delete(`download_task_${playlistId}:${songId}`);
-
-    // Delete the file whether it's fully downloaded (in meta) or partially downloaded
+    // Delete the file only if not shared
     try {
-        const downloadsDir = new Directory(Paths.document, "downloads");
-        const playlistDir = new Directory(downloadsDir, String(playlistId));
-        const file = new File(playlistDir, `${songId}.mp3`);
-        if (file.exists) {
-            file.delete();
-        }
-        const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-        for (const ext of extensions) {
-            const coverFile = new File(playlistDir, `${songId}_cover.${ext}`);
-            if (coverFile.exists) {
-                try { coverFile.delete(); } catch(e) {}
+        const meta = await getMeta();
+        let isShared = false;
+        for (const pId in meta.songs) {
+            if (pId !== String(playlistId) && meta.songs[pId].find(s => (s.id || s._id) === songId)) {
+                isShared = true;
+                break;
             }
         }
-        const videoExtensions = ['mp4', 'webm', 'mov'];
-        for (const ext of videoExtensions) {
-            const videoFile = new File(playlistDir, `${songId}_video.${ext}`);
-            if (videoFile.exists) {
-                try { videoFile.delete(); } catch(e) {}
+        
+        if (!isShared) {
+            // Find where it's stored and delete it
+            const song = (meta.songs[playlistId] || []).find(s => (s.id || s._id) === songId);
+            const downloadsDir = new Directory(Paths.document, "downloads");
+            let targetDir = new Directory(downloadsDir, String(playlistId));
+            
+            if (song && song.localUrl) {
+                const parts = song.localUrl.split('/');
+                const parentDirName = parts[parts.length - 2];
+                targetDir = new Directory(downloadsDir, parentDirName);
+            }
+            
+            const file = new File(targetDir, `${songId}.mp3`);
+            if (file.exists) file.delete();
+            const extensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            for (const ext of extensions) {
+                const coverFile = new File(targetDir, `${songId}_cover.${ext}`);
+                if (coverFile.exists) { try { coverFile.delete(); } catch(e) {} }
+            }
+            const videoExtensions = ['mp4', 'webm', 'mov'];
+            for (const ext of videoExtensions) {
+                const videoFile = new File(targetDir, `${songId}_video.${ext}`);
+                if (videoFile.exists) { try { videoFile.delete(); } catch(e) {} }
             }
         }
     } catch (e) {
@@ -208,164 +239,177 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
     try {
         if (!song.url) return null;
 
-        const downloadsDir = new Directory(Paths.document, "downloads");
-        const playlistDir = new Directory(downloadsDir, String(playlistId));
-
-        playlistDir.create({
-            idempotent: true,
-            intermediates: true
-        });
-
-        const ext = "mp3";
         const songId = song.id || song._id;
-        const fileName = `${songId}.${ext}`;
-        const file = new File(playlistDir, fileName);
-
-        // If file exists but we are here, it's a partial/failed download.
-        if (file.exists) {
-            try { file.delete(); } catch(e) {}
+        
+        // 1. Check if song already exists in any playlist
+        const meta = await getMeta();
+        let existingSong = null;
+        let existingPlaylistId = null;
+        for (const pId in meta.songs) {
+            const found = meta.songs[pId].find(s => (s.id || s._id) === songId);
+            if (found && found.localUrl) {
+                existingSong = found;
+                existingPlaylistId = pId;
+                break;
+            }
         }
 
+        const downloadsDir = new Directory(Paths.document, "downloads");
+        let targetPlaylistDir;
+
+        if (existingSong && existingSong.localUrl) {
+            const parts = existingSong.localUrl.split('/');
+            const parentDirName = parts[parts.length - 2];
+            targetPlaylistDir = new Directory(downloadsDir, parentDirName);
+        } else {
+            targetPlaylistDir = new Directory(downloadsDir, String(playlistId));
+            targetPlaylistDir.create({ idempotent: true, intermediates: true });
+        }
+
+        let needsAudio = true;
+        let localAudioUrl = null;
+        let localCoverUrl = null;
+        let localVideoUrl = null;
+        
         const hasVideoToDownload = downloadVideo && song.videoUrl && !song.videoUrl.startsWith("file://");
+        let needsVideo = hasVideoToDownload;
+        
+        if (existingSong) {
+            needsAudio = false;
+            localAudioUrl = existingSong.localUrl;
+            localCoverUrl = existingSong.cover || existingSong.artwork;
+            if (existingSong.videoUrl && existingSong.videoUrl.startsWith("file://")) {
+                needsVideo = false;
+                localVideoUrl = existingSong.videoUrl;
+            } else if (!hasVideoToDownload) {
+                needsVideo = false;
+            }
+            
+            if (!needsVideo) {
+                useDownloadStatus.getState().updateSongProgress(playlistId, songId, {
+                    bytesWritten: existingSong.totalBytes || 1,
+                    totalBytes: existingSong.totalBytes || 1,
+                    progress: 1,
+                    status: "downloading"
+                });
+                return { localUrl: localAudioUrl, localCoverUrl, localVideoUrl };
+            }
+        }
+
         let audioBytesWritten = 0;
-        let audioTotalBytes = 0;
+        let audioTotalBytes = existingSong ? (existingSong.totalBytes || 0) : 0;
         let videoBytesWritten = 0;
         let videoTotalBytes = 0;
 
         const onAudioProgress = ({ bytesWritten, totalBytes }) => {
             audioBytesWritten = bytesWritten;
             audioTotalBytes = totalBytes;
-            let progress = 0;
-            if (totalBytes > 0) {
-                progress = bytesWritten / totalBytes;
-            }
-            if (hasVideoToDownload) {
-                progress = progress * 0.2; // Audio is 20% of the progress
-            }
-            useDownloadStatus
-                .getState()
-                .updateSongProgress(playlistId, songId, {
-                    bytesWritten: audioBytesWritten + videoBytesWritten,
-                    totalBytes: audioTotalBytes + videoTotalBytes,
-                    progress,
-                    status: "downloading"
-                });
+            let progress = totalBytes > 0 ? bytesWritten / totalBytes : 0;
+            if (hasVideoToDownload) progress *= 0.2;
+            useDownloadStatus.getState().updateSongProgress(playlistId, songId, {
+                bytesWritten: audioBytesWritten + videoBytesWritten,
+                totalBytes: audioTotalBytes + videoTotalBytes,
+                progress, status: "downloading"
+            });
         };
 
         const onVideoProgress = ({ bytesWritten, totalBytes }) => {
             videoBytesWritten = bytesWritten;
             videoTotalBytes = totalBytes;
-            let progress = 0;
-            if (totalBytes > 0) {
-                progress = bytesWritten / totalBytes;
-            }
-            const combinedProgress = 0.2 + (progress * 0.8);
-            useDownloadStatus
-                .getState()
-                .updateSongProgress(playlistId, songId, {
-                    bytesWritten: audioTotalBytes + videoBytesWritten,
-                    totalBytes: audioTotalBytes + videoTotalBytes,
-                    progress: combinedProgress,
-                    status: "downloading"
-                });
+            let progress = totalBytes > 0 ? bytesWritten / totalBytes : 0;
+            const combinedProgress = existingSong ? progress : (0.2 + (progress * 0.8));
+            useDownloadStatus.getState().updateSongProgress(playlistId, songId, {
+                bytesWritten: audioTotalBytes + videoBytesWritten,
+                totalBytes: audioTotalBytes + videoTotalBytes,
+                progress: combinedProgress, status: "downloading"
+            });
         };
 
-        const task = File.createDownloadTask(song.url, file, {
-            onProgress: onAudioProgress
-        });
-
         const taskKey = `${playlistId}:${songId}`;
+        let downloadSuccess = true;
 
-        useDownloadStatus.setState(state => ({
-            downloadTasks: {
-                ...state.downloadTasks,
-                [taskKey]: task
+        if (needsAudio) {
+            const ext = "mp3";
+            const fileName = `${songId}.${ext}`;
+            const file = new File(targetPlaylistDir, fileName);
+            if (file.exists) { try { file.delete(); } catch(e) {} }
+
+            const task = File.createDownloadTask(song.url, file, { onProgress: onAudioProgress });
+            useDownloadStatus.setState(state => ({ downloadTasks: { ...state.downloadTasks, [taskKey]: task } }));
+
+            downloadSuccess = false;
+            try {
+                await task.downloadAsync();
+                downloadSuccess = true;
+                localAudioUrl = file.uri;
+            } catch (err) {
+                console.log("Task download error:", err);
+                if (file.exists) { try { file.delete(); } catch(e) {} }
             }
-        }));
 
-        let downloadSuccess = false;
-        try {
-            await task.downloadAsync();
-            downloadSuccess = true;
-        } catch (err) {
-            console.log("Task download error:", err);
-            if (file.exists) {
-                try { file.delete(); } catch(e) {}
-            }
-        }
-
-        let localCoverUrl = null;
-        const coverUrl = song.cover || song.artwork;
-        if (downloadSuccess && coverUrl) {
-            if (!coverUrl.startsWith("file://")) {
+            const coverUrl = song.cover || song.artwork;
+            if (downloadSuccess && coverUrl && !coverUrl.startsWith("file://")) {
                 try {
                     let coverExt = "jpg";
                     const urlParts = coverUrl.split('?')[0].split('.');
                     if (urlParts.length > 1) {
                         const lastPart = urlParts[urlParts.length - 1];
-                        if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(lastPart.toLowerCase())) {
-                            coverExt = lastPart.toLowerCase();
-                        }
+                        if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(lastPart.toLowerCase())) coverExt = lastPart.toLowerCase();
                     }
                     const coverFileName = `${songId}_cover.${coverExt}`;
-                    const coverFile = new File(playlistDir, coverFileName);
-                    
-                    if (coverFile.exists) {
-                        try { coverFile.delete(); } catch(e) {}
-                    }
-                    
+                    const coverFile = new File(targetPlaylistDir, coverFileName);
+                    if (coverFile.exists) { try { coverFile.delete(); } catch(e) {} }
                     const coverTask = File.createDownloadTask(coverUrl, coverFile);
                     await coverTask.downloadAsync();
                     localCoverUrl = coverFile.uri;
                 } catch (e) {
                     console.log("Cover download error:", e);
                 }
-            } else {
+            } else if (downloadSuccess) {
                 localCoverUrl = coverUrl;
             }
         }
 
-        let localVideoUrl = null;
-        if (downloadSuccess && downloadVideo && song.videoUrl) {
-            if (hasVideoToDownload) {
-                try {
-                    let videoExt = "mp4";
-                    const urlParts = song.videoUrl.split('?')[0].split('.');
-                    if (urlParts.length > 1) {
-                        const lastPart = urlParts[urlParts.length - 1];
-                        if (['mp4', 'webm', 'mov'].includes(lastPart.toLowerCase())) {
-                            videoExt = lastPart.toLowerCase();
-                        }
-                    }
-                    const videoFileName = `${songId}_video.${videoExt}`;
-                    const videoFile = new File(playlistDir, videoFileName);
-                    
-                    if (videoFile.exists) {
-                        try { videoFile.delete(); } catch(e) {}
-                    }
-                    
-                    const videoTask = File.createDownloadTask(song.videoUrl, videoFile, {
-                        onProgress: onVideoProgress
-                    });
-                    
-                    useDownloadStatus.setState(state => ({
-                        downloadTasks: {
-                            ...state.downloadTasks,
-                            [taskKey]: videoTask
-                        }
-                    }));
-
-                    await videoTask.downloadAsync();
-                    localVideoUrl = videoFile.uri;
-                } catch (e) {
-                    console.log("Video download error:", e);
+        if (downloadSuccess && needsVideo) {
+            try {
+                let videoExt = "mp4";
+                const urlParts = song.videoUrl.split('?')[0].split('.');
+                if (urlParts.length > 1) {
+                    const lastPart = urlParts[urlParts.length - 1];
+                    if (['mp4', 'webm', 'mov'].includes(lastPart.toLowerCase())) videoExt = lastPart.toLowerCase();
                 }
-            } else {
-                localVideoUrl = song.videoUrl;
+                const videoFileName = `${songId}_video.${videoExt}`;
+                const videoFile = new File(targetPlaylistDir, videoFileName);
+                if (videoFile.exists) { try { videoFile.delete(); } catch(e) {} }
+
+                const videoTask = File.createDownloadTask(song.videoUrl, videoFile, { onProgress: onVideoProgress });
+                useDownloadStatus.setState(state => ({ downloadTasks: { ...state.downloadTasks, [taskKey]: videoTask } }));
+
+                await videoTask.downloadAsync();
+                localVideoUrl = videoFile.uri;
+
+                // Important: Update meta for all playlists that share this song
+                if (existingSong) {
+                    metaMutex = metaMutex.then(async () => {
+                        try {
+                            const freshMeta = await getMeta();
+                            let changed = false;
+                            for (const pId in freshMeta.songs) {
+                                const s = freshMeta.songs[pId].find(x => (x.id || x._id) === songId);
+                                if (s && !s.videoUrl?.startsWith("file://")) {
+                                    s.videoUrl = localVideoUrl;
+                                    changed = true;
+                                }
+                            }
+                            if (changed) await saveMeta(freshMeta);
+                        } catch(e) {}
+                    });
+                }
+            } catch (e) {
+                console.log("Video download error:", e);
             }
         }
 
-        // Clean up legacy task state if it exists
         const legacyTaskKey = `download_task_${playlistId}:${songId}`;
         storage.delete(legacyTaskKey);
 
@@ -374,13 +418,12 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
             return { downloadTasks: rest };
         });
 
-        return downloadSuccess ? { localUrl: file.uri, localCoverUrl, localVideoUrl } : null;
+        return downloadSuccess ? { localUrl: localAudioUrl, localCoverUrl, localVideoUrl } : null;
     } catch (e) {
         console.log("Download error:", e, e?.message);
         return null;
     }
 };
-
 export const downloadPlaylistSongs = async (
     playlist,
     songsToDownload,
