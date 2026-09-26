@@ -62,7 +62,7 @@ export const detectStaticVideo = async (videoPath, durationSec = 0) => {
         let minSsim = 1.0;
 
         // Tunable threshold
-        const SSIM_THRESHOLD = 0.995; 
+        const SSIM_THRESHOLD = 0.955; 
 
         for (let i = 0; i < frames.length; i++) {
             if (i === anchorIndex) continue;
