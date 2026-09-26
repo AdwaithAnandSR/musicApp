@@ -102,7 +102,7 @@ const runFfmpeg = async (input, output, durationSec, startedAt) => {
             '-y', '-i', input,
             '-vf', vfFilter,
             '-c:v', 'libx264', '-preset', 'veryslow', '-crf', '28',
-            '-c:a', 'copy',
+            '-an',
             '-progress', 'pipe:1',
             output
         ];
