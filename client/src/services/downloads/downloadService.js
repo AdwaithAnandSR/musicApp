@@ -172,6 +172,7 @@ export const deleteDownloadedPlaylist = async playlistId => {
     });
 };
 
+export const deleteDownloadedSong = async (playlistId, songId) => {
     // Delete the file only if not shared
     try {
         const meta = await getMeta();

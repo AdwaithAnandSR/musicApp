@@ -56,12 +56,8 @@ export const usePlayer = create((set, get) => ({
     },
 
     playByIndex: async index => {
-        const {
-            queue,
-            isActiveForLockScreen,
-            currentTrackIndex,
-            isPlaying
-        } = get();
+        const { queue, isActiveForLockScreen, currentTrackIndex, isPlaying } =
+            get();
 
         if (index === currentTrackIndex && isPlaying) return;
         if (index < 0 || index >= queue.length) return;
@@ -79,7 +75,9 @@ export const usePlayer = create((set, get) => ({
         // Check if there's a local downloaded version of this song
         if (!track.isLocal && (track._id || track.id)) {
             try {
-                const { getLocalSongInfo } = require("@services/downloads/downloadService");
+                const {
+                    getLocalSongInfo
+                } = require("@services/downloads/downloadService");
                 const localInfo = await getLocalSongInfo(track._id || track.id);
                 if (localInfo && localInfo.localUrl) {
                     trackUrl = localInfo.localUrl;
@@ -100,7 +98,11 @@ export const usePlayer = create((set, get) => ({
         }
 
         // Only update metadata after we've confirmed this is still the active request
-        set({ currentTrackIndex: index, currentTrackId: track._id || track.id, currentTrack: trackToUse });
+        set({
+            currentTrackIndex: index,
+            currentTrackId: track._id || track.id,
+            currentTrack: trackToUse
+        });
 
         const player = get().player;
         let newPlayer = player;
@@ -129,8 +131,8 @@ export const usePlayer = create((set, get) => ({
 
                     if (!isActiveForLockScreen) {
                         newPlayer.setActiveForLockScreen(true, metadata, {
-                            showSeekForward: true,
-                            showSeekBackward: true,
+                            // showSeekForward: true,
+                            // showSeekBackward: true,
                             showNextTrack: true,
                             showPreviousTrack: true
                         });
@@ -144,14 +146,18 @@ export const usePlayer = create((set, get) => ({
                 const current = get();
                 const updates = {};
 
-                if (current.isPlaying !== status.playing) updates.isPlaying = status.playing;
-                if (current.isBuffering !== status.isBuffering) updates.isBuffering = status.isBuffering;
-                if (current.isLoaded !== status.isLoaded) updates.isLoaded = status.isLoaded;
+                if (current.isPlaying !== status.playing)
+                    updates.isPlaying = status.playing;
+                if (current.isBuffering !== status.isBuffering)
+                    updates.isBuffering = status.isBuffering;
+                if (current.isLoaded !== status.isLoaded)
+                    updates.isLoaded = status.isLoaded;
                 if (current.position !== position) updates.position = position;
                 if (current.duration !== duration) updates.duration = duration;
 
                 const newProgress = duration ? position / duration : 0;
-                if (current.progress !== newProgress) updates.progress = newProgress;
+                if (current.progress !== newProgress)
+                    updates.progress = newProgress;
 
                 const ended = status.didJustFinish || false;
                 if (current.hasEnded !== ended) updates.hasEnded = ended;
@@ -211,13 +217,17 @@ export const usePlayer = create((set, get) => ({
 
         if (nextIndex >= queue.length) {
             const isLocal = queue.length > 0 && queue[0].isLocal;
-            
+
             if (isLocal) {
                 let actualPlaylistId = currentPlaylistId;
                 if (String(currentPlaylistId).startsWith("local-")) {
-                    actualPlaylistId = String(currentPlaylistId).replace("local-", "");
+                    actualPlaylistId = String(currentPlaylistId).replace(
+                        "local-",
+                        ""
+                    );
                 }
-                const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
+                const downloadedSongs =
+                    await getDownloadedSongs(actualPlaylistId);
                 if (downloadedSongs.length > queue.length) {
                     const newTracks = downloadedSongs.map(song => ({
                         ...song,
@@ -228,8 +238,11 @@ export const usePlayer = create((set, get) => ({
                     get().playByIndex(nextIndex);
                     return;
                 }
-                
-                const downloading = useDownloadStatus.getState().downloadingPlaylists[actualPlaylistId];
+
+                const downloading =
+                    useDownloadStatus.getState().downloadingPlaylists[
+                        actualPlaylistId
+                    ];
                 if (downloading && downloading.length > 0) {
                     set({ isWaitingForDownload: true });
                     return;
@@ -441,7 +454,11 @@ export const usePlayer = create((set, get) => ({
                     currentTrackIndex,
                     newQueue.length - 1
                 );
-                set({ queue: newQueue, currentTrackIndex: -1, isWaitingForDownload: false });
+                set({
+                    queue: newQueue,
+                    currentTrackIndex: -1,
+                    isWaitingForDownload: false
+                });
                 get().playByIndex(nextIdx);
             } else {
                 set({ queue: [] });
@@ -518,12 +535,20 @@ export const usePlayer = create((set, get) => ({
         }),
 
     onLocalSongDownloaded: async () => {
-        const { isWaitingForDownload, currentPlaylistId, queue, currentTrackIndex } = get();
-        
+        const {
+            isWaitingForDownload,
+            currentPlaylistId,
+            queue,
+            currentTrackIndex
+        } = get();
+
         if (currentPlaylistId && queue.length > 0 && queue[0].isLocal) {
             let actualPlaylistId = currentPlaylistId;
             if (String(currentPlaylistId).startsWith("local-")) {
-                actualPlaylistId = String(currentPlaylistId).replace("local-", "");
+                actualPlaylistId = String(currentPlaylistId).replace(
+                    "local-",
+                    ""
+                );
             }
             const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
             if (downloadedSongs.length > queue.length) {
@@ -533,7 +558,7 @@ export const usePlayer = create((set, get) => ({
                     url: song.localUrl
                 }));
                 set({ queue: newTracks });
-                
+
                 if (isWaitingForDownload) {
                     set({ isWaitingForDownload: false });
                     get().playByIndex(currentTrackIndex + 1);

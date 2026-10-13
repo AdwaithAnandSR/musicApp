@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 
 import { getUser } from "@services/storage.js";
 import TrackControllerMinView from "../../../components/TrackControllerMinView.jsx";
