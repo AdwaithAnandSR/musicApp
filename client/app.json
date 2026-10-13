@@ -60,7 +60,8 @@
       "@react-native-vector-icons/feather",
       "@react-native-vector-icons/fontawesome5",
       "@react-native-vector-icons/ant-design",
-      "@react-native-vector-icons/material-icons"
+      "@react-native-vector-icons/material-icons",
+      "expo-widgets"
     ],
     "experiments": {
       "typedRoutes": true,
