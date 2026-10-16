@@ -81,30 +81,4 @@
   176     5. Wire up addUserInteractionListener() to handle
           play/pause/next/prev taps
           ──────
-  180     ## Summary
-  181
-  182      Question               | Answer
-          ------------------------|------------------------
-  184      Can I get next/prev in | Not with AudioPlayer
-           notification?          | alone (by design).
-                                  | Switch to
-                                  | AudioPlaylist or patch
-                                  | native code.
-  185      Is AudioPlaylist       | Yes — maps well to
-           viable?                | your architecture. You
-                                  | gain gapless playback
-                                  | + native next/prev.
-                                  | Main work is resolving
-                                  | URLs upfront and
-                                  | pagination via add().
-  186      Any features lost with | No audioSampleUpdate
-           AudioPlaylist?         | (visualizer), no
-                                  | downloadFirst, no
-                                  | keepAudioSessionActive
-                                  | . Everything else is
-                                  | covered.
-  187      Can I build an Android | Yes — expo-widgets
-           widget?                | fully supports Android
-                                  | in SDK 58. You can
-                                  | show track info +
-                                  | playback controls.
+  180

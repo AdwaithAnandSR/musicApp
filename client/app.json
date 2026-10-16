@@ -61,7 +61,27 @@
       "@react-native-vector-icons/fontawesome5",
       "@react-native-vector-icons/ant-design",
       "@react-native-vector-icons/material-icons",
-      "expo-widgets"
+      [
+        "expo-widgets",
+        {
+          "enableAndroid": true,
+          "widgets": [
+            {
+              "name": "MusicWidget",
+              "displayName": "Music Player",
+              "description": "Now playing music widget",
+              "android": {
+                "initialLayout": "src/widgets/MusicWidget.tsx",
+                "minWidth": 200,
+                "minHeight": 80,
+                "targetCellWidth": 4,
+                "targetCellHeight": 2,
+                "resizeMode": "horizontal"
+              }
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

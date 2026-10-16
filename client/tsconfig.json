@@ -14,7 +14,8 @@
             "@assets/*": ["./src/assets/*"],
             "@hooks/*": ["./src/hooks/*"],
             "@services/*": ["./src/services/*"],
-            "@context/*": ["./src/context/*"]
+            "@context/*": ["./src/context/*"],
+            "@widgets/*": ["./src/widgets/*"]
         }
     },
     "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
