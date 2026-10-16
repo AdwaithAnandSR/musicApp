@@ -1,13 +1,58 @@
 import { create } from "zustand";
-import { createAudioPlayer, mediaSessionController } from "expo-audio";
+import { createAudioPlaylist } from "expo-audio";
 
 import { getDownloadedSongs } from "@services/downloads/downloadService";
 import queryClient from "@services/queryClient";
 import { useDownloadStatus } from "@store/appState.store.js";
 
+/**
+ * Normalizes a track to preserve both cloud and local URLs.
+ * Checks local storage cache to resolve downloaded audio/video paths.
+ */
+const normalizeTrack = async track => {
+    if (!track) return null;
+
+    const cloudUrl = track.cloudUrl || track.url;
+    const cloudVideoUrl = track.cloudVideoUrl || track.videoUrl;
+
+    let finalUrl = cloudUrl;
+    let finalVideoUrl = cloudVideoUrl;
+    let isLocal = track.isLocal || false;
+
+    try {
+        const { getLocalSongInfo } = require("@services/downloads/downloadService");
+        const songId = track._id || track.id;
+        if (songId) {
+            const localInfo = await getLocalSongInfo(songId);
+            if (localInfo && localInfo.localUrl) {
+                finalUrl = localInfo.localUrl;
+                finalVideoUrl = localInfo.localVideoUrl || cloudVideoUrl;
+                isLocal = true;
+            } else if (isLocal && (!localInfo || !localInfo.localUrl)) {
+                // If previously marked local but files are missing/deleted
+                isLocal = false;
+                finalUrl = cloudUrl;
+                finalVideoUrl = cloudVideoUrl;
+            }
+        }
+    } catch (err) {
+        console.log("Error normalizing track:", err);
+    }
+
+    return {
+        ...track,
+        url: finalUrl,
+        cloudUrl,
+        videoUrl: finalVideoUrl,
+        cloudVideoUrl,
+        isLocal
+    };
+};
+
 export const usePlayer = create((set, get) => ({
     player: null,
     playbackListener: null,
+    trackChangedListener: null,
     isActiveForLockScreen: false,
     queue: [],
 
@@ -40,6 +85,126 @@ export const usePlayer = create((set, get) => ({
             }
         })),
 
+    getEffectiveLoopMode: () => {
+        const { repeatMode, currentPlaylistId, playlistControllers } = get();
+        if (repeatMode === "one") return "single";
+        if (repeatMode === "queue") {
+            const controller = playlistControllers[currentPlaylistId];
+            // If there are more pages still to be fetched, don't loop back to start yet
+            if (controller && controller.hasNextPage) return "none";
+            return "all";
+        }
+        return "none";
+    },
+
+    updateLockScreen: track => {
+        const { player, isActiveForLockScreen } = get();
+        if (!player || !track) return;
+
+        const metadata = {
+            title: track.title,
+            artist: track?.artist?.split(",")?.[0] || track?.artist,
+            artworkUrl: track.cover || track.artwork,
+            albumTitle: track.album || track.albumTitle
+        };
+
+        if (!isActiveForLockScreen) {
+            player.setActiveForLockScreen(true, metadata, {
+                showSeekForward: true,
+                showSeekBackward: true,
+                showNextTrack: true,
+                showPreviousTrack: true
+            });
+            set({ isActiveForLockScreen: true });
+        } else {
+            player.updateLockScreenMetadata(metadata);
+        }
+    },
+
+    updateWidget: (track, isPlaying) => {
+        try {
+            const currentTrack = track !== undefined ? track : get().currentTrack;
+            const currentPlaying = isPlaying !== undefined ? isPlaying : get().isPlaying;
+            const { updateMusicWidgetSnapshot } = require("@services/widgetService");
+            updateMusicWidgetSnapshot(currentTrack, currentPlaying);
+        } catch (e) {
+            console.log("Error updating widget:", e);
+        }
+    },
+
+    setupListeners: playlist => {
+        const statusListener = playlist.addListener(
+            "playlistStatusUpdate",
+            status => {
+                const current = get();
+                const track = current.currentTrack;
+                const duration = status.duration || track?.duration || 0;
+                const position = status.currentTime || 0;
+
+                const updates = {};
+                if (current.isPlaying !== status.playing) {
+                    updates.isPlaying = status.playing;
+                    get().updateWidget(track, status.playing);
+                }
+                if (current.isBuffering !== status.isBuffering)
+                    updates.isBuffering = status.isBuffering;
+                if (current.isLoaded !== status.isLoaded)
+                    updates.isLoaded = status.isLoaded;
+                if (current.position !== position) updates.position = position;
+                if (current.duration !== duration) updates.duration = duration;
+
+                const newProgress = duration ? position / duration : 0;
+                if (current.progress !== newProgress)
+                    updates.progress = newProgress;
+
+                const ended = status.didJustFinish || false;
+                if (current.hasEnded !== ended) updates.hasEnded = ended;
+
+                if (Object.keys(updates).length > 0) {
+                    set(updates);
+                }
+
+                if (get().timer != null && get().timer < Date.now()) {
+                    get().clearPlayer();
+                }
+            }
+        );
+
+        const trackListener = playlist.addListener(
+            "trackChanged",
+            ({ previousIndex, currentIndex }) => {
+                const { queue, playlistControllers, currentPlaylistId } = get();
+                if (currentIndex >= 0 && currentIndex < queue.length) {
+                    const nextTrack = queue[currentIndex];
+                    set({
+                        currentTrackIndex: currentIndex,
+                        currentTrackId: nextTrack._id || nextTrack.id,
+                        currentTrack: nextTrack,
+                        hasEnded: false
+                    });
+
+                    get().updateLockScreen(nextTrack);
+                    get().updateWidget(nextTrack, get().isPlaying);
+
+                    // Pre-fetch next page if 3 or fewer tracks away from queue end
+                    const controller = playlistControllers[currentPlaylistId];
+                    if (
+                        controller &&
+                        controller.hasNextPage &&
+                        !controller.isFetchingNextPage &&
+                        queue.length - currentIndex <= 3
+                    ) {
+                        controller.fetchNextPage().catch(e => {
+                            console.error("Pagination prefetch error:", e);
+                        });
+                    }
+                }
+            }
+        );
+
+        return { statusListener, trackListener };
+    },
+
     playByTrackId: trackId => {
         const { queue } = get();
         const index = queue.findIndex(t => (t._id || t.id) === trackId);
@@ -56,8 +221,7 @@ export const usePlayer = create((set, get) => ({
     },
 
     playByIndex: async index => {
-        const { queue, isActiveForLockScreen, currentTrackIndex, isPlaying } =
-            get();
+        const { queue, player, currentTrackIndex, isPlaying } = get();
 
         if (index === currentTrackIndex && isPlaying) return;
         if (index < 0 || index >= queue.length) return;
@@ -65,132 +229,44 @@ export const usePlayer = create((set, get) => ({
         const track = queue[index];
         if (!track) return;
 
-        // Increment sequence ID to invalidate any in-flight calls
-        const seqId = get()._playSeqId + 1;
-        set({ _playSeqId: seqId });
+        if (player) {
+            set({
+                currentTrackIndex: index,
+                currentTrackId: track._id || track.id,
+                currentTrack: track,
+                isStopped: false
+            });
+            player.skipTo(index);
+            player.play();
+            get().updateLockScreen(track);
+            get().updateWidget(track, true);
+        } else {
+            // Player not yet created; initialize with current queue
+            const loopMode = get().getEffectiveLoopMode();
+            const newPlaylist = createAudioPlaylist({
+                sources: queue.map(t => ({ uri: t.url })),
+                loop: loopMode,
+                updateInterval: 500
+            });
 
-        let trackUrl = track.url;
-        let trackToUse = { ...track };
+            const { statusListener, trackListener } =
+                get().setupListeners(newPlaylist);
 
-        // Check if there's a local downloaded version of this song
-        if (!track.isLocal && (track._id || track.id)) {
-            try {
-                const {
-                    getLocalSongInfo
-                } = require("@services/downloads/downloadService");
-                const localInfo = await getLocalSongInfo(track._id || track.id);
-                if (localInfo && localInfo.localUrl) {
-                    trackUrl = localInfo.localUrl;
-                    trackToUse.url = localInfo.localUrl;
-                    trackToUse.isLocal = true;
-                    if (localInfo.localVideoUrl) {
-                        trackToUse.videoUrl = localInfo.localVideoUrl;
-                    }
-                }
-            } catch (err) {
-                console.log("Error checking local version:", err);
-            }
+            set({
+                player: newPlaylist,
+                playbackListener: statusListener,
+                trackChangedListener: trackListener,
+                currentTrackIndex: index,
+                currentTrackId: track._id || track.id,
+                currentTrack: track,
+                isStopped: false
+            });
+
+            newPlaylist.skipTo(index);
+            newPlaylist.play();
+            get().updateLockScreen(track);
+            get().updateWidget(track, true);
         }
-
-        // If another playByIndex was called while we were waiting, abort
-        if (get()._playSeqId !== seqId) {
-            return;
-        }
-
-        // Only update metadata after we've confirmed this is still the active request
-        set({
-            currentTrackIndex: index,
-            currentTrackId: track._id || track.id,
-            currentTrack: trackToUse
-        });
-
-        const player = get().player;
-        let newPlayer = player;
-        if (player) player.replace(trackUrl);
-        else newPlayer = createAudioPlayer(trackUrl);
-
-        get().playbackListener?.remove();
-
-        let metadataUpdated = false;
-
-        const listener = newPlayer.addListener(
-            "playbackStatusUpdate",
-            status => {
-                const duration = status.duration || track.duration || 0;
-
-                const position = status.currentTime || 0;
-
-                if (status.isLoaded && !metadataUpdated) {
-                    metadataUpdated = true;
-
-                    const metadata = {
-                        title: track.title,
-                        artist: track?.artist?.split(",")?.[0],
-                        artworkUrl: track.cover || track.artwork
-                    };
-
-                    if (!isActiveForLockScreen) {
-                        newPlayer.setActiveForLockScreen(true, metadata, {
-                            // showSeekForward: true,
-                            // showSeekBackward: true,
-                            showNextTrack: true,
-                            showPreviousTrack: true
-                        });
-
-                        set({ isActiveForLockScreen: true });
-                    } else {
-                        newPlayer.updateLockScreenMetadata(metadata);
-                    }
-                }
-
-                const current = get();
-                const updates = {};
-
-                if (current.isPlaying !== status.playing)
-                    updates.isPlaying = status.playing;
-                if (current.isBuffering !== status.isBuffering)
-                    updates.isBuffering = status.isBuffering;
-                if (current.isLoaded !== status.isLoaded)
-                    updates.isLoaded = status.isLoaded;
-                if (current.position !== position) updates.position = position;
-                if (current.duration !== duration) updates.duration = duration;
-
-                const newProgress = duration ? position / duration : 0;
-                if (current.progress !== newProgress)
-                    updates.progress = newProgress;
-
-                const ended = status.didJustFinish || false;
-                if (current.hasEnded !== ended) updates.hasEnded = ended;
-
-                const error = status.error || null;
-                if (current.error !== error) updates.error = error;
-
-                if (Object.keys(updates).length > 0) {
-                    set(updates);
-                }
-
-                if (get().timer != null && get().timer < Date.now())
-                    get().clearPlayer();
-
-                if (status.didJustFinish) {
-                    queueMicrotask(() => get().next());
-                }
-            }
-        );
-
-        newPlayer.addListener("onRemoteNextTrack", () => console.log("next"));
-
-        newPlayer.play();
-
-        set({
-            player: newPlayer,
-            playbackListener: listener,
-            currentTrackId: track._id || track.id,
-            currentTrackIndex: index,
-            currentTrack: track,
-            isStopped: false,
-            isWaitingForDownload: false
-        });
     },
 
     next: async () => {
@@ -199,15 +275,15 @@ export const usePlayer = create((set, get) => ({
             queue,
             repeatMode,
             playlistControllers,
-            currentPlaylistId
+            currentPlaylistId,
+            player
         } = get();
 
+        if (!player) return;
+
         if (repeatMode === "one") {
-            const player = get().player;
-            if (player) {
-                player.seekTo(0);
-                player.play();
-            }
+            player.seekTo(0);
+            player.play();
             return;
         }
 
@@ -234,6 +310,11 @@ export const usePlayer = create((set, get) => ({
                         isLocal: true,
                         url: song.localUrl
                     }));
+
+                    for (let i = queue.length; i < newTracks.length; i++) {
+                        player.add({ uri: newTracks[i].url });
+                    }
+
                     set({ queue: newTracks, isWaitingForDownload: false });
                     get().playByIndex(nextIndex);
                     return;
@@ -273,12 +354,12 @@ export const usePlayer = create((set, get) => ({
             return;
         }
 
-        get().playByIndex(nextIndex);
+        player.next();
 
         if (
             shouldFetchPage &&
             controller &&
-            get().queue.length - get().currentTrackIndex <= 3 &&
+            queue.length - nextIndex <= 3 &&
             controller.hasNextPage &&
             !controller.isFetchingNextPage
         ) {
@@ -287,14 +368,12 @@ export const usePlayer = create((set, get) => ({
     },
 
     prev: () => {
-        const { currentTrackIndex, queue, repeatMode } = get();
+        const { currentTrackIndex, queue, repeatMode, player } = get();
+        if (!player) return;
 
         if (repeatMode === "one") {
-            const player = get().player;
-            if (player) {
-                player.seekTo(0);
-                player.play();
-            }
+            player.seekTo(0);
+            player.play();
             return;
         }
 
@@ -307,7 +386,7 @@ export const usePlayer = create((set, get) => ({
             return;
         }
 
-        get().playByIndex(prevIndex);
+        player.previous();
     },
 
     changePlaylistAndPlay: async ({
@@ -318,7 +397,11 @@ export const usePlayer = create((set, get) => ({
         isRandomPlaylist = false,
         randomSeed = null
     }) => {
-        const { currentPlaylistId, queue } = get();
+        const { currentPlaylistId, queue, player } = get();
+
+        // Increment sequence ID to invalidate race conditions
+        const seqId = get()._playSeqId + 1;
+        set({ _playSeqId: seqId });
 
         let tracks = tracksOverride;
 
@@ -326,7 +409,6 @@ export const usePlayer = create((set, get) => ({
          * 1. If explicitly playing a local/downloaded playlist,
          *    load songs from local metadata.
          */
-
         if (isLocal) {
             let actualPlaylistId = playlistId;
             if (String(playlistId).startsWith("local-")) {
@@ -354,7 +436,6 @@ export const usePlayer = create((set, get) => ({
             tracks = data?.pages?.flatMap(page => page.musics) ?? [];
 
             if (!tracks.length) {
-                // Fallback to active queries matching exactly
                 const activeQueries = queryClient.getQueriesData({
                     queryKey: targetQueryKey,
                     exact: true
@@ -373,78 +454,127 @@ export const usePlayer = create((set, get) => ({
 
         if (!tracks?.length) return false;
 
-        /*
-         * 4. If local playlist, make absolutely sure the
-         *    audio URL points to the downloaded file.
-         */
-        if (isLocal) {
-            tracks = tracks
-                .filter(song => song.localUrl)
-                .map(song => ({
-                    ...song,
-                    isLocal: true,
-                    url: song.localUrl
-                }));
-        }
+        // Resolve downloaded files upfront so local songs play without network
+        const resolvedTracks = await Promise.all(tracks.map(normalizeTrack));
+        if (!resolvedTracks.length) return false;
 
-        if (!tracks.length) return false;
+        // Abort if another changePlaylistAndPlay call occurred during resolution
+        if (get()._playSeqId !== seqId) return false;
+
+        const targetIndex = resolvedTracks.findIndex(
+            t => (t._id || t.id) === trackId
+        );
+        const initialIndex = targetIndex !== -1 ? targetIndex : 0;
 
         /*
-         * 5. Reuse current queue when possible.
+         * 3. Reuse current queue when possible.
          */
         const shouldUpdateQueue =
             !!tracksOverride ||
             isLocal ||
             currentPlaylistId !== playlistId ||
             get().isRandomPlaylist !== isRandomPlaylist ||
-            queue.length !== tracks.length;
+            queue.length !== resolvedTracks.length;
 
-        if (!shouldUpdateQueue && currentPlaylistId === playlistId) {
-            const found = get().playByTrackId(trackId);
-
-            if (found) {
-                set({ isRandomPlaylist, randomSeed });
-                return true;
-            }
+        if (!shouldUpdateQueue && currentPlaylistId === playlistId && player) {
+            set({ isRandomPlaylist, randomSeed });
+            return get().playByTrackId(trackId);
         }
 
         /*
-         * 6. Replace queue.
+         * 4. Teardown existing player instance before creating new AudioPlaylist
          */
+        get().playbackListener?.remove();
+        get().trackChangedListener?.remove();
+        if (player) {
+            player.pause();
+            player.clearLockScreenControls();
+            player.destroy();
+        }
+
+        const currentTrack = resolvedTracks[initialIndex];
         set({
             currentPlaylistId: playlistId,
             isRandomPlaylist,
             randomSeed,
-            queue: tracks,
-            currentTrackIndex: -1,
-            currentTrackId: null,
-            isWaitingForDownload: false
+            queue: resolvedTracks,
+            currentTrackIndex: initialIndex,
+            currentTrackId: currentTrack._id || currentTrack.id,
+            currentTrack: currentTrack,
+            isStopped: false,
+            isWaitingForDownload: false,
+            isActiveForLockScreen: false
         });
 
-        /*
-         * 7. Start requested track.
-         */
-        return get().playByTrackId(trackId);
+        const loopMode = get().getEffectiveLoopMode();
+        const newPlaylist = createAudioPlaylist({
+            sources: resolvedTracks.map(t => ({ uri: t.url })),
+            loop: loopMode,
+            updateInterval: 500
+        });
+
+        const { statusListener, trackListener } =
+            get().setupListeners(newPlaylist);
+
+        newPlaylist.skipTo(initialIndex);
+        newPlaylist.play();
+
+        set({
+            player: newPlaylist,
+            playbackListener: statusListener,
+            trackChangedListener: trackListener
+        });
+
+        get().updateLockScreen(currentTrack);
+
+        return true;
     },
 
-    appendToQueue: (playlistId, tracks) => {
+    appendToQueue: async (playlistId, tracks) => {
         if (playlistId !== get().currentPlaylistId) return;
+        if (!tracks || !tracks.length) return;
 
-        const { queue } = get();
+        const { queue, player } = get();
 
         const existingIds = new Set(queue.map(t => t._id || t.id));
         const newTracks = tracks.filter(t => !existingIds.has(t._id || t.id));
+        if (!newTracks.length) return;
+
+        const resolvedNewTracks = await Promise.all(
+            newTracks.map(normalizeTrack)
+        );
+
+        if (player) {
+            for (const t of resolvedNewTracks) {
+                player.add({ uri: t.url });
+            }
+            player.loop = get().getEffectiveLoopMode();
+        }
 
         set({
-            queue: [...queue, ...newTracks]
+            queue: [...queue, ...resolvedNewTracks]
         });
     },
 
     removeFromQueue: songIds => {
         const ids = Array.isArray(songIds) ? songIds : [songIds];
         const removeSet = new Set(ids);
-        const { queue, currentTrackId, currentTrackIndex } = get();
+        const { queue, currentTrackId, currentTrackIndex, player } = get();
         if (!queue.some(t => removeSet.has(t._id || t.id))) return;
+
+        const indicesToRemove = [];
+        queue.forEach((t, index) => {
+            if (removeSet.has(t._id || t.id)) {
+                indicesToRemove.push(index);
+            }
+        });
+
+        if (player) {
+            // Remove in descending index order so native indices don't shift prematurely
+            for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+                player.remove(indicesToRemove[i]);
+            }
+        }
 
         const newQueue = queue.filter(t => !removeSet.has(t._id || t.id));
 
@@ -499,19 +629,27 @@ export const usePlayer = create((set, get) => ({
 
     setTimer: async time => set({ timer: time }),
 
-    updateRepeatMode: mode => set({ repeatMode: mode }),
+    updateRepeatMode: mode => {
+        set({ repeatMode: mode });
+        const { player } = get();
+        if (player) {
+            player.loop = get().getEffectiveLoopMode();
+        }
+    },
 
     clearPlayer: () => {
-        const { player, playbackListener } = get();
+        const { player, playbackListener, trackChangedListener } = get();
 
         playbackListener?.remove();
+        trackChangedListener?.remove();
 
         if (player) {
             player.pause();
             player.clearLockScreenControls();
-            player.remove();
+            player.destroy();
         }
 
+        get().updateWidget(null, false);
         get().resetValues();
     },
 
@@ -519,6 +657,7 @@ export const usePlayer = create((set, get) => ({
         set({
             player: null,
             playbackListener: null,
+            trackChangedListener: null,
             isActiveForLockScreen: false,
             isPlaying: false,
             isBuffering: false,
@@ -539,9 +678,11 @@ export const usePlayer = create((set, get) => ({
             isWaitingForDownload,
             currentPlaylistId,
             queue,
-            currentTrackIndex
+            currentTrackIndex,
+            player
         } = get();
 
+        // 1. If currently playing a dedicated local playlist
         if (currentPlaylistId && queue.length > 0 && queue[0].isLocal) {
             let actualPlaylistId = currentPlaylistId;
             if (String(currentPlaylistId).startsWith("local-")) {
@@ -557,13 +698,112 @@ export const usePlayer = create((set, get) => ({
                     isLocal: true,
                     url: song.localUrl
                 }));
+
+                if (player) {
+                    for (let i = queue.length; i < newTracks.length; i++) {
+                        player.add({ uri: newTracks[i].url });
+                    }
+                }
+
                 set({ queue: newTracks });
 
                 if (isWaitingForDownload) {
                     set({ isWaitingForDownload: false });
                     get().playByIndex(currentTrackIndex + 1);
                 }
+                return;
             }
+        }
+
+        // 2. If playing a cloud playlist where upcoming songs just finished downloading (Option A)
+        if (player && queue.length > 0) {
+            const { getLocalSongInfo } = require("@services/downloads/downloadService");
+            let queueUpdated = false;
+            const updatedQueue = [...queue];
+
+            for (let i = 0; i < queue.length; i++) {
+                const track = queue[i];
+                const songId = track._id || track.id;
+                if (!songId) continue;
+
+                const localInfo = await getLocalSongInfo(songId);
+                if (localInfo?.localUrl && !track.isLocal) {
+                    queueUpdated = true;
+                    const newTrack = {
+                        ...track,
+                        url: localInfo.localUrl,
+                        isLocal: true,
+                        videoUrl: localInfo.localVideoUrl || track.videoUrl
+                    };
+                    updatedQueue[i] = newTrack;
+
+                    // If upcoming track in native queue, swap source seamlessly
+                    if (i > currentTrackIndex) {
+                        try {
+                            player.insert({ uri: localInfo.localUrl }, i);
+                            player.remove(i + 1);
+                        } catch (e) {
+                            console.log("Error swapping native source for downloaded song:", e);
+                        }
+                    } else if (i === currentTrackIndex) {
+                        set({ currentTrack: newTrack });
+                    }
+                }
+            }
+
+            if (queueUpdated) {
+                set({ queue: updatedQueue });
+            }
+        }
+    },
+
+    onLocalSongDeleted: async deletedSongId => {
+        const { queue, currentTrackIndex, player } = get();
+        if (!queue || !queue.length) return;
+
+        let queueUpdated = false;
+        const updatedQueue = [...queue];
+
+        for (let i = 0; i < queue.length; i++) {
+            const track = queue[i];
+            const songId = track._id || track.id;
+            if (!songId) continue;
+
+            if (deletedSongId && songId !== deletedSongId) continue;
+
+            if (track.isLocal) {
+                const { getLocalSongInfo } = require("@services/downloads/downloadService");
+                const localInfo = await getLocalSongInfo(songId);
+
+                if (!localInfo?.localUrl) {
+                    queueUpdated = true;
+                    const cloudUrl = track.cloudUrl || track.url;
+                    const cloudVideoUrl = track.cloudVideoUrl || track.videoUrl;
+                    const revertedTrack = {
+                        ...track,
+                        url: cloudUrl,
+                        isLocal: false,
+                        videoUrl: cloudVideoUrl
+                    };
+                    updatedQueue[i] = revertedTrack;
+
+                    // If upcoming track in native queue, revert back to cloud source
+                    if (player && i > currentTrackIndex) {
+                        try {
+                            player.insert({ uri: cloudUrl }, i);
+                            player.remove(i + 1);
+                        } catch (e) {
+                            console.log("Error reverting native source for deleted song:", e);
+                        }
+                    } else if (i === currentTrackIndex) {
+                        set({ currentTrack: revertedTrack });
+                    }
+                }
+            }
+        }
+
+        if (queueUpdated) {
+            set({ queue: updatedQueue });
         }
     }
 }));

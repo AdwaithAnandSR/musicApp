@@ -164,6 +164,12 @@ export const deleteDownloadedPlaylist = async playlistId => {
                 delete meta.playlists[playlistId];
                 delete meta.songs[playlistId];
                 await saveMeta(meta);
+                try {
+                    const { usePlayer } = require("../../store/player.js");
+                    if (usePlayer.getState().onLocalSongDeleted) {
+                        usePlayer.getState().onLocalSongDeleted();
+                    }
+                } catch (e) {}
             } catch (e) {
                 console.log("Failed to clear playlist meta:", e);
             }
@@ -250,6 +256,12 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
                 }
 
                 await saveMeta(meta);
+                try {
+                    const { usePlayer } = require("../../store/player.js");
+                    if (usePlayer.getState().onLocalSongDeleted) {
+                        usePlayer.getState().onLocalSongDeleted(songId);
+                    }
+                } catch (e) {}
             } catch (e) {
                 console.log("Delete song error:", e);
             }

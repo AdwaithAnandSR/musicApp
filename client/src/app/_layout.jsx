@@ -7,6 +7,11 @@ import { useAppStatus } from "@store/appState.store.js";
 import queryClient from "@services/queryClient.js";
 
 import checkIsAuth from "@controllers/auth/checkIsAuth";
+import {
+    initWidgetInteractionListener,
+    updateMusicWidgetSnapshot
+} from "@services/widgetService";
+import { usePlayer } from "@store/player";
 
 const Layout = () => {
     const isAuthenticated = useAppStatus(state => state.user?.isVerified);
@@ -16,6 +21,19 @@ const Layout = () => {
             await checkIsAuth();
         };
         verify();
+
+        const widgetSub = initWidgetInteractionListener();
+
+        // Sync initial widget state with current player state on app launch
+        const playerState = usePlayer.getState();
+        updateMusicWidgetSnapshot(
+            playerState.currentTrack,
+            playerState.isPlaying
+        );
+
+        return () => {
+            widgetSub?.remove?.();
+        };
     }, []);
 
     return (
