@@ -6,19 +6,25 @@ import {
     Text,
     Image,
     Button,
-    Spacer,
+    Spacer
 } from "@expo/ui/jetpack-compose";
 import {
     fillMaxSize,
-    fillMaxWidth,
+    fillMaxHeight,
     height,
     width,
     size,
     paddingAll,
     cornerRadius,
-    background,
+    background
 } from "@expo/ui/jetpack-compose/modifiers";
 import { createWidget, type WidgetEnvironment } from "expo-widgets";
+
+declare module "@expo/ui/jetpack-compose" {
+    interface ButtonProps {
+        target?: string;
+    }
+}
 
 export interface MusicWidgetProps {
     title?: string;
@@ -33,17 +39,15 @@ export interface MusicWidgetProps {
     downloadIconUri?: string;
 }
 
-// systemMedium systemSmall
-
 export function MusicWidgetLayout(
     props: MusicWidgetProps,
-    environment: WidgetEnvironment,
+    environment: WidgetEnvironment
 ) {
     "widget";
 
     const {
         title = "No track playing",
-        artist = "Music",
+        artist = "Tap to open Music",
         isPlaying = false,
         artworkUri = "",
         prevIconUri = "",
@@ -51,134 +55,252 @@ export function MusicWidgetLayout(
         playIconUri = "",
         favIconUri = "",
         albumsIconUri = "",
-        downloadIconUri = "",
+        downloadIconUri = ""
     } = props;
 
+    const isDark = environment?.colorScheme !== "light";
+    const cardBg = isDark ? "#141416" : "#F4F4F5";
+    const buttonBg = isDark ? "#242428" : "#E4E4E7";
+    const playButtonBg = isDark ? "#FFFFFF" : "#18181B";
+    const playIconTint = isDark ? "#18181B" : "#FFFFFF";
+    const titleColor = isDark ? "#FFFFFF" : "#09090B";
+    const artistColor = isDark ? "#A1A1AA" : "#71717A";
+    const artworkPlaceholderBg = isDark ? "#1F1F23" : "#E4E4E7";
+
     return (
-        <Row
+        <Box
             modifiers={[
                 fillMaxSize(),
-                paddingAll(12),
-                cornerRadius(16),
-                background("#18181B"),
+                paddingAll(10),
+                cornerRadius(20),
+                background(cardBg)
             ]}
         >
-            <Column modifiers={[background("red")]} verticalAlignment="center">
-                {/* Track Info Row*/}
-
-                <Row
-                    verticalAlignment="center"
-                    modifiers={[background("green")]}
-                >
-                    {artworkUri ? (
-                        <Image
-                            source={{ uri: artworkUri }}
-                            contentScale="crop"
-                            modifiers={[size(52, 52), cornerRadius(8)]}
-                        />
-                    ) : (
-                        <Box
+            <Row verticalAlignment="center" modifiers={[fillMaxSize()]}>
+                {/* Left Section: Track Info and Playback Controls */}
+                <Column verticalArrangement="center" modifiers={[fillMaxHeight()]}>
+                    {/* Track Info Row */}
+                    <Row verticalAlignment="center">
+                        <Button
+                            target="open_app"
                             modifiers={[
-                                size(52, 52),
-                                cornerRadius(8),
-                                background("#27272A"),
+                                size(46, 46),
+                                cornerRadius(10),
+                                background(artworkPlaceholderBg)
                             ]}
-                        />
-                    )}
-
-                    <Spacer modifiers={[width(12)]} />
-
-                    <Column verticalArrangement="center">
-                        <Text
-                            color="#FFFFFF"
-                            maxLines={1}
-                            style={{ fontSize: 15, fontWeight: "bold" }}
                         >
-                            {JSON.stringify(environment)}
-                        </Text>
-                        <Spacer modifiers={[height(2)]} />
-                        <Text
-                            color="#A1A1AA"
-                            maxLines={1}
-                            style={{ fontSize: 13 }}
+                            {artworkUri ? (
+                                <Image
+                                    source={{ uri: artworkUri }}
+                                    contentScale="crop"
+                                    modifiers={[size(46, 46), cornerRadius(10)]}
+                                />
+                            ) : albumsIconUri ? (
+                                <Image
+                                    source={{ uri: albumsIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(24, 24)]}
+                                    alpha={0.4}
+                                />
+                            ) : (
+                                <Text color={artistColor} style={{ fontSize: 18 }}>
+                                    ♫
+                                </Text>
+                            )}
+                        </Button>
+
+                        <Spacer modifiers={[width(10)]} />
+
+                        <Button target="open_app" modifiers={[width(135)]}>
+                            <Column verticalArrangement="center" modifiers={[width(135)]}>
+                                <Text
+                                    color={titleColor}
+                                    maxLines={1}
+                                    style={{ fontSize: 13, fontWeight: "bold" }}
+                                >
+                                    {title}
+                                </Text>
+                                <Spacer modifiers={[height(2)]} />
+                                <Text
+                                    color={artistColor}
+                                    maxLines={1}
+                                    style={{ fontSize: 11 }}
+                                >
+                                    {artist}
+                                </Text>
+                            </Column>
+                        </Button>
+                    </Row>
+
+                    <Spacer modifiers={[height(8)]} />
+
+                    {/* Playback Controls Row */}
+                    <Row verticalAlignment="center">
+                        <Button
+                            target="prev"
+                            modifiers={[
+                                size(34, 34),
+                                cornerRadius(17),
+                                background(buttonBg)
+                            ]}
                         >
-                            {artist}
-                        </Text>
-                    </Column>
-                </Row>
+                            {prevIconUri ? (
+                                <Image
+                                    source={{ uri: prevIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(18, 18)]}
+                                />
+                            ) : (
+                                <Text color={titleColor} style={{ fontSize: 12 }}>
+                                    ⏮
+                                </Text>
+                            )}
+                        </Button>
 
-                {/* Track Controller Row*/}
+                        <Spacer modifiers={[width(10)]} />
 
-                <Row
-                    verticalAlignment="center"
-                    modifiers={[
-                        background(
-                            environment.widgetFamily == "systemSmall"
-                                ? "blue"
-                                : environment.widgetFamily == "systemMedium"
-                                  ? "brown"
-                                  : "pink",
-                        ),
-                    ]}
-                >
-                    <Button target="prev" modifiers={[size(36, 36)]}>
-                        <Image
-                            source={{ uri: prevIconUri }}
-                            contentScale="fit"
-                            modifiers={[size(40, 40)]}
-                        />
-                    </Button>
+                        <Button
+                            target="play_pause"
+                            modifiers={[
+                                size(38, 38),
+                                cornerRadius(19),
+                                background(playButtonBg)
+                            ]}
+                        >
+                            {playIconUri ? (
+                                <Image
+                                    source={{ uri: playIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(22, 22)]}
+                                    tint={playIconTint}
+                                />
+                            ) : (
+                                <Text color={playIconTint} style={{ fontSize: 14 }}>
+                                    {isPlaying ? "⏸" : "▶"}
+                                </Text>
+                            )}
+                        </Button>
 
-                    <Spacer modifiers={[width(16)]} />
+                        <Spacer modifiers={[width(10)]} />
 
-                    <Button target="play_pause">
-                        <Image
-                            source={{ uri: playIconUri }}
-                            contentScale="fit"
-                            modifiers={[size(45, 45)]}
-                        />
-                    </Button>
+                        <Button
+                            target="next"
+                            modifiers={[
+                                size(34, 34),
+                                cornerRadius(17),
+                                background(buttonBg)
+                            ]}
+                        >
+                            {nextIconUri ? (
+                                <Image
+                                    source={{ uri: nextIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(18, 18)]}
+                                />
+                            ) : (
+                                <Text color={titleColor} style={{ fontSize: 12 }}>
+                                    ⏭
+                                </Text>
+                            )}
+                        </Button>
+                    </Row>
+                </Column>
 
-                    <Spacer modifiers={[width(16)]} />
+                <Spacer modifiers={[width(12)]} />
 
-                    <Button target="next" modifiers={[size(36, 36)]}>
-                        <Image
-                            source={{ uri: nextIconUri }}
-                            contentScale="fit"
-                            modifiers={[size(40, 40)]}
-                        />
-                    </Button>
-                </Row>
-            </Column>
+                {/* Right Section: Quick Actions (Download, Favorite, Albums, Open App) */}
+                <Column verticalArrangement="center" modifiers={[fillMaxHeight()]}>
+                    <Row verticalAlignment="center">
+                        <Button
+                            target="download"
+                            modifiers={[
+                                size(32, 32),
+                                cornerRadius(16),
+                                background(buttonBg)
+                            ]}
+                        >
+                            {downloadIconUri ? (
+                                <Image
+                                    source={{ uri: downloadIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(16, 16)]}
+                                />
+                            ) : (
+                                <Text color={titleColor} style={{ fontSize: 11 }}>
+                                    ⬇
+                                </Text>
+                            )}
+                        </Button>
 
-            <Column>
-                <Row>
-                    <Button target="next" modifiers={[size(36, 36)]}>
-                        <Image
-                            source={{ uri: downloadIconUri }}
-                            contentScale="fit"
-                            modifiers={[size(40, 40)]}
-                        />
-                    </Button>
-                    <Button target="next" modifiers={[size(36, 36)]}>
-                        <Image
-                            source={{ uri: favIconUri }}
-                            contentScale="fit"
-                            modifiers={[size(40, 40)]}
-                        />
-                    </Button>
-                </Row>
-                <Row>
-                    <Button target="next" modifiers={[size(36, 36)]}>
-                        <Image
-                            source={{ uri: albumsIconUri }}
-                            contentScale="fit"
-                            modifiers={[size(40, 40)]}
-                        />
-                    </Button>
-                </Row>
-            </Column>
-        </Row>
+                        <Spacer modifiers={[width(8)]} />
+
+                        <Button
+                            target="fav"
+                            modifiers={[
+                                size(32, 32),
+                                cornerRadius(16),
+                                background(buttonBg)
+                            ]}
+                        >
+                            {favIconUri ? (
+                                <Image
+                                    source={{ uri: favIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(16, 16)]}
+                                />
+                            ) : (
+                                <Text color={titleColor} style={{ fontSize: 11 }}>
+                                    ★
+                                </Text>
+                            )}
+                        </Button>
+                    </Row>
+
+                    <Spacer modifiers={[height(8)]} />
+
+                    <Row verticalAlignment="center">
+                        <Button
+                            target="albums"
+                            modifiers={[
+                                size(32, 32),
+                                cornerRadius(16),
+                                background(buttonBg)
+                            ]}
+                        >
+                            {albumsIconUri ? (
+                                <Image
+                                    source={{ uri: albumsIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(16, 16)]}
+                                />
+                            ) : (
+                                <Text color={titleColor} style={{ fontSize: 11 }}>
+                                    💿
+                                </Text>
+                            )}
+                        </Button>
+
+                        <Spacer modifiers={[width(8)]} />
+
+                        <Button
+                            target="open_app"
+                            modifiers={[
+                                size(32, 32),
+                                cornerRadius(16),
+                                background(buttonBg)
+                            ]}
+                        >
+                            <Text
+                                color={titleColor}
+                                style={{ fontSize: 12, fontWeight: "bold" }}
+                            >
+                                ↗
+                            </Text>
+                        </Button>
+                    </Row>
+                </Column>
+            </Row>
+        </Box>
     );
 }
 
@@ -192,5 +314,5 @@ export const musicWidget = createWidget("MusicWidget", MusicWidgetLayout, {
     prevIconUri: "",
     favIconUri: "",
     albumsIconUri: "",
-    downloadIconUri: "",
+    downloadIconUri: ""
 });

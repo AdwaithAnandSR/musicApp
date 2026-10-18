@@ -248,6 +248,31 @@ export function initWidgetInteractionListener() {
                         console.warn("Failed to open app from widget:", err);
                     });
                     break;
+                case "fav":
+                    if (player.currentTrack) {
+                        const songId =
+                            player.currentTrack._id || player.currentTrack.id;
+                        if (songId) {
+                            try {
+                                const handleToggleFavourite =
+                                    require("@controllers/playlists/handleToggleFavourite").default;
+                                handleToggleFavourite(songId);
+                            } catch (e) {
+                                console.warn("Failed to toggle favourite from widget:", e);
+                            }
+                        }
+                    }
+                    break;
+                case "download":
+                    Linking.openURL("music://secure/(tabs)/playlists/DownloadedPlaylistSongs").catch(() => {
+                        Linking.openURL("music://").catch(() => {});
+                    });
+                    break;
+                case "albums":
+                    Linking.openURL("music://secure/(tabs)/playlists/Playlists").catch(() => {
+                        Linking.openURL("music://").catch(() => {});
+                    });
+                    break;
                 default:
                     break;
             }

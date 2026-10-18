@@ -5,7 +5,7 @@ import {
     StyleSheet,
     Animated,
     View,
-    Alert
+    Alert,
 } from "react-native";
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 
@@ -30,18 +30,18 @@ const Header = ({
     onPlayShuffled,
     onDownload,
     onDelete,
-    HEADER_HEIGHT = 200
+    HEADER_HEIGHT = 200,
 }) => {
     const [textHeight, setTextHeight] = useState(60);
     const MIN_HEADER_HEIGHT = Math.max(0, HEADER_HEIGHT - (textHeight + 30)); // 30 for padding/margins
     const translateY = scrollY?.interpolate({
         inputRange: [0, MIN_HEADER_HEIGHT],
         outputRange: [0, -MIN_HEADER_HEIGHT],
-        extrapolate: "clamp"
+        extrapolate: "clamp",
     });
 
-    const selectedSongs = useMultiSelect(state => state.selectedSongs);
-    const user = useAppStatus(state => state.user);
+    const selectedSongs = useMultiSelect((state) => state.selectedSongs);
+    const user = useAppStatus((state) => state.user);
     const isAdmin = user?.role === "admin";
     const isPlaylist =
         typeof ID === "string" &&
@@ -60,7 +60,7 @@ const Header = ({
         typeof scrollToMiddle === "function" && scrollToMiddle(0);
 
     const handleBatchRemove = async () => {
-        const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
+        const songIds = selectedSongs.map((s) => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
         useMultiSelect.getState().reset();
@@ -68,7 +68,7 @@ const Header = ({
     };
 
     const handleBatchDelete = async () => {
-        const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
+        const songIds = selectedSongs.map((s) => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
         Alert.alert(
@@ -90,7 +90,7 @@ const Header = ({
                                 if (isPlaylist) {
                                     await removeSongsBatch({
                                         playlistId: ID,
-                                        songIds
+                                        songIds,
                                     });
                                 }
                                 queryClient.invalidateQueries();
@@ -100,12 +100,12 @@ const Header = ({
                         } catch (err) {
                             Toast.show(
                                 err?.response?.data?.message || "Delete Failed",
-                                "error"
+                                "error",
                             );
                         }
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         );
     };
 
@@ -115,28 +115,35 @@ const Header = ({
         setDestModalVisible(true);
     };
 
-    const handleDownloadSelectedSubmit = async (playlistName, concurrency, downloadVideo = false) => {
+    const handleDownloadSelectedSubmit = async (
+        playlistName,
+        concurrency,
+        downloadVideo = false,
+    ) => {
         setDestModalVisible(false);
         const {
-            downloadPlaylistSongs
+            downloadPlaylistSongs,
         } = require("../services/downloads/downloadService.js");
 
-        const currentSelectedPlaylist = useAppStatus.getState().currentSelectedPlaylist;
+        const currentSelectedPlaylist =
+            useAppStatus.getState().currentSelectedPlaylist;
         const safePlaylistName = playlistName.trim() || "My Downloads";
-        
+
         let playlistId;
         if (title && safePlaylistName === title) {
             playlistId = String(ID).replace("local-", "");
         } else if (safePlaylistName === "My Downloads") {
             playlistId = "local_my_downloads";
         } else {
-            playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+            playlistId =
+                "local_" +
+                safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         }
 
         const playlistToSave = {
             id: playlistId,
             name: safePlaylistName,
-            cover: currentSelectedPlaylist?.cover || null
+            cover: currentSelectedPlaylist?.cover || null,
         };
 
         const songsToDownload = [...selectedSongs];
@@ -149,7 +156,7 @@ const Header = ({
                 songsToDownload,
                 concurrency,
                 null,
-                downloadVideo
+                downloadVideo,
             );
             Toast.show("Download Complete!", "success");
         } catch (e) {
@@ -161,7 +168,7 @@ const Header = ({
         ? scrollY.interpolate({
               inputRange: [0, MIN_HEADER_HEIGHT],
               outputRange: [1, 0],
-              extrapolate: "clamp"
+              extrapolate: "clamp",
           })
         : 1;
 
@@ -169,7 +176,7 @@ const Header = ({
         ? scrollY.interpolate({
               inputRange: [0, 50],
               outputRange: [0, -10],
-              extrapolate: "clamp"
+              extrapolate: "clamp",
           })
         : 0;
 
@@ -180,8 +187,8 @@ const Header = ({
                 containerStyles,
                 {
                     transform: [{ translateY }],
-                    marginTop: selectedSongs?.length > 0 ? 23 : 0
-                }
+                    marginTop: selectedSongs?.length > 0 ? 23 : 0,
+                },
             ]}
         >
             {isPlaylist &&
@@ -192,14 +199,14 @@ const Header = ({
                             styles.shuffleRow,
                             {
                                 opacity: shuffleOpacity,
-                                transform: [{ translateY: shuffleTranslateY }]
-                            }
+                                transform: [{ translateY: shuffleTranslateY }],
+                            },
                         ]}
                     >
                         <TouchableOpacity
                             style={[
                                 styles.shuffleToggleBtn,
-                                isRandom && styles.shuffleToggleBtnActive
+                                isRandom && styles.shuffleToggleBtnActive,
                             ]}
                             onPress={onToggleRandom}
                             activeOpacity={0.7}
@@ -212,7 +219,7 @@ const Header = ({
                             <Text
                                 style={[
                                     styles.shuffleBtnText,
-                                    isRandom && styles.shuffleBtnTextActive
+                                    isRandom && styles.shuffleBtnTextActive,
                                 ]}
                             >
                                 {isRandom ? "Shuffled" : "Shuffle"}
@@ -266,8 +273,8 @@ const Header = ({
                                     styles.shuffleToggleBtn,
                                     {
                                         borderColor: "#ff4d4d",
-                                        backgroundColor: "rgba(255,77,77,0.1)"
-                                    }
+                                        backgroundColor: "rgba(255,77,77,0.1)",
+                                    },
                                 ]}
                                 onPress={onDelete}
                                 activeOpacity={0.8}
@@ -294,7 +301,10 @@ const Header = ({
                 <Text
                     numberOfLines={2}
                     adjustsFontSizeToFit
-                    style={[styles.headerText, { flexShrink: 1, width: "100%" }]}
+                    style={[
+                        styles.headerText,
+                        { flexShrink: 1, width: "100%" },
+                    ]}
                 >
                     {title + " "}
                 </Text>
@@ -331,14 +341,14 @@ const Header = ({
                         <TouchableOpacity
                             style={[
                                 styles.badgeBtn,
-                                { backgroundColor: "#22f97e" }
+                                { backgroundColor: "#22f97e" },
                             ]}
                             onPress={handleDownloadSelected}
                         >
                             <Text
                                 style={[
                                     styles.badgeBtnText,
-                                    { color: "black" }
+                                    { color: "black" },
                                 ]}
                             >
                                 Download
@@ -370,7 +380,7 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
         top: 0,
         width: "100%",
-        zIndex: 1
+        zIndex: 1,
     },
 
     textCont: {
@@ -380,7 +390,7 @@ const styles = StyleSheet.create({
         alignSelf: "flex-start",
         paddingHorizontal: 10,
         gap: 20,
-        width: "100%"
+        width: "100%",
     },
     headerText: {
         color: "white",
@@ -389,21 +399,21 @@ const styles = StyleSheet.create({
         letterSpacing: -1,
         textShadowColor: "rgba(0,0,0,1)",
         textShadowOffset: { width: 3, height: 3 },
-        textShadowRadius: 5
+        textShadowRadius: 5,
     },
     headerText2: {
         color: "white",
         fontWeight: "bold",
         fontSize: 12,
         opacity: 0.7,
-        alignSelf: "center"
+        alignSelf: "center",
     },
     selectedText: {
         color: "white",
         fontWeight: "bold",
         fontSize: 18,
         letterSpacing: -1,
-        paddingLeft: 10
+        paddingLeft: 10,
     },
     shuffleRow: {
         flexDirection: "row",
@@ -411,7 +421,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 8,
         paddingHorizontal: 10,
-        marginTop: 6
+        marginTop: 6,
     },
     shuffleToggleBtn: {
         flexDirection: "row",
@@ -422,19 +432,19 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         backgroundColor: "rgba(255,255,255,0.12)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.2)"
+        borderColor: "rgba(255,255,255,0.2)",
     },
     shuffleToggleBtnActive: {
         backgroundColor: "#f60787",
-        borderColor: "#f60787"
+        borderColor: "#f60787",
     },
     shuffleBtnText: {
         color: "#b0b0b0",
         fontWeight: "bold",
-        fontSize: 13
+        fontSize: 13,
     },
     shuffleBtnTextActive: {
-        color: "#ffffff"
+        color: "#ffffff",
     },
     reshuffleBtn: {
         flexDirection: "row",
@@ -445,12 +455,12 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         backgroundColor: "#2a2a2a",
         borderWidth: 1,
-        borderColor: "#444"
+        borderColor: "#444",
     },
     reshuffleBtnText: {
         color: "#ffffff",
         fontWeight: "bold",
-        fontSize: 13
+        fontSize: 13,
     },
     playShuffledBtn: {
         flexDirection: "row",
@@ -459,45 +469,45 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 18,
-        backgroundColor: "#22f97e"
+        backgroundColor: "#22f97e",
     },
     playShuffledBtnText: {
         color: "#000000",
         fontWeight: "bold",
-        fontSize: 13
+        fontSize: 13,
     },
     actionRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         paddingRight: 10,
-        marginTop: 4
+        marginTop: 4,
     },
     btnGroup: {
         flexDirection: "row",
         gap: 8,
-        alignItems: "center"
+        alignItems: "center",
     },
     badgeBtn: {
         paddingHorizontal: 12,
         paddingVertical: 5,
         borderRadius: 12,
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
     },
     removeBtn: {
         backgroundColor: "#2a2a2a",
         borderWidth: 1,
-        borderColor: "#444"
+        borderColor: "#444",
     },
     deleteBtn: {
-        backgroundColor: "#990000"
+        backgroundColor: "#990000",
     },
     badgeBtnText: {
         color: "white",
         fontWeight: "bold",
-        fontSize: 13
-    }
+        fontSize: 13,
+    },
 });
 
 export default Header;
