@@ -19,7 +19,9 @@ const EMPTY_ICONS = {
     prev: "",
     fav: "",
     albums: "",
-    download: ""
+    download: "",
+    playlist: "",
+    timer: "",
 };
 
 /**
@@ -31,7 +33,9 @@ function getControlIconProps(icons) {
         prevIconUri: icons?.prev || "",
         favIconUri: icons?.fav || "",
         albumsIconUri: icons?.albums || "",
-        downloadIconUri: icons?.download || ""
+        downloadIconUri: icons?.download || "",
+        playlistsIconUri: icons?.playlist || "",
+        timerIconsUri: icons?.timer || "",
     };
 }
 
@@ -50,16 +54,27 @@ async function getWidgetIconUris() {
     if (iconUris) return iconUris;
 
     try {
-        const [play, pause, next, prev, fav, albums, download] =
-            await Promise.all([
-                Ionicons.getImageSource("play", 32, "#FFFFFF"),
-                Ionicons.getImageSource("pause", 32, "#FFFFFF"),
-                MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("star", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("album", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("download", 28, "#FFFFFF")
-            ]);
+        const [
+            play,
+            pause,
+            next,
+            prev,
+            fav,
+            albums,
+            download,
+            playlist,
+            timer,
+        ] = await Promise.all([
+            Ionicons.getImageSource("play", 32, "#FFFFFF"),
+            Ionicons.getImageSource("pause", 32, "#FFFFFF"),
+            MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF"),
+            MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF"),
+            MaterialIcons.getImageSource("favorite", 28, "#FFFFFF"),
+            MaterialIcons.getImageSource("album", 28, "#FFFFFF"),
+            MaterialIcons.getImageSource("download", 28, "#FFFFFF"),
+            Ionicons.getImageSource("albums", 28, "#FFFFFF"),
+            MaterialIcons.getImageSource("timer", 28, "#FFFFFF"),
+        ]);
 
         iconUris = {
             play: play?.uri || "",
@@ -68,7 +83,9 @@ async function getWidgetIconUris() {
             prev: prev?.uri || "",
             fav: fav?.uri || "",
             albums: albums?.uri || "",
-            download: download?.uri || ""
+            download: download?.uri || "",
+            playlist: playlist?.uri || "",
+            timer: timer?.uri || "",
         };
     } catch (e) {
         console.warn("Failed to generate widget icon images:", e);
@@ -120,7 +137,7 @@ async function resolveWidgetArtwork(rawArtwork) {
         } else {
             // Remote URL (http / https): download into widgets directory
             await File.downloadFileAsync(rawArtwork, targetFile, {
-                idempotent: true
+                idempotent: true,
             });
         }
 
@@ -158,7 +175,7 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                 isPlaying: false,
                 artworkUri: "",
                 playIconUri: icons.play || "",
-                ...getControlIconProps(icons)
+                ...getControlIconProps(icons),
             });
             return;
         }
@@ -169,6 +186,10 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
         const playIconUri = isPlaying ? icons.pause || "" : icons.play || "";
         const controlIcons = getControlIconProps(icons);
         const rawArtwork = track.cover || track.artwork || null;
+        const trackBg =
+            track.colors?.darkVibrant ||
+            track.colors?.dominant ||
+            track.colors?.average;
 
         latestArtworkRequest = rawArtwork;
 
@@ -184,13 +205,14 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             isPlaying: Boolean(isPlaying),
             artworkUri: immediateArtwork,
             playIconUri,
-            ...controlIcons
+            trackBg,
+            ...controlIcons,
         });
 
         // 2. Background artwork resolution (skipped if already cached).
         if (rawArtwork && rawArtwork !== lastUpdatedArtworkSource) {
             resolveWidgetArtwork(rawArtwork)
-                .then(artworkUri => {
+                .then((artworkUri) => {
                     // Ignore stale results if the track changed meanwhile.
                     if (!artworkUri || latestArtworkRequest !== rawArtwork) {
                         return;
@@ -201,13 +223,14 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                         isPlaying: Boolean(isPlaying),
                         artworkUri,
                         playIconUri,
-                        ...controlIcons
+                        trackBg,
+                        ...controlIcons,
                     });
                 })
-                .catch(err => {
+                .catch((err) => {
                     console.warn(
                         "Background widget artwork resolve error:",
-                        err
+                        err,
                     );
                 });
         }
@@ -223,7 +246,7 @@ export function initWidgetInteractionListener() {
     if (Platform.OS === "web") return { remove: () => {} };
 
     try {
-        return addUserInteractionListener(event => {
+        return addUserInteractionListener((event) => {
             if (!event || event.source !== "MusicWidget") return;
 
             const player = usePlayer.getState();
@@ -244,7 +267,7 @@ export function initWidgetInteractionListener() {
                     player.prev();
                     break;
                 case "open_app":
-                    Linking.openURL("music://").catch(err => {
+                    Linking.openURL("music://").catch((err) => {
                         console.warn("Failed to open app from widget:", err);
                     });
                     break;
@@ -258,18 +281,25 @@ export function initWidgetInteractionListener() {
                                     require("@controllers/playlists/handleToggleFavourite").default;
                                 handleToggleFavourite(songId);
                             } catch (e) {
-                                console.warn("Failed to toggle favourite from widget:", e);
+                                console.warn(
+                                    "Failed to toggle favourite from widget:",
+                                    e,
+                                );
                             }
                         }
                     }
                     break;
                 case "download":
-                    Linking.openURL("music://secure/(tabs)/playlists/DownloadedPlaylistSongs").catch(() => {
+                    Linking.openURL(
+                        "music://secure/(tabs)/playlists/DownloadedPlaylistSongs",
+                    ).catch(() => {
                         Linking.openURL("music://").catch(() => {});
                     });
                     break;
                 case "albums":
-                    Linking.openURL("music://secure/(tabs)/playlists/Playlists").catch(() => {
+                    Linking.openURL(
+                        "music://secure/(tabs)/playlists/Playlists",
+                    ).catch(() => {
                         Linking.openURL("music://").catch(() => {});
                     });
                     break;
