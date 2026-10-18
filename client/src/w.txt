@@ -1,84 +1,156 @@
-130     ## 3. Expo Widgets — Can You Build an Android
-          Widget?
-  131
-  132     ### Yes, you can. Here's the status:
-  133
-  134     expo-widgets has full Android support in SDK 58.
-          From the changelog, Android support was
-          introduced in SDK 57/58 with:
-  135
-  136     • ✅ React-rendered Android widgets (via Jetpack
-          Glance under the hood)
-  137     • ✅ Image component support
-  138     • ✅ cornerRadius modifier
-  139     • ✅ Material Colors support
-  140     • ✅ Interactions (button taps → JS callbacks via
-          addUserInteractionListener)
-  141     • ✅ Timeline updates (updateTimeline,
-          updateSnapshot)
-  142     • ✅ Fix for Glance session updates
-  143     • ✅ Widget configuration enums
-  144     • ✅ Shared directory for widget images
-          (widgetsDirectory)
-  145
-  146     ### What a music widget could look like
-  147
-  148     You could create a widget showing:
 
-  149     • Current track info (title, artist, artwork)
-  150     • Play/pause button (via
-          addUserInteractionListener)
-  151     • Next/prev buttons (also via interaction
-          listener)
-  152
-  153     ### How it works
-  154
-  155     1. Define a widget component using the 'widget'
-          directive
-  156     2. Configure in app.json under expo-widgets
-          plugin
-  157     3. Create the widget with createWidget(name,
-          component, initialProps)
-  158     4. Update it with widget.updateSnapshot({ title,
-          artist, artwork }) whenever the track changes
-  159     5. Handle taps with addUserInteractionListener()
-          → call your Zustand store's next(), prev(),
-          playPause()
-  160
-  161     ### Limitations to know
-  162
-  163     │ Note
-          │
-  164     │ • Widget UI is not standard React Native views
-          —
-          │ it's rendered through Jetpack Glance (Android)
-          /
-          │ WidgetKit (iOS). You use @expo/ui components,
-          │ not <View>, <Text>, etc.
-  165     │ • The widget cannot directly read Zustand state
-          │ — it runs in a separate process. You must push
-          │ state to the widget via updateSnapshot().
-  166     │ • Network images in widgets require using the
-          │ shared widgetsDirectory — you'd download
-          artwork
-          │ there first.
-  167     │ • Live Activities (Dynamic Island) are iOS only
-          │ — not relevant for Android widgets.
-  168     │ • You already have "expo-widgets" in your
-          │ plugins array in app.json, so the config plugin
-          │ is already set up.
-  169
-  170     ### Next steps for widgets
-  171
-  172     1. Create a widget layout file (e.g.,
-          src/widgets/MusicWidget.tsx) with the 'widget'
-          directive
-  173     2. Add widget configuration to app.json (name,
-          sizes, description)
-  174     3. Create an @expo/ui based layout for the widget
-  175     4. Wire up updateSnapshot() in your player store
-          to push track metadata on every track change
-  176     5. Wire up addUserInteractionListener() to handle
-          play/pause/next/prev taps
-          ──────
-  180
+
+{
+  "name": "music",
+  "main": "expo-router/entry",
+  "version": "2.0.0",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "expo lint"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.16",
+    "@preeternal/react-native-cookie-manager": "^6.4.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/slider": "5.2.0",
+    "@react-navigation/bottom-tabs": "^7.2.0",
+    "@react-navigation/native": "^7.0.14",
+    "@shopify/flash-list": "2.0.2",
+    "@tanstack/react-query": "^5.90.21",
+    "axios": "^1.9.0",
+    "expo": "~57.0.24",
+    "expo-asset": "~57.0.7",
+    "expo-audio": "~57.0.5",
+    "expo-blur": "~57.0.3",
+    "expo-constants": "~57.0.7",
+    "expo-dev-client": "~57.0.19",
+    "expo-file-system": "~57.0.5",
+    "expo-font": "~57.0.1",
+    "expo-haptics": "~57.0.3",
+    "expo-image": "~57.0.5",
+    "expo-image-manipulator": "~57.0.19",
+    "expo-linear-gradient": "~57.0.2",
+    "expo-linking": "~57.0.10",
+    "expo-router": "~57.0.22",
+    "expo-splash-screen": "~57.0.9",
+    "expo-status-bar": "~57.0.1",
+    "expo-system-ui": "~57.0.4",
+    "expo-updates": "~57.0.23",
+    "expo-video": "~57.0.4",
+    "lottie-react-native": "~7.3.8",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-image-colors": "^2.4.0",
+    "react-native-mmkv": "^3.2.0",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-svg": "15.15.4",
+    "react-native-webview": "13.16.1",
+    "react-native-worklets": "0.10.1",
+    "zustand": "^5.0.5",
+    "@react-native-vector-icons/ionicons": "latest",
+    "@react-native-vector-icons/entypo": "latest",
+    "@react-native-vector-icons/material-design-icons": "latest",
+    "@react-native-vector-icons/feather": "latest",
+    "@react-native-vector-icons/fontawesome5": "latest",
+    "@react-native-vector-icons/ant-design": "latest",
+    "@react-native-vector-icons/material-icons": "latest"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.2.10",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~57.0.2",
+    "eslint-plugin-react-compiler": "^19.1.0-rc.2",
+    "sharp": "^0.35.3",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}
+
+
+
+{
+  "name": "music",
+  "main": "expo-router/entry",
+  "version": "2.0.0",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "expo lint"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~58.0.14",
+    "@preeternal/react-native-cookie-manager": "^6.4.0",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/slider": "5.2.1",
+    "@react-native-vector-icons/ant-design": "latest",
+    "@react-native-vector-icons/entypo": "latest",
+    "@react-native-vector-icons/feather": "latest",
+    "@react-native-vector-icons/fontawesome5": "latest",
+    "@react-native-vector-icons/ionicons": "latest",
+    "@react-native-vector-icons/material-design-icons": "latest",
+    "@react-native-vector-icons/material-icons": "latest",
+    "@react-navigation/bottom-tabs": "^7.2.0",
+    "@react-navigation/native": "^7.0.14",
+    "@shopify/flash-list": "2.3.2",
+    "@tanstack/react-query": "^5.90.21",
+    "axios": "^1.9.0",
+    "expo": "^58.0.7",
+    "expo-asset": "~58.0.13",
+    "expo-audio": "~58.0.8",
+    "expo-blur": "~58.0.3",
+    "expo-constants": "~58.0.10",
+    "expo-dev-client": "~58.0.12",
+    "expo-file-system": "~58.0.8",
+    "expo-font": "~58.0.7",
+    "expo-haptics": "~58.0.5",
+    "expo-image": "~58.0.13",
+    "expo-image-manipulator": "~58.0.13",
+    "expo-linear-gradient": "~58.0.3",
+    "expo-linking": "~58.0.11",
+    "expo-observe": "~58.0.13",
+    "expo-router": "~58.0.17",
+    "expo-splash-screen": "~58.0.7",
+    "expo-status-bar": "~58.0.3",
+    "expo-symbols": "~58.0.4",
+    "expo-system-ui": "~58.0.5",
+    "expo-updates": "~58.0.15",
+    "expo-video": "~58.0.9",
+    "expo-widgets": "~58.0.15",
+    "lottie-react-native": "~7.5.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0-rc.4",
+    "react-native-gesture-handler": "~3.2.1",
+    "react-native-image-colors": "^2.4.0",
+    "react-native-mmkv": "^3.2.0",
+    "react-native-reanimated": "4.7.0",
+    "react-native-safe-area-context": "~5.9.1",
+    "react-native-screens": "~4.28.0",
+    "react-native-svg": "15.15.5",
+    "react-native-webview": "14.0.1",
+    "react-native-worklets": "0.13.0",
+    "zustand": "^5.0.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.3.0",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.4",
+    "eslint-plugin-react-compiler": "^19.1.0-rc.2",
+    "sharp": "^0.35.3",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}
