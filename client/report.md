@@ -54,7 +54,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **B5** | Bug | Medium | Stale closure queue overwrite in download/delete handlers | `true` |
 | **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `false` |
 | **B7** | Bug | Low | Widget favourite toggle doesn't update `currentTrack.isFav` | `false` |
-| **C1** | Bug | High | `removeFromQueue` removes song from wrong active playlist | `false` |
+| **C1** | Bug | High | `removeFromQueue` removes song from wrong active playlist | `true` |
 | **C2** | Bug | Medium | Permanent delete skips queue removal and busts all query cache | `false` |
 | **C3** | Bug | Medium | Removed song stays in shuffled cache without prefix match | `true` |
 | **C4** | Bug | Medium | Server ignores `isRandom` for special/artist/favourites | `false` |
@@ -197,9 +197,9 @@ Remove and delete actions update the player queue without checking which playlis
 
 #### C1 · High
 - **Files:** `controllers/playlists/removeSong.js:28, 69`, `PopUpOptions.jsx:128, 270`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `removeFromQueue(songId)` runs after every successful removal without comparing the edited playlist to the playing one. Removing song S from playlist A while playing playlist B, which also contains S, pulls S out of B's queue. If S is the current track, playback jumps to the next song.
-- **Fix:** Pass the playlist key and ignore a mismatch.
+- **Fix Applied:** Added an optional `playlistId` parameter to `removeFromQueue` with an early-return guard (`if (playlistId && playlistId !== get().currentPlaylistId) return`). Updated all four call sites to pass the playlist being edited: `removeSong.js` (single and batch) passes `playlistId`, `PopUpOptions.jsx` batch favourites passes `"FAVOURITES_PLAYLIST_ID"`, and single favourites passes `options.playId`.
 
 #### C2 · Medium
 - **Files:** `PopUpOptions.jsx:200-206, 242-245`, `ListHeader.jsx:90-96`, `Search.jsx:102`

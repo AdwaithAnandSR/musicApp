@@ -630,7 +630,10 @@ export const usePlayer = create((set, get) => ({
         }));
     },
 
-    removeFromQueue: songIds => {
+    removeFromQueue: (songIds, playlistId) => {
+        // If a playlistId was provided, only act on the currently playing playlist
+        if (playlistId && playlistId !== get().currentPlaylistId) return;
+
         const ids = Array.isArray(songIds) ? songIds : [songIds];
         const removeSet = new Set(ids);
         const { queue, currentTrackId, currentTrackIndex, player } = get();

@@ -25,7 +25,7 @@ const removeSong = async dets => {
                 "success"
             );
 
-            usePlayer.getState().removeFromQueue(songId);
+            usePlayer.getState().removeFromQueue(songId, playlistId);
 
             queryClient.setQueriesData(
                 { queryKey: [playlistId] },
@@ -69,7 +69,7 @@ export const removeSongsBatch = async ({ playlistId, songIds }) => {
                 "success"
             );
 
-            usePlayer.getState().removeFromQueue(songIds);
+            usePlayer.getState().removeFromQueue(songIds, playlistId);
 
             const removeSet = new Set(songIds);
             queryClient.setQueriesData(

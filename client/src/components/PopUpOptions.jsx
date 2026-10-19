@@ -125,7 +125,7 @@ const PopUpOptions = () => {
                     await handleToggleFavourite(sid);
                 }
                 const { usePlayer } = require("../store/player.js");
-                usePlayer.getState().removeFromQueue(songIds);
+                usePlayer.getState().removeFromQueue(songIds, "FAVOURITES_PLAYLIST_ID");
                 Toast.show("Removed from Favourites", "success");
             } else {
                 await removeSongsBatch({ playlistId: options.playId, songIds });
@@ -267,7 +267,7 @@ const PopUpOptions = () => {
                 Toast.show("Removing from Favourites...", "pending");
                 await handleToggleFavourite(options.songId);
                 const { usePlayer } = require("../store/player.js");
-                usePlayer.getState().removeFromQueue(options.songId);
+                usePlayer.getState().removeFromQueue(options.songId, options.playId);
                 Toast.show("Removed from Favourites", "success");
             } else {
                 removeSong(options);
