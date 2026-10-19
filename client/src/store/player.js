@@ -425,7 +425,7 @@ export const usePlayer = create((set, get) => ({
          * 1. If explicitly playing a local/downloaded playlist,
          *    load songs from local metadata.
          */
-        if (isLocal) {
+        if (isLocal && !tracksOverride) {
             let actualPlaylistId = playlistId;
             if (String(playlistId).startsWith("local-")) {
                 actualPlaylistId = String(playlistId).replace("local-", "");

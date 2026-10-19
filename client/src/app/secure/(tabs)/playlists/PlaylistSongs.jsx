@@ -162,7 +162,11 @@ const PlaylistSongs = () => {
 
         // Fallback: If network failed or returned empty list, fall back to current visible songs list
         if (!targetTracks.length && songs && songs.length > 0) {
-            targetTracks = [...songs].sort(() => Math.random() - 0.5);
+            targetTracks = [...songs];
+            for (let i = targetTracks.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [targetTracks[i], targetTracks[j]] = [targetTracks[j], targetTracks[i]];
+            }
         }
 
         if (targetTracks.length > 0) {

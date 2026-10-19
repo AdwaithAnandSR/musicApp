@@ -89,7 +89,11 @@ const DownloadedPlaylistSongs = () => {
     
     const handlePlayShuffled = () => {
         if (!songs.length) return;
-        const targetTracks = [...songs].sort(() => Math.random() - 0.5);
+        const targetTracks = [...songs];
+        for (let i = targetTracks.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [targetTracks[i], targetTracks[j]] = [targetTracks[j], targetTracks[i]];
+        }
         usePlayer.getState().changePlaylistAndPlay({
             playlistId: `local-${playlistId}`,
             trackId: targetTracks[0].id || targetTracks[0]._id,

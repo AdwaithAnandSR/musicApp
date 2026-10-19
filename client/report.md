@@ -47,7 +47,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `true` |
 | **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `true` |
 | **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `true` |
-| **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `false` |
+| **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `true` |
 | **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `false` |
 | **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `false` |
 | **B4** | Bug | Medium | Deleted download reverts to dead file URL in queue | `false` |
@@ -150,7 +150,7 @@ The store guesses whether a queue is local from its first song, and several hand
 
 #### B1 · High
 - **Files:** `store/player.js:295, 686`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `queue[0].isLocal` decides whether the queue is a downloaded playlist. `normalizeTrack` (12-50) marks any downloaded cloud song as `isLocal`, so a cloud playlist whose first song is downloaded is treated as local. Next at the end of the queue then returns early waiting for a download (323-330) when one is running for that playlist, and `onLocalSongDownloaded` can replace the cloud queue with the downloaded list and add mismatched native sources.
 - **Fix:** Store `isLocalPlaylist` from the `isLocal` argument (step 2).
 
