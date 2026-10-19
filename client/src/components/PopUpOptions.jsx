@@ -197,13 +197,16 @@ const PopUpOptions = () => {
                                 const res = await deleteSongsPermanentBatch(songIds);
                                 if (res?.success) {
                                     Toast.show("Songs Deleted", "success");
+                                    const { usePlayer } = require("../store/player.js");
+                                    usePlayer.getState().removeFromQueue(songIds);
                                     if (isPlaylist && !isFavPlaylist) {
                                         await removeSongsBatch({
                                             playlistId: options.playId,
                                             songIds
                                         });
                                     }
-                                    queryClient.invalidateQueries();
+                                    queryClient.invalidateQueries({ queryKey: [options.playId] });
+                                    queryClient.invalidateQueries({ queryKey: ["HOME"] });
                                 } else {
                                     Toast.show("Delete Failed", "error");
                                 }
@@ -239,10 +242,13 @@ const PopUpOptions = () => {
                                 const res = await deleteSongPermanent(options.songId);
                                 if (res?.success) {
                                     Toast.show("Song Deleted", "success");
+                                    const { usePlayer } = require("../store/player.js");
+                                    usePlayer.getState().removeFromQueue(options.songId);
                                     if (isPlaylist && !isFavPlaylist) {
                                         removeSong(options);
                                     }
-                                    queryClient.invalidateQueries();
+                                    queryClient.invalidateQueries({ queryKey: [options.playId] });
+                                    queryClient.invalidateQueries({ queryKey: ["HOME"] });
                                 } else {
                                     Toast.show("Delete Failed", "error");
                                 }

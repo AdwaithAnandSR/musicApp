@@ -55,7 +55,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `false` |
 | **B7** | Bug | Low | Widget favourite toggle doesn't update `currentTrack.isFav` | `false` |
 | **C1** | Bug | High | `removeFromQueue` removes song from wrong active playlist | `true` |
-| **C2** | Bug | Medium | Permanent delete skips queue removal and busts all query cache | `false` |
+| **C2** | Bug | Medium | Permanent delete skips queue removal and busts all query cache | `true` |
 | **C3** | Bug | Medium | Removed song stays in shuffled cache without prefix match | `true` |
 | **C4** | Bug | Medium | Server ignores `isRandom` for special/artist/favourites | `false` |
 | **C5** | Bug | Low | Tapping title scrolls using queue index instead of list index | `false` |
@@ -203,9 +203,9 @@ Remove and delete actions update the player queue without checking which playlis
 
 #### C2 · Medium
 - **Files:** `PopUpOptions.jsx:200-206, 242-245`, `ListHeader.jsx:90-96`, `Search.jsx:102`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Permanent delete from Home or Search never calls `removeFromQueue`, so deleted songs stay queued. All four paths then call `queryClient.invalidateQueries()` with no key, which refetches every page of every active list.
-- **Fix:** Remove from the queue, and invalidate only the affected keys.
+- **Fix Applied:** Added `removeFromQueue(songId(s))` (without a `playlistId`, since permanently deleted songs must leave any queue) in all four delete paths: `PopUpOptions.jsx` single delete, `PopUpOptions.jsx` batch delete, `ListHeader.jsx` batch delete, and `Search.jsx` batch delete. Replaced blanket `queryClient.invalidateQueries()` with targeted calls scoped to the affected playlist key and `["HOME"]`.
 
 #### C3 · Medium
 - **Files:** `removeSong.js:30, 72`

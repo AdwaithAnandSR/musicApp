@@ -99,7 +99,10 @@ const Search = () => {
                             const res = await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
                                 Toast.show("Songs Deleted", "success");
-                                queryClient.invalidateQueries();
+                                const { usePlayer } = require("@store/player.js");
+                                usePlayer.getState().removeFromQueue(songIds);
+                                queryClient.invalidateQueries({ queryKey: [`SEARCH-${debouncedText}`] });
+                                queryClient.invalidateQueries({ queryKey: ["HOME"] });
                             } else {
                                 Toast.show("Delete Failed", "error");
                             }

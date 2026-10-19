@@ -87,13 +87,15 @@ const Header = ({
                                 await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
                                 Toast.show("Songs Deleted", "success");
+                                usePlayer.getState().removeFromQueue(songIds);
                                 if (isPlaylist) {
                                     await removeSongsBatch({
                                         playlistId: ID,
                                         songIds,
                                     });
                                 }
-                                queryClient.invalidateQueries();
+                                queryClient.invalidateQueries({ queryKey: [ID] });
+                                queryClient.invalidateQueries({ queryKey: ["HOME"] });
                             } else {
                                 Toast.show("Delete Failed", "error");
                             }
