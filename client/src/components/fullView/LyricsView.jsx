@@ -22,8 +22,6 @@ const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
     const setCurrentLyricIndex = useStatus(state => state.setCurrentLyricIndex);
     const resetShowLyrics = useStatus(state => state.resetShowLyrics);
 
-    let currentTime = usePlayer(state => state.position);
-
     const lyricsRef = useRef();
     const lastIndexRef = useRef(-1);
 
@@ -42,36 +40,26 @@ const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
         return ["", ...track.lyricsAsText, ""];
     }, [track?.lyricsAsText]);
 
+    // Track lyric progress without subscribing React state to 2 Hz position ticks
     useEffect(() => {
         if (
-            !Array.isArray(track?.lyrics) ||
             !showSyncedLyric ||
-            track?.lyrics?.length === 0
+            !Array.isArray(track?.lyrics) ||
+            track.lyrics.length === 0
         )
             return;
 
         const lyrics = track.lyrics;
-        let index = -1;
 
-        // Start searching from the last known index for O(1) in normal playback
-        const start = Math.max(0, lastIndexRef.current);
-        for (let i = start; i < lyrics.length; i++) {
-            const item = lyrics[i];
-            if (!item) continue;
-            const nextItem = lyrics[i + 1];
-            const startTime = (item.start ?? 0) - 0.5;
-            const endTime = nextItem
-                ? (nextItem.start ?? 0) - 0.5
-                : (item.end ?? startTime + 10);
-            if (currentTime >= startTime && currentTime < endTime) {
-                index = i;
-                break;
-            }
-        }
+        const unsubscribe = usePlayer.subscribe((state, prevState) => {
+            if (state.position === prevState?.position) return;
+            const currentTime = state.position;
 
-        // If not found forward (e.g. user seeked backward), search from start
-        if (index === -1 && start > 0) {
-            for (let i = 0; i < start; i++) {
+            let index = -1;
+
+            // Start searching from the last known index for O(1) in normal playback
+            const start = Math.max(0, lastIndexRef.current);
+            for (let i = start; i < lyrics.length; i++) {
                 const item = lyrics[i];
                 if (!item) continue;
                 const nextItem = lyrics[i + 1];
@@ -84,19 +72,34 @@ const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
                     break;
                 }
             }
-        }
 
-        if (index !== -1 && index !== currentLyricIndex) {
-            lastIndexRef.current = index;
-            setCurrentLyricIndex(index);
-        }
-    }, [
-        currentTime,
-        track,
-        showSyncedLyric,
-        currentLyricIndex,
-        setCurrentLyricIndex
-    ]);
+            // If not found forward (e.g. user seeked backward), search from start
+            if (index === -1 && start > 0) {
+                for (let i = 0; i < start; i++) {
+                    const item = lyrics[i];
+                    if (!item) continue;
+                    const nextItem = lyrics[i + 1];
+                    const startTime = (item.start ?? 0) - 0.5;
+                    const endTime = nextItem
+                        ? (nextItem.start ?? 0) - 0.5
+                        : (item.end ?? startTime + 10);
+                    if (currentTime >= startTime && currentTime < endTime) {
+                        index = i;
+                        break;
+                    }
+                }
+            }
+
+            if (index !== -1 && index !== useStatus.getState().currentLyricIndex) {
+                lastIndexRef.current = index;
+                setCurrentLyricIndex(index);
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [track?.lyrics, showSyncedLyric, setCurrentLyricIndex]);
 
     useEffect(() => {
         if (!showSyncedLyric || currentLyricIndex < 0) return;

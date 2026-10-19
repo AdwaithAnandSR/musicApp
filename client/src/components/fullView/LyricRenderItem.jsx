@@ -11,11 +11,10 @@ import { useStatus } from "../../store/appState.store.js";
 import { usePlayer } from "../../store/player.js";
 
 const LyricRenderItem = ({ item, index, lightVibrant }) => {
-    const showSyncedLyric = useStatus(state => state.showSyncedLyric);
-    const currentLyricIndex = useStatus(state => state.currentLyricIndex);
-    const seekTo = usePlayer(state => state.seekTo);
-
-    const isActive = currentLyricIndex === index - 1 && showSyncedLyric;
+    // Select boolean so only the active and newly active lines re-render on lyric changes
+    const isActive = useStatus(
+        state => state.showSyncedLyric && state.currentLyricIndex === index - 1
+    );
 
     const scale = useSharedValue(1);
     const opacity = useSharedValue(0.6);
@@ -35,7 +34,7 @@ const LyricRenderItem = ({ item, index, lightVibrant }) => {
 
     const handleSeek = () => {
         if (typeof item?.start === "number") {
-            seekTo(item.start);
+            usePlayer.getState().seekTo(item.start);
         }
     };
 

@@ -74,7 +74,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `false` |
 | **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `false` |
 | **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `false` |
-| **P7** | Perf | Medium | Every lyric line subscribes to `currentLyricIndex` causing full re-renders | `false` |
+| **P7** | Perf | Medium | Every lyric line subscribes to `currentLyricIndex` causing full re-renders | `true` |
 | **P8** | Perf | Low | Duplicate fetch requests during Shuffle Play and pull-to-refresh | `false` |
 | **P9** | Perf | Low | Missing `recyclingKey` and long transitions on list images | `true` |
 | **P10** | Perf | Low | Seek slider fires 60 React renders/sec while dragging | `true` |
@@ -327,9 +327,9 @@ The two biggest costs are on the Downloads screens, which do constant background
 
 #### P7 · Medium
 - **Files:** `components/fullView/LyricRenderItem.jsx:14-15`, `LyricsView.jsx:25`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Every lyric line subscribes to `currentLyricIndex`, so each line change re-renders every mounted line. `LyricsView` also re-renders at 2 Hz on `position`.
-- **Fix:** Select a boolean (`currentLyricIndex === index - 1 && showSyncedLyric`) so only two lines update.
+- **Fix Applied:** In `LyricRenderItem.jsx`, replaced individual `showSyncedLyric` and `currentLyricIndex` subscriptions with a single boolean selector (`state => state.showSyncedLyric && state.currentLyricIndex === index - 1`), limiting re-renders on line changes to only the two affected items. In `LyricsView.jsx`, removed the component-level `usePlayer(state => state.position)` subscription and substituted an off-render `usePlayer.subscribe` listener active only when synced lyrics are displayed, eliminating 2 Hz parent re-renders.
 
 #### P8 · Low
 - **Files:** `PlaylistSongs.jsx:122-149, 179-185`, `Playlists.jsx:53-56`
