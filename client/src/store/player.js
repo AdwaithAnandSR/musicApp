@@ -77,13 +77,19 @@ export const usePlayer = create((set, get) => ({
 
     playlistControllers: {},
 
-    setPlaylistController: (id, controller) =>
+    setPlaylistController: (id, controller) => {
         set(state => ({
             playlistControllers: {
                 ...state.playlistControllers,
                 [id]: controller
             }
-        })),
+        }));
+        // Sync native loop mode when pagination state changes
+        const { player, currentPlaylistId } = get();
+        if (player && id === currentPlaylistId) {
+            player.loop = get().getEffectiveLoopMode();
+        }
+    },
 
     getEffectiveLoopMode: () => {
         const { repeatMode, currentPlaylistId, playlistControllers } = get();

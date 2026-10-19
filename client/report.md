@@ -41,7 +41,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A1** | Bug | High | `appendToQueue` only checks `playlistId` on shuffle toggle | `true` |
 | **A2** | Bug | High | `shouldUpdateQueue` misses `randomSeed` comparison | `true` |
 | **A3** | Bug | Medium | Length equality check causes unnecessary player teardown | `true` |
-| **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `false` |
+| **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `true` |
 | **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `false` |
 | **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `false` |
 | **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `false` |
@@ -109,9 +109,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A4 · Medium
 - **Files:** `store/player.js:88-98, 551`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `getEffectiveLoopMode` returns `none` while the controller says `hasNextPage`. `appendToQueue` sets `player.loop` before the screen's effect has updated that controller, and `setPlaylistController` never recomputes it. After the last page loads, loop stays `none`, so repeat-all stops at the end of the last song instead of wrapping.
-- **Fix:** Call `syncLoopMode()` from `setPlaylistController`.
+- **Fix Applied:** Added `player.loop = getEffectiveLoopMode()` at the end of `setPlaylistController` when the updated controller matches the current playlist.
 
 #### A5 · Medium
 - **Files:** `store/player.js:292, 333-336, 160`
