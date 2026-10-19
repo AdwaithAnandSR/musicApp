@@ -3,7 +3,7 @@ import { View, StyleSheet, AppState } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { usePlayer } from "@store/player";
 
-const VideoBackground = ({ videoUrl, showVideo }) => {
+const ActiveVideoBackground = ({ videoUrl }) => {
     const isPlaying = usePlayer(state => state.isPlaying);
     const isBuffering = usePlayer(state => state.isBuffering);
     const audioPosition = usePlayer(state => state.position);
@@ -29,25 +29,23 @@ const VideoBackground = ({ videoUrl, showVideo }) => {
 
     useEffect(() => {
         if (player) {
-            if (showVideo && isPlaying && !isBuffering && isForeground) {
+            if (isPlaying && !isBuffering && isForeground) {
                 player.play();
             } else {
                 player.pause();
             }
         }
-    }, [showVideo, isPlaying, isBuffering, isForeground, player]);
+    }, [isPlaying, isBuffering, isForeground, player]);
 
     useEffect(() => {
-        if (player && showVideo && isPlaying && !isBuffering && isForeground) {
+        if (player && isPlaying && !isBuffering && isForeground) {
             if (player.status === "loading" || player.status === "idle") return;
             const diff = Math.abs(player.currentTime - audioPosition);
             if (diff > 1.5) {
                 player.currentTime = audioPosition;
             }
         }
-    }, [audioPosition, player, showVideo, isPlaying, isBuffering, isForeground]);
-
-    if (!showVideo) return null;
+    }, [audioPosition, player, isPlaying, isBuffering, isForeground]);
 
     return (
         <>
@@ -62,6 +60,11 @@ const VideoBackground = ({ videoUrl, showVideo }) => {
             />
         </>
     );
+};
+
+const VideoBackground = ({ videoUrl, showVideo }) => {
+    if (!showVideo || !videoUrl) return null;
+    return <ActiveVideoBackground videoUrl={videoUrl} />;
 };
 
 const styles = StyleSheet.create({

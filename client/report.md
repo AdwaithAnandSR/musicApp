@@ -70,7 +70,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **D7** | Bug | Low | Double-tap worklet captures entire track object | `false` |
 | **P1** | Perf | High | 2s polling interval re-reads and re-renders downloaded playlists | `true` |
 | **P2** | Perf | High | Unthrottled download progress re-renders screen every tick | `true` |
-| **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `false` |
+| **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `true` |
 | **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `false` |
 | **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `false` |
 | **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `false` |
@@ -303,9 +303,9 @@ The two biggest costs are on the Downloads screens, which do constant background
 
 #### P3 · Medium
 - **Files:** `components/fullView/VideoBackground.jsx:7-9, 23-26, 50`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** The component subscribes to `position`, so it re-renders twice a second while music plays with the full-screen player open, even when video is off. `useVideoPlayer(videoUrl)` also runs for every track with a video before the `return null` at line 50. That likely starts loading video data you never show; confirm in a network profile.
-- **Fix:** Move the video into a child that mounts only when `showVideo && videoUrl`, and read position inside it.
+- **Fix Applied:** Split `VideoBackground` into a top-level wrapper that returns `null` immediately when `!showVideo || !videoUrl`, and an `ActiveVideoBackground` child component that mounts only when video mode is active. This completely removes the 2x/sec position subscription and avoids initializing the native video player when video is disabled.
 
 #### P4 · Medium
 - **Files:** `server/handlers/playlists/songs.playlist.js:6`, `downloadService.js:48-57`
