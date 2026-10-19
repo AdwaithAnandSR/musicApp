@@ -27,17 +27,20 @@ const removeSong = async dets => {
 
             usePlayer.getState().removeFromQueue(songId);
 
-            queryClient.setQueryData([playlistId], prev => {
-                if (!prev) return prev;
+            queryClient.setQueriesData(
+                { queryKey: [playlistId] },
+                prev => {
+                    if (!prev) return prev;
 
-                return {
-                    ...prev,
-                    pages: prev.pages.map(page => ({
-                        ...page,
-                        musics: page.musics.filter(song => song._id !== songId)
-                    }))
-                };
-            });
+                    return {
+                        ...prev,
+                        pages: prev.pages.map(page => ({
+                            ...page,
+                            musics: page.musics.filter(song => song._id !== songId)
+                        }))
+                    };
+                }
+            );
         }
     } catch (error) {
         Toast.show(
@@ -69,19 +72,22 @@ export const removeSongsBatch = async ({ playlistId, songIds }) => {
             usePlayer.getState().removeFromQueue(songIds);
 
             const removeSet = new Set(songIds);
-            queryClient.setQueryData([playlistId], prev => {
-                if (!prev) return prev;
+            queryClient.setQueriesData(
+                { queryKey: [playlistId] },
+                prev => {
+                    if (!prev) return prev;
 
-                return {
-                    ...prev,
-                    pages: prev.pages.map(page => ({
-                        ...page,
-                        musics: page.musics.filter(
-                            song => !removeSet.has(song._id || song.id)
-                        )
-                    }))
-                };
-            });
+                    return {
+                        ...prev,
+                        pages: prev.pages.map(page => ({
+                            ...page,
+                            musics: page.musics.filter(
+                                song => !removeSet.has(song._id || song.id)
+                            )
+                        }))
+                    };
+                }
+            );
         }
     } catch (error) {
         Toast.show(
