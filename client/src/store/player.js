@@ -482,6 +482,20 @@ export const usePlayer = create((set, get) => ({
             return get().playByTrackId(trackId);
         }
 
+        // Same playlist identity but queue drifted (e.g. fav removed, pull-to-refresh) —
+        // update queue without teardown if the tapped track is already playing
+        if (
+            currentPlaylistId === playlistId &&
+            get().isRandomPlaylist === isRandomPlaylist &&
+            get().randomSeed === randomSeed &&
+            player &&
+            get().currentTrackId === trackId &&
+            get().isPlaying
+        ) {
+            set({ queue: resolvedTracks });
+            return true;
+        }
+
         /*
          * 4. Teardown existing player instance before creating new AudioPlaylist
          */

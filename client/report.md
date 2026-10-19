@@ -40,7 +40,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 |---|---|---|---|---|
 | **A1** | Bug | High | `appendToQueue` only checks `playlistId` on shuffle toggle | `true` |
 | **A2** | Bug | High | `shouldUpdateQueue` misses `randomSeed` comparison | `true` |
-| **A3** | Bug | Medium | Length equality check causes unnecessary player teardown | `false` |
+| **A3** | Bug | Medium | Length equality check causes unnecessary player teardown | `true` |
 | **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `false` |
 | **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `false` |
 | **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `false` |
@@ -103,9 +103,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A3 · Medium
 - **Files:** `store/player.js:477`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Length equality stands in for "same list". Any drift forces a full player teardown and restarts the tapped song: a favourite removed from Favourites (list refetches to n-1), pull-to-refresh (list resets to one page), duplicate IDs across pages (Home dedupes for display, but the queue is built from the raw pages). Tapping the song that is already playing restarts it.
-- **Fix:** Compare the queue key and ID prefix, and only resume if the track is current.
+- **Fix Applied:** Added a guard before teardown: when the playlist identity (id, shuffle, seed) matches and the tapped track is already playing, update the queue in-place without destroying the player.
 
 #### A4 · Medium
 - **Files:** `store/player.js:88-98, 551`
