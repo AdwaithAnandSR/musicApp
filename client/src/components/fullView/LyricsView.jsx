@@ -108,6 +108,7 @@ const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
     }, [currentLyricIndex, showSyncedLyric]);
 
     useEffect(() => {
+        lastIndexRef.current = -1;
         if (!track?._id && !track?.id) {
             resetShowLyrics();
         }

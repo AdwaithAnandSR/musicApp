@@ -61,7 +61,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **C5** | Bug | Low | Tapping title scrolls using queue index instead of list index | `false` |
 | **C6** | Bug | Low | Shuffle toggle button has no handler in Downloaded playlists | `true` |
 | **C7** | Bug | Low | Search results queue does not append or register controller | `false` |
-| **D1** | Bug | Medium | Lyrics state not reset on `trackChanged`, locks gesture | `false` |
+| **D1** | Bug | Medium | Lyrics state not reset on `trackChanged`, locks gesture | `true` |
 | **D2** | Bug | Medium | `undefinedb0` shadow style crash on initial render | `true` |
 | **D3** | Bug | Medium | Unescaped search text crashes regex in `HighlightedTitle` | `true` |
 | **D4** | Bug | Low | Artwork color extraction race on rapid skips | `false` |
@@ -244,9 +244,9 @@ Per-track UI state is reset by button handlers, not by the track change itself.
 
 #### D1 · Medium
 - **Files:** `TrackControllerFullView.jsx:43-45, 121`, `LyricsView.jsx:28, 57`, `store/player.js:173-203`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `resetShowLyrics` runs only from a list tap and the Next and Previous buttons, not from the `trackChanged` listener or the mini-player swipes. If lyrics are open and a song without lyrics starts, `showLyrics` stays true, `LyricsView` renders nothing, and the pan gesture is disabled (`.enabled(!showLyrics)`), so swipe-down to close stops working. The lyric buttons are hidden because the new track has no lyrics, so there is nothing to toggle off. `lastIndexRef` and `currentLyricIndex` also carry over between tracks.
-- **Fix:** Reset in `trackChanged`.
+- **Fix Applied:** Called `useStatus.getState().resetShowLyrics()` in the `trackChanged` listener in `store/player.js` so all track transitions reset lyrics visibility and current lyric index. In `LyricsView.jsx`, reset `lastIndexRef.current = -1` on track ID changes so lyric offset sync doesn't carry over.
 
 #### D2 · Medium
 - **Files:** `components/fullView/CoverArtwork.jsx:57`

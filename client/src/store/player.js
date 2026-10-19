@@ -3,7 +3,7 @@ import { createAudioPlaylist } from "expo-audio";
 
 import { getDownloadedSongs } from "@services/downloads/downloadService";
 import queryClient from "@services/queryClient";
-import { useDownloadStatus } from "@store/appState.store.js";
+import { useDownloadStatus, useStatus } from "@store/appState.store.js";
 
 /**
  * Normalizes a track to preserve both cloud and local URLs.
@@ -217,6 +217,8 @@ export const usePlayer = create((set, get) => ({
                         currentTrack: nextTrack,
                         hasEnded: false
                     });
+
+                    useStatus.getState().resetShowLyrics();
 
                     get().updateLockScreen(nextTrack);
                     get().updateWidget(nextTrack, get().isPlaying);
