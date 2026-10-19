@@ -41,9 +41,16 @@ const Home = () => {
     useEffect(() => {
         usePlayer.getState().setPlaylistController("HOME", {
             fetchNextPage,
-            hasNextPage,
-            isFetchingNextPage
+            getHasNextPage: () => hasNextPage,
+            getIsFetchingNextPage: () => isFetchingNextPage
         });
+        return () => {
+            const { playlistControllers } = usePlayer.getState();
+            if (playlistControllers["HOME"]) {
+                const { HOME: _, ...rest } = playlistControllers;
+                usePlayer.setState({ playlistControllers: rest });
+            }
+        };
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     const allSongs = data?.pages

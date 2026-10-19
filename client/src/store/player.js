@@ -97,7 +97,7 @@ export const usePlayer = create((set, get) => ({
         if (repeatMode === "queue") {
             const controller = playlistControllers[currentPlaylistId];
             // If there are more pages still to be fetched, don't loop back to start yet
-            if (controller && controller.hasNextPage) return "none";
+            if (controller && controller.getHasNextPage()) return "none";
             return "all";
         }
         return "none";
@@ -196,8 +196,8 @@ export const usePlayer = create((set, get) => ({
                     const controller = playlistControllers[currentPlaylistId];
                     if (
                         controller &&
-                        controller.hasNextPage &&
-                        !controller.isFetchingNextPage &&
+                        controller.getHasNextPage() &&
+                        !controller.getIsFetchingNextPage() &&
                         queue.length - currentIndex <= 3
                     ) {
                         controller.fetchNextPage().catch(e => {
@@ -337,13 +337,13 @@ export const usePlayer = create((set, get) => ({
             }
 
             if (repeatMode === "queue") {
-                if (!(controller && controller.hasNextPage)) {
+                if (!(controller && controller.getHasNextPage())) {
                     get().playByIndex(0);
                     return;
                 }
             }
 
-            if (shouldFetchPage && controller && controller.hasNextPage) {
+            if (shouldFetchPage && controller && controller.getHasNextPage()) {
                 const preFetchPlaylistId = currentPlaylistId;
 
                 try {
@@ -368,8 +368,8 @@ export const usePlayer = create((set, get) => ({
             shouldFetchPage &&
             controller &&
             queue.length - nextIndex <= 3 &&
-            controller.hasNextPage &&
-            !controller.isFetchingNextPage
+            controller.getHasNextPage() &&
+            !controller.getIsFetchingNextPage()
         ) {
             controller.fetchNextPage();
         }

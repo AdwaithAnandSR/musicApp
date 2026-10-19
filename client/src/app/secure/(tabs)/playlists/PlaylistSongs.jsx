@@ -187,9 +187,16 @@ const PlaylistSongs = () => {
     useEffect(() => {
         usePlayer.getState().setPlaylistController(computedPlaylistId, {
             fetchNextPage,
-            hasNextPage,
-            isFetchingNextPage
+            getHasNextPage: () => hasNextPage,
+            getIsFetchingNextPage: () => isFetchingNextPage
         });
+        return () => {
+            const { playlistControllers } = usePlayer.getState();
+            if (playlistControllers[computedPlaylistId]) {
+                const { [computedPlaylistId]: _, ...rest } = playlistControllers;
+                usePlayer.setState({ playlistControllers: rest });
+            }
+        };
     }, [computedPlaylistId, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
     useEffect(() => {

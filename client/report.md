@@ -43,7 +43,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A3** | Bug | Medium | Length equality check causes unnecessary player teardown | `true` |
 | **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `true` |
 | **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `true` |
-| **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `false` |
+| **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `true` |
 | **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `false` |
 | **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `false` |
 | **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `false` |
@@ -121,9 +121,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A6 · Medium
 - **Files:** `PlaylistSongs.jsx:187-193`, `Home.jsx:41-47`, `store/player.js:78-86, 197`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** The controller stored per playlist is a snapshot of `fetchNextPage`, `hasNextPage` and `isFetchingNextPage` from the screen's last render. It is never removed on unmount, shares one slot between the shuffled and normal queries, and its booleans go stale. The prefetch can start a fetch while one is running, and React Query's `fetchNextPage` cancels and restarts the in-flight request by default; the axios call is not aborted, so its append still runs.
-- **Fix:** Store getters, key by queue key, clear on unmount.
+- **Fix Applied:** Replaced snapshot values with getter functions (`getHasNextPage`, `getIsFetchingNextPage`) that read live values from the closure. Added unmount cleanup to remove the controller. Updated all consumer sites in `player.js` to call the getters.
 
 #### A7 · Medium
 - **Files:** `store/player.js:400, 487-526`
