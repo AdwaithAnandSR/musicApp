@@ -139,22 +139,15 @@ export const useDownloadStatus = create((set, get) => ({
             const playlistSongs = state.downloadingPlaylists[playlistId];
             if (!playlistSongs) return state;
 
-            let changed = false;
-            const newPlaylistSongs = playlistSongs.map(song => {
-                if ((song.id || song._id) === songId) {
-                    changed = true;
-                    return { ...song, ...progressData };
-                }
-                return song;
-            });
-
-            if (!changed) return state;
+            // Mutate the target song in-place so the downloadingPlaylists array
+            // reference stays stable — subscribers to the array won't re-render.
+            // Per-song progress is read from downloadingSongs by ListItem.
+            const target = playlistSongs.find(s => (s.id || s._id) === songId);
+            if (target) {
+                Object.assign(target, progressData);
+            }
 
             return {
-                downloadingPlaylists: {
-                    ...state.downloadingPlaylists,
-                    [playlistId]: newPlaylistSongs
-                },
                 downloadingSongs: {
                     ...state.downloadingSongs,
                     [songId]: {

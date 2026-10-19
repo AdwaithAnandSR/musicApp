@@ -58,12 +58,12 @@ const saveMeta = async meta => {
 
 export const getDownloadedPlaylists = async () => {
     const meta = await getMeta();
-    return Object.values(meta.playlists);
+    return Object.values(meta.playlists).map(p => ({ ...p }));
 };
 
 export const getDownloadedSongs = async playlistId => {
     const meta = await getMeta();
-    return meta.songs[playlistId] || [];
+    return meta.songs[playlistId] ? [...meta.songs[playlistId]] : [];
 };
 
 export const saveDownloadedPlaylist = async playlist => {
@@ -336,16 +336,35 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
         let videoBytesWritten = 0;
         let videoTotalBytes = 0;
 
+        let lastProgressTime = 0;
+        let lastProgressValue = 0;
+
+        const throttledUpdateProgress = (progress, bytesWritten, totalBytes) => {
+            const now = Date.now();
+            const progressDiff = Math.abs(progress - lastProgressValue);
+            const timeDiff = now - lastProgressTime;
+            if (progressDiff >= 0.01 || timeDiff >= 250 || progress >= 1) {
+                lastProgressTime = now;
+                lastProgressValue = progress;
+                useDownloadStatus.getState().updateSongProgress(playlistId, songId, {
+                    bytesWritten,
+                    totalBytes,
+                    progress,
+                    status: "downloading"
+                });
+            }
+        };
+
         const onAudioProgress = ({ bytesWritten, totalBytes }) => {
             audioBytesWritten = bytesWritten;
             audioTotalBytes = totalBytes;
             let progress = totalBytes > 0 ? bytesWritten / totalBytes : 0;
             if (hasVideoToDownload) progress *= 0.2;
-            useDownloadStatus.getState().updateSongProgress(playlistId, songId, {
-                bytesWritten: audioBytesWritten + videoBytesWritten,
-                totalBytes: audioTotalBytes + videoTotalBytes,
-                progress, status: "downloading"
-            });
+            throttledUpdateProgress(
+                progress,
+                audioBytesWritten + videoBytesWritten,
+                audioTotalBytes + videoTotalBytes
+            );
         };
 
         const onVideoProgress = ({ bytesWritten, totalBytes }) => {
@@ -353,11 +372,11 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
             videoTotalBytes = totalBytes;
             let progress = totalBytes > 0 ? bytesWritten / totalBytes : 0;
             const combinedProgress = existingSong ? progress : (0.2 + (progress * 0.8));
-            useDownloadStatus.getState().updateSongProgress(playlistId, songId, {
-                bytesWritten: audioTotalBytes + videoBytesWritten,
-                totalBytes: audioTotalBytes + videoTotalBytes,
-                progress: combinedProgress, status: "downloading"
-            });
+            throttledUpdateProgress(
+                combinedProgress,
+                audioTotalBytes + videoBytesWritten,
+                audioTotalBytes + videoTotalBytes
+            );
         };
 
         const taskKey = `${playlistId}:${songId}`;

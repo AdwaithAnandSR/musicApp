@@ -52,7 +52,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `true` |
 | **B4** | Bug | Medium | Deleted download reverts to dead file URL in queue | `true` |
 | **B5** | Bug | Medium | Stale closure queue overwrite in download/delete handlers | `true` |
-| **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `false` |
+| **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `true` |
 | **B7** | Bug | Low | Widget favourite toggle doesn't update `currentTrack.isFav` | `false` |
 | **C1** | Bug | High | `removeFromQueue` removes song from wrong active playlist | `true` |
 | **C2** | Bug | Medium | Permanent delete skips queue removal and busts all query cache | `true` |
@@ -68,8 +68,8 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **D5** | Bug | Low | `artistIndex` survives track changes showing empty chip | `true` |
 | **D6** | Bug | Low | Equalizer animates on current track even when paused | `true` |
 | **D7** | Bug | Low | Double-tap worklet captures entire track object | `false` |
-| **P1** | Perf | High | 2s polling interval re-reads and re-renders downloaded playlists | `false` |
-| **P2** | Perf | High | Unthrottled download progress re-renders screen every tick | `false` |
+| **P1** | Perf | High | 2s polling interval re-reads and re-renders downloaded playlists | `true` |
+| **P2** | Perf | High | Unthrottled download progress re-renders screen every tick | `true` |
 | **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `false` |
 | **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `false` |
 | **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `false` |
@@ -291,15 +291,15 @@ The two biggest costs are on the Downloads screens, which do constant background
 
 #### P1 · High
 - **Files:** `DownloadedPlaylists.jsx:17-44`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** A 2-second `setInterval` re-reads every playlist's songs and always calls `setPlaylists` with a new array of new objects. While the screen is focused the whole list re-renders every 2 seconds and each card rebuilds its image source. Runs can also overlap.
-- **Fix:** Load on focus and refresh from a download-completed event, or compare a signature before setting state.
+- **Fix Applied:** Removed the polling interval. Load on focus via `useFocusEffect` and on download count changes via a `useDownloadStatus` selector that returns only the total downloading song count (a scalar). Added `inFlightRef` guard against overlapping loads and a signature comparison (`id:songCount:sizeBytes`) in `setPlaylists` to skip no-op updates.
 
 #### P2 · High
 - **Files:** `store/appState.store.js:137-163`, `services/downloads/downloadService.js:339-361`, `DownloadedPlaylistSongs.jsx:24, 37-56`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Each progress callback is unthrottled and rebuilds `downloadingPlaylists` (a map over the playlist) and `downloadingSongs`. The screen selects the whole array, so every tick re-renders it. The effect then sees a new array, reads metadata, and sets state again, which is two renders and a metadata lookup per tick.
-- **Fix:** Update only on a 1% or 250 ms change, select IDs only, and keep progress in `downloadingSongs`, where `ListItem` already reads it.
+- **Fix Applied:** (1) Added `throttledUpdateProgress` in `downloadService.js` that only fires on ≥1% change or ≥250ms elapsed. (2) Changed `updateSongProgress` in `appState.store.js` to mutate the target song in-place via `Object.assign` and only return a new `downloadingSongs` reference, keeping the `downloadingPlaylists` array reference stable. (3) In `DownloadedPlaylistSongs.jsx`, replaced the full-array selector with an ID-string selector so only add/remove triggers re-renders. Also made `getDownloadedSongs`/`getDownloadedPlaylists` return shallow copies to prevent shared-array mutation (B6).
 
 #### P3 · Medium
 - **Files:** `components/fullView/VideoBackground.jsx:7-9, 23-26, 50`

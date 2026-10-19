@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -21,18 +21,28 @@ const DownloadedPlaylistSongs = () => {
     const { playlistId, playlistName } = useLocalSearchParams();
     const [downloadedSongsState, setDownloadedSongsState] = useState([]);
     
-    const downloadingPlaylistSongs = useDownloadStatus(state => state.downloadingPlaylists[playlistId] ?? EMPTY_ARRAY);
+    // Select only the set of downloading IDs (a string), not the full array.
+    // This way progress ticks don't cause re-renders — only add/remove does.
+    const downloadingSongIds = useDownloadStatus(
+        state => (state.downloadingPlaylists[playlistId] ?? EMPTY_ARRAY).map(s => s.id || s._id).join(',')
+    );
+    // Derive the full array from getState() — React Compiler handles caching
+    const downloadingPlaylistSongs = downloadingSongIds
+        ? useDownloadStatus.getState().downloadingPlaylists[playlistId] ?? EMPTY_ARRAY
+        : EMPTY_ARRAY;
+
     const [syncedDownloading, setSyncedDownloading] = useState(downloadingPlaylistSongs);
 
-    const loadSongs = useCallback(async () => {
+    const loadSongs = async () => {
         const fetched = await getDownloadedSongs(playlistId);
         setDownloadedSongsState(prev => {
-            if (prev.length === fetched.length) {
-                return prev;
-            }
+            // Compare by ID signature, not length — fixes B6
+            const prevIds = prev.map(s => s.id || s._id).join(',');
+            const fetchedIds = fetched.map(s => s.id || s._id).join(',');
+            if (prevIds === fetchedIds) return prev;
             return fetched;
         });
-    }, [playlistId]);
+    };
 
     useEffect(() => {
         if (downloadingPlaylistSongs === syncedDownloading) return;
@@ -46,7 +56,9 @@ const DownloadedPlaylistSongs = () => {
         getDownloadedSongs(playlistId).then(fetched => {
             if (!isMounted) return;
             setDownloadedSongsState(prev => {
-                if (prev.length === fetched.length) return prev;
+                const prevIds = prev.map(s => s.id || s._id).join(',');
+                const fetchedIds = fetched.map(s => s.id || s._id).join(',');
+                if (prevIds === fetchedIds) return prev;
                 return fetched;
             });
             setSyncedDownloading(downloadingPlaylistSongs);
