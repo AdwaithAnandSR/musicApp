@@ -474,6 +474,7 @@ export const usePlayer = create((set, get) => ({
             isLocal ||
             currentPlaylistId !== playlistId ||
             get().isRandomPlaylist !== isRandomPlaylist ||
+            get().randomSeed !== randomSeed ||
             queue.length !== resolvedTracks.length;
 
         if (!shouldUpdateQueue && currentPlaylistId === playlistId && player) {

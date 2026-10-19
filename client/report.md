@@ -39,7 +39,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | ID | Type | Severity | Description | Fixed |
 |---|---|---|---|---|
 | **A1** | Bug | High | `appendToQueue` only checks `playlistId` on shuffle toggle | `true` |
-| **A2** | Bug | High | `shouldUpdateQueue` misses `randomSeed` comparison | `false` |
+| **A2** | Bug | High | `shouldUpdateQueue` misses `randomSeed` comparison | `true` |
 | **A3** | Bug | Medium | Length equality check causes unnecessary player teardown | `false` |
 | **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `false` |
 | **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `false` |
@@ -97,9 +97,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A2 · High
 - **Files:** `store/player.js:472`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `shouldUpdateQueue` compares playlist ID, shuffle flag and length but not `randomSeed`. After Reshuffle, tapping a song reuses the old queue when lengths match, so playback follows the old shuffle while the list shows the new one. A1 currently hides this by changing the length.
-- **Fix:** Fix both together.
+- **Fix Applied:** Added `get().randomSeed !== randomSeed` to the `shouldUpdateQueue` condition.
 
 #### A3 · Medium
 - **Files:** `store/player.js:477`
