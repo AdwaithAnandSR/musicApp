@@ -77,7 +77,7 @@ const PlaylistSongs = () => {
     const queryKey = isRandom ? [computedPlaylistId, "random", seed] : [computedPlaylistId];
 
     const {
-        data,
+        data: songs = [],
         isLoading,
         fetchNextPage,
         hasNextPage,
@@ -97,7 +97,19 @@ const PlaylistSongs = () => {
                 seed
             }),
 
-        getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
+        getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined,
+
+        select: data =>
+            data.pages.flatMap(
+                page =>
+                    page.musics?.map(({ _id, cover, ...rest }) => ({
+                        id: _id,
+                        _id,
+                        artwork: cover,
+                        cover,
+                        ...rest
+                    })) || []
+            )
     });
 
     const handleToggleRandom = () => {
@@ -209,21 +221,7 @@ const PlaylistSongs = () => {
         } catch (e) {}
     }, [isRandom, seed]);
 
-    const rawSongs =
-        data?.pages.flatMap(
-            page =>
-                page.musics?.map(({ _id, cover, ...rest }) => ({
-                    id: _id,
-                    _id,
-                    artwork: cover,
-                    cover,
-                    ...rest
-                })) || []
-        ) ?? [];
-
     const isRecentlyAdded = playlistId === "6a3e689cfba948ae55682fe3";
-
-    const songs = rawSongs;
 
     const getHeaderLabel = dateString => {
         if (!dateString) return null;

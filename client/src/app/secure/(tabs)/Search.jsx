@@ -35,7 +35,7 @@ const Search = () => {
     const isAdmin = user?.role === "admin";
 
     const {
-        data,
+        data: songs = [],
         isFetchingNextPage,
         fetchNextPage,
         hasNextPage,
@@ -51,18 +51,19 @@ const Search = () => {
             }),
         initialPageParam: 1,
         getNextPageParam: lastPage => lastPage.nextPage ?? undefined,
+        select: data =>
+            data.pages.flatMap(
+                page =>
+                    page.musics?.map(({ _id, cover, ...rest }) => ({
+                        id: _id,
+                        _id,
+                        artwork: cover,
+                        cover,
+                        ...rest
+                    })) || []
+            ),
         enabled: debouncedText.length >= 3
     });
-
-    const songs = data?.pages.flatMap(page =>
-            page.musics?.map(({ _id, cover, ...rest }) => ({
-                id: _id,
-                _id,
-                artwork: cover,
-                cover,
-                ...rest
-            })) || []
-        ) ?? [];
 
     useEffect(() => {
         return () => {

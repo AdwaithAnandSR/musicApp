@@ -73,7 +73,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `true` |
 | **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `false` |
 | **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `true` |
-| **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `false` |
+| **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `true` |
 | **P7** | Perf | Medium | Every lyric line subscribes to `currentLyricIndex` causing full re-renders | `true` |
 | **P8** | Perf | Low | Duplicate fetch requests during Shuffle Play and pull-to-refresh | `false` |
 | **P9** | Perf | Low | Missing `recyclingKey` and long transitions on list images | `true` |
@@ -321,9 +321,9 @@ The two biggest costs are on the Downloads screens, which do constant background
 
 #### P6 · Medium
 - **Files:** `PlaylistSongs.jsx:201-211`, `Home.jsx:49-60`, `Search.jsx:57-65`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Every song is re-mapped to `{ id, _id, artwork, cover, ...rest }` whenever data changes. Each page fetch, favourite toggle or refetch gives all mounted rows a new item object, so they all re-render. The compiler cannot avoid this because the props really changed.
-- **Fix:** Map once with the query's `select` so structural sharing keeps unchanged items, or return those fields from the server.
+- **Fix Applied:** Moved data re-mapping into the `select` option of `useInfiniteQuery` across `Home.jsx`, `Search.jsx`, and `PlaylistSongs.jsx`. React Query preserves references for unmodified items across pages and refetches via structural sharing, preventing unchanged list rows from re-rendering.
 
 #### P7 · Medium
 - **Files:** `components/fullView/LyricRenderItem.jsx:14-15`, `LyricsView.jsx:25`

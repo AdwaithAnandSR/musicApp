@@ -21,7 +21,7 @@ const Home = () => {
     const flashListRef = useRef();
 
     const {
-        data,
+        data: allSongs = [],
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
@@ -35,7 +35,23 @@ const Home = () => {
         getNextPageParam: lastPage =>
             lastPage?.hasMore && lastPage?.nextCursor != null
                 ? { startAt: 0, cursor: lastPage.nextCursor }
-                : undefined
+                : undefined,
+        select: data => [
+            ...new Map(
+                data.pages
+                    .flatMap(p => p.musics || [])
+                    .map(song => [
+                        song._id,
+                        {
+                            id: song._id,
+                            _id: song._id,
+                            artwork: song.cover,
+                            cover: song.cover,
+                            ...song
+                        }
+                    ])
+            ).values()
+        ]
     });
 
     useEffect(() => {
@@ -52,19 +68,6 @@ const Home = () => {
             }
         };
     }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-    const allSongs = data?.pages
-            ? [
-                  ...new Map(
-                      data.pages
-                          .flatMap(p => p.musics || [])
-                          .map(({ _id, cover, ...rest }) => [
-                              _id,
-                              { id: _id, _id, artwork: cover, cover, ...rest }
-                          ])
-                  ).values()
-              ]
-            : [];
 
     const handleRefresh = () => {
         queryClient.resetQueries({ queryKey: ["HOME"] });
