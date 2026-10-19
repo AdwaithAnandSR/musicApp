@@ -45,7 +45,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `true` |
 | **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `true` |
 | **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `true` |
-| **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `false` |
+| **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `true` |
 | **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `false` |
 | **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `false` |
 | **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `false` |
@@ -133,9 +133,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A8 · Low
 - **Files:** `store/player.js` (several)
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** A trackId that is not found silently plays index 0 (467). `prev()` at index 0 with repeat off does nothing instead of restarting the song (382-387). Next on a one-song queue does nothing because `playByIndex` returns early when the index is current and playing (226). `isWaitingForDownload` is never initialised and `playbackRate` is not reset in `resetValues` (656-674).
-- **Fix:** Correct edge case handling across `prev`, `next`, trackId lookups, and state resets.
+- **Fix Applied:** Return `false` when `trackId` is given but not found. `prev()` at index 0 with repeat off now seeks to 0 and replays. `playByIndex` on the current index restarts the track instead of returning. Added `playbackRate: 1.0` to `resetValues`.
 
 #### A9 · Low
 - **Files:** `store/player.js:186-187, 241-242`, `services/widgetService.js:117-142`

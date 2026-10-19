@@ -229,7 +229,14 @@ export const usePlayer = create((set, get) => ({
     playByIndex: async index => {
         const { queue, player, currentTrackIndex, isPlaying } = get();
 
-        if (index === currentTrackIndex && isPlaying) return;
+        if (index === currentTrackIndex && isPlaying) {
+            // Restart the current track (e.g. next() on a 1-song queue)
+            if (player) {
+                player.seekTo(0);
+                player.play();
+            }
+            return;
+        }
         if (index < 0 || index >= queue.length) return;
 
         const track = queue[index];
@@ -390,6 +397,10 @@ export const usePlayer = create((set, get) => ({
         if (prevIndex < 0) {
             if (repeatMode === "queue" && queue.length > 0) {
                 get().playByIndex(queue.length - 1);
+            } else {
+                // Restart current song when at the beginning
+                player.seekTo(0);
+                player.play();
             }
             return;
         }
@@ -472,6 +483,7 @@ export const usePlayer = create((set, get) => ({
         const targetIndex = resolvedTracks.findIndex(
             t => (t._id || t.id) === trackId
         );
+        if (trackId && targetIndex === -1) return false;
         const initialIndex = targetIndex !== -1 ? targetIndex : 0;
 
         /*
@@ -703,7 +715,8 @@ export const usePlayer = create((set, get) => ({
             position: 0,
             duration: 0,
             progress: 0,
-            isWaitingForDownload: false
+            isWaitingForDownload: false,
+            playbackRate: 1.0
         }),
 
     onLocalSongDownloaded: async () => {
