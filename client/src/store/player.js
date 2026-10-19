@@ -514,6 +514,7 @@ export const usePlayer = create((set, get) => ({
             player.clearLockScreenControls();
             player.destroy();
         }
+        set({ player: null, playbackListener: null, trackChangedListener: null });
 
         const currentTrack = resolvedTracks[initialIndex];
         set({
@@ -529,26 +530,32 @@ export const usePlayer = create((set, get) => ({
             isActiveForLockScreen: false
         });
 
-        const loopMode = get().getEffectiveLoopMode();
-        const newPlaylist = createAudioPlaylist({
-            sources: resolvedTracks.map(t => ({ uri: t.url })),
-            loop: loopMode,
-            updateInterval: 500
-        });
+        try {
+            const loopMode = get().getEffectiveLoopMode();
+            const newPlaylist = createAudioPlaylist({
+                sources: resolvedTracks.map(t => ({ uri: t.url })),
+                loop: loopMode,
+                updateInterval: 500
+            });
 
-        const { statusListener, trackListener } =
-            get().setupListeners(newPlaylist);
+            const { statusListener, trackListener } =
+                get().setupListeners(newPlaylist);
 
-        newPlaylist.skipTo(initialIndex);
-        newPlaylist.play();
+            newPlaylist.skipTo(initialIndex);
+            newPlaylist.play();
 
-        set({
-            player: newPlaylist,
-            playbackListener: statusListener,
-            trackChangedListener: trackListener
-        });
+            set({
+                player: newPlaylist,
+                playbackListener: statusListener,
+                trackChangedListener: trackListener
+            });
 
-        get().updateLockScreen(currentTrack);
+            get().updateLockScreen(currentTrack);
+        } catch (err) {
+            console.error("changePlaylistAndPlay: failed to create player", err);
+            get().resetValues();
+            return false;
+        }
 
         return true;
     },

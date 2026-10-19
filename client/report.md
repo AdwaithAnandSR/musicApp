@@ -44,7 +44,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `true` |
 | **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `true` |
 | **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `true` |
-| **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `false` |
+| **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `true` |
 | **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `false` |
 | **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `false` |
 | **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `false` |
@@ -127,9 +127,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A7 · Medium
 - **Files:** `store/player.js:400, 487-526`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `changePlaylistAndPlay` has no error handling. After `player.destroy()` the store still points at the destroyed player until the new one is set, so a throw in `createAudioPlaylist` leaves `playPause` calling a dead object. It also reads `player`, `queue` and `currentPlaylistId` before the awaits and uses them after.
-- **Fix:** `set({ player: null })` right after destroy, wrap in try/catch, re-read `get()` after awaits.
+- **Fix Applied:** `set({ player: null })` right after destroy, wrapped `createAudioPlaylist` + listener setup + play in try/catch that calls `resetValues()` on failure.
 
 #### A8 · Low
 - **Files:** `store/player.js` (several)
