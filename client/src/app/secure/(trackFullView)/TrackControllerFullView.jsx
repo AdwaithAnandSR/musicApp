@@ -282,7 +282,7 @@ const TrackControllerFullView = () => {
                     {/* title — subscribes to track.title independently */}
                     <TrackTitle />
 
-                    <OptionsContainer lightVibrant={lightColor} />
+                    <OptionsContainer key={trackId} lightVibrant={lightColor} />
 
                     {/* cover art, lyrics, heart animation */}
                     <GestureDetector gesture={artworkGesture}>
