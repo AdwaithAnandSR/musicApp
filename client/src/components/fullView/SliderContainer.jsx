@@ -65,13 +65,19 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
         return unsubscribe;
     }, []);
 
+    const lastFlooredSec = useSharedValue(-1);
+
     // Derive seek time from panX changes on the UI thread, bridge once
     useAnimatedReaction(
         () => ({ x: panX.value, seeking: isSeekingUI.value }),
         (current) => {
             if (current.seeking) {
                 const time = (current.x / SLIDER_WIDTH) * (duration || 0);
-                runOnJS(setSeekTime)(time);
+                const floored = Math.floor(time);
+                if (floored !== lastFlooredSec.value) {
+                    lastFlooredSec.value = floored;
+                    runOnJS(setSeekTime)(time);
+                }
             }
         }
     );
