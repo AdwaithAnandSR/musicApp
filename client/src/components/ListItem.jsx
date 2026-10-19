@@ -93,7 +93,8 @@ const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = 
                 <Image
                     placeholder={{ blurhash: "LKO2?U%2Tw=w]~RBVZRi};RPxuwH" }}
                     contentFit="cover"
-                    transition={1000}
+                    transition={200}
+                    recyclingKey={item.id || item._id}
                     source={
                         item.artwork || item.cover
                             ? { uri: item.artwork || item.cover }

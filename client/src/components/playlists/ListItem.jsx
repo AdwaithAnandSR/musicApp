@@ -110,7 +110,8 @@ const ListItem = ({ item, index = 0, scrollY }) => {
                     }
                     placeholder={{ blurhash: "L10U~q%M00t7%MRj00of00RjRjRj" }}
                     contentFit="cover"
-                    transition={500}
+                    transition={200}
+                    recyclingKey={item._id || item.id}
                     style={[
                         styles.parallaxImage,
                         { transform: [{ translateY }] }
