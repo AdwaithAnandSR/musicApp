@@ -17,7 +17,8 @@ const HighlightedText = ({ title, search = "", isCurrent }) => {
             </Text>
         );
 
-    const regex = new RegExp(`(${cleanSearch})`, "gi");
+    const escaped = cleanSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(`(${escaped})`, "gi");
     const parts = title.split(regex);
 
     return (
