@@ -251,8 +251,6 @@ export const usePlayer = create((set, get) => ({
             });
             player.skipTo(index);
             player.play();
-            get().updateLockScreen(track);
-            get().updateWidget(track, true);
         } else {
             // Player not yet created; initialize with current queue
             const loopMode = get().getEffectiveLoopMode();
@@ -277,8 +275,6 @@ export const usePlayer = create((set, get) => ({
 
             newPlaylist.skipTo(index);
             newPlaylist.play();
-            get().updateLockScreen(track);
-            get().updateWidget(track, true);
         }
     },
 

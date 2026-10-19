@@ -46,7 +46,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `true` |
 | **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `true` |
 | **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `true` |
-| **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `false` |
+| **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `true` |
 | **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `false` |
 | **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `false` |
 | **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `false` |
@@ -139,9 +139,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A9 · Low
 - **Files:** `store/player.js:186-187, 241-242`, `services/widgetService.js:117-142`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `playByIndex` updates the lock screen and widget, then the `trackChanged` event should do both again. Rapid skips also start overlapping artwork downloads that write the same `current_artwork.jpg`.
-- **Fix:** Update only from `trackChanged`.
+- **Fix Applied:** Removed `updateLockScreen` and `updateWidget` calls from `playByIndex`; they now fire only from the `trackChanged` listener, the single source of truth for track transitions.
 
 ---
 
