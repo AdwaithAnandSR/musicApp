@@ -615,16 +615,19 @@ export const usePlayer = create((set, get) => ({
             newTracks.map(normalizeTrack)
         );
 
-        if (player) {
+        // Re-read fresh state after await to avoid overwriting concurrent changes
+        const currentPlayer = get().player;
+
+        if (currentPlayer) {
             for (const t of resolvedNewTracks) {
-                player.add({ uri: t.url });
+                currentPlayer.add({ uri: t.url });
             }
-            player.loop = get().getEffectiveLoopMode();
+            currentPlayer.loop = get().getEffectiveLoopMode();
         }
 
-        set({
-            queue: [...queue, ...resolvedNewTracks]
-        });
+        set(state => ({
+            queue: [...state.queue, ...resolvedNewTracks]
+        }));
     },
 
     removeFromQueue: songIds => {
@@ -747,16 +750,10 @@ export const usePlayer = create((set, get) => ({
         }),
 
     onLocalSongDownloaded: async () => {
-        const {
-            isWaitingForDownload,
-            currentPlaylistId,
-            queue,
-            currentTrackIndex,
-            player
-        } = get();
+        const { currentPlaylistId } = get();
 
         // 1. If currently playing a dedicated local playlist
-        if (currentPlaylistId && queue.length > 0 && get().isLocalPlaylist) {
+        if (currentPlaylistId && get().queue.length > 0 && get().isLocalPlaylist) {
             let actualPlaylistId = currentPlaylistId;
             if (String(currentPlaylistId).startsWith("local-")) {
                 actualPlaylistId = String(currentPlaylistId).replace(
@@ -765,6 +762,10 @@ export const usePlayer = create((set, get) => ({
                 );
             }
             const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
+
+            // Re-read fresh state after await
+            const { queue, currentTrackIndex, player, isWaitingForDownload } = get();
+
             if (downloadedSongs.length > queue.length) {
                 const newTracks = downloadedSongs.map(song => ({
                     ...song,
@@ -793,7 +794,8 @@ export const usePlayer = create((set, get) => ({
             }
         }
 
-        // 2. If playing a cloud playlist where upcoming songs just finished downloading (Option A)
+        // 2. If playing a cloud playlist where upcoming songs just finished downloading
+        const { player, queue } = get();
         if (player && queue.length > 0) {
             const { getLocalSongInfo } = require("@services/downloads/downloadService");
             let queueUpdated = false;
@@ -815,15 +817,18 @@ export const usePlayer = create((set, get) => ({
                     };
                     updatedQueue[i] = newTrack;
 
+                    // Re-read currentTrackIndex after await for accurate comparison
+                    const freshIndex = get().currentTrackIndex;
+
                     // If upcoming track in native queue, swap source seamlessly
-                    if (i > currentTrackIndex) {
+                    if (i > freshIndex) {
                         try {
                             player.insert({ uri: localInfo.localUrl }, i);
                             player.remove(i + 1);
                         } catch (e) {
                             console.log("Error swapping native source for downloaded song:", e);
                         }
-                    } else if (i === currentTrackIndex) {
+                    } else if (i === freshIndex) {
                         set({ currentTrack: newTrack });
                     }
                 }
@@ -836,7 +841,7 @@ export const usePlayer = create((set, get) => ({
     },
 
     onLocalSongDeleted: async deletedSongId => {
-        const { queue, currentTrackIndex, player } = get();
+        const queue = get().queue;
         if (!queue || !queue.length) return;
 
         let queueUpdated = false;
@@ -865,15 +870,18 @@ export const usePlayer = create((set, get) => ({
                     };
                     updatedQueue[i] = revertedTrack;
 
+                    // Re-read fresh state after await for accurate comparison
+                    const { player: freshPlayer, currentTrackIndex: freshIndex } = get();
+
                     // If upcoming track in native queue, revert back to cloud source
-                    if (player && i > currentTrackIndex) {
+                    if (freshPlayer && i > freshIndex) {
                         try {
-                            player.insert({ uri: cloudUrl }, i);
-                            player.remove(i + 1);
+                            freshPlayer.insert({ uri: cloudUrl }, i);
+                            freshPlayer.remove(i + 1);
                         } catch (e) {
                             console.log("Error reverting native source for deleted song:", e);
                         }
-                    } else if (i === currentTrackIndex) {
+                    } else if (i === freshIndex) {
                         set({ currentTrack: revertedTrack });
                     }
                 }

@@ -51,7 +51,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `true` |
 | **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `true` |
 | **B4** | Bug | Medium | Deleted download reverts to dead file URL in queue | `false` |
-| **B5** | Bug | Medium | Stale closure queue overwrite in download/delete handlers | `false` |
+| **B5** | Bug | Medium | Stale closure queue overwrite in download/delete handlers | `true` |
 | **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `false` |
 | **B7** | Bug | Low | Widget favourite toggle doesn't update `currentTrack.isFav` | `false` |
 | **C1** | Bug | High | `removeFromQueue` removes song from wrong active playlist | `false` |
@@ -174,7 +174,7 @@ The store guesses whether a queue is local from its first song, and several hand
 
 #### B5 · Medium
 - **Files:** `store/player.js:537-556, 676-758, 760-808`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `appendToQueue`, `onLocalSongDownloaded` and `onLocalSongDeleted` copy `queue` and `currentTrackIndex`, await, then call `set({ queue })` from the copy. This overwrites any change made meanwhile (favourite toggle, removal, another append) and decides which native source to swap from a stale index. The window is small once the metadata cache is loaded, because the awaits are microtask-only, but it is open on cold start and breaks if any await becomes real I/O.
 - **Fix:** Compute inside `set(state => ...)` or serialise queue mutations.
 
