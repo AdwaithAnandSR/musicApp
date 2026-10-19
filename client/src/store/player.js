@@ -59,6 +59,7 @@ export const usePlayer = create((set, get) => ({
     currentPlaylistId: null,
     isRandomPlaylist: false,
     randomSeed: null,
+    isLocalPlaylist: false,
     currentTrackId: null,
     currentTrack: null,
     currentTrackIndex: -1,
@@ -301,7 +302,7 @@ export const usePlayer = create((set, get) => ({
         const shouldFetchPage = repeatMode !== "one";
 
         if (nextIndex >= queue.length) {
-            const isLocal = queue.length > 0 && queue[0].isLocal;
+            const isLocal = get().isLocalPlaylist;
 
             if (isLocal) {
                 let actualPlaylistId = currentPlaylistId;
@@ -529,6 +530,7 @@ export const usePlayer = create((set, get) => ({
             currentPlaylistId: playlistId,
             isRandomPlaylist,
             randomSeed,
+            isLocalPlaylist: isLocal,
             queue: resolvedTracks,
             currentTrackIndex: initialIndex,
             currentTrackId: currentTrack._id || currentTrack.id,
@@ -712,6 +714,7 @@ export const usePlayer = create((set, get) => ({
             duration: 0,
             progress: 0,
             isWaitingForDownload: false,
+            isLocalPlaylist: false,
             playbackRate: 1.0
         }),
 
@@ -725,7 +728,7 @@ export const usePlayer = create((set, get) => ({
         } = get();
 
         // 1. If currently playing a dedicated local playlist
-        if (currentPlaylistId && queue.length > 0 && queue[0].isLocal) {
+        if (currentPlaylistId && queue.length > 0 && get().isLocalPlaylist) {
             let actualPlaylistId = currentPlaylistId;
             if (String(currentPlaylistId).startsWith("local-")) {
                 actualPlaylistId = String(currentPlaylistId).replace(
