@@ -48,8 +48,8 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `true` |
 | **A9** | Bug | Low | Duplicate lock screen / widget updates and artwork race | `true` |
 | **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `true` |
-| **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `false` |
-| **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `false` |
+| **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `true` |
+| **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `true` |
 | **B4** | Bug | Medium | Deleted download reverts to dead file URL in queue | `false` |
 | **B5** | Bug | Medium | Stale closure queue overwrite in download/delete handlers | `false` |
 | **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `false` |
@@ -156,13 +156,13 @@ The store guesses whether a queue is local from its first song, and several hand
 
 #### B2 · High
 - **Files:** `DownloadedPlaylistSongs.jsx:90-99`, `store/player.js:412-424`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Shuffle Play in Downloads sends a shuffled `tracksOverride`, but `changePlaylistAndPlay` replaces tracks with `getDownloadedSongs` order whenever `isLocal` is set. Only the first song is random; the rest play in stored order. The shuffle itself (`sort(() => Math.random() - 0.5)`, also at `PlaylistSongs.jsx:165`) is biased.
 - **Fix:** Honour the override and use Fisher-Yates.
 
 #### B3 · Medium
 - **Files:** `store/player.js:88-98, 323-330`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** This is the first item in `client/todo.txt`. When the downloaded songs end while more are still downloading, the native loop is `all` and wraps to the first song. `next()` handles a manual skip but the natural end is never intercepted.
 - **Fix:** Set loop to `none` while the current local playlist has pending downloads and continue when the next one is saved.
 

@@ -93,12 +93,21 @@ export const usePlayer = create((set, get) => ({
     },
 
     getEffectiveLoopMode: () => {
-        const { repeatMode, currentPlaylistId, playlistControllers } = get();
+        const { repeatMode, currentPlaylistId, playlistControllers, isLocalPlaylist } = get();
         if (repeatMode === "one") return "single";
         if (repeatMode === "queue") {
             const controller = playlistControllers[currentPlaylistId];
             // If there are more pages still to be fetched, don't loop back to start yet
             if (controller && controller.getHasNextPage()) return "none";
+            // If local playlist has pending downloads, don't wrap yet
+            if (isLocalPlaylist && currentPlaylistId) {
+                let actualId = currentPlaylistId;
+                if (String(actualId).startsWith("local-")) {
+                    actualId = String(actualId).replace("local-", "");
+                }
+                const downloading = useDownloadStatus.getState().downloadingPlaylists[actualId];
+                if (downloading && downloading.length > 0) return "none";
+            }
             return "all";
         }
         return "none";
@@ -169,6 +178,25 @@ export const usePlayer = create((set, get) => ({
 
                 if (Object.keys(updates).length > 0) {
                     set(updates);
+                }
+
+                // Detect natural end of last track on local playlist with pending downloads
+                if (ended && !current.hasEnded) {
+                    const state = get();
+                    if (
+                        state.isLocalPlaylist &&
+                        state.currentTrackIndex === state.queue.length - 1
+                    ) {
+                        let actualId = state.currentPlaylistId;
+                        if (String(actualId).startsWith("local-")) {
+                            actualId = String(actualId).replace("local-", "");
+                        }
+                        const downloading =
+                            useDownloadStatus.getState().downloadingPlaylists[actualId];
+                        if (downloading && downloading.length > 0) {
+                            set({ isWaitingForDownload: true });
+                        }
+                    }
                 }
 
                 if (get().timer != null && get().timer < Date.now()) {
@@ -751,6 +779,11 @@ export const usePlayer = create((set, get) => ({
                 }
 
                 set({ queue: newTracks });
+
+                // Sync native loop mode — may switch back to "all" once downloads finish
+                if (player) {
+                    player.loop = get().getEffectiveLoopMode();
+                }
 
                 if (isWaitingForDownload) {
                     set({ isWaitingForDownload: false });
