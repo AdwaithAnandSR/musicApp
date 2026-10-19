@@ -43,7 +43,7 @@ export const getPlaylistSongs = async ({
         const { data } = await axios.get("/playlist/getSongs", { params });
 
         const queueId = artistName ? `artist_${artistName}` : playlistId;
-        usePlayer.getState().appendToQueue(queueId, data?.musics ?? []);
+        usePlayer.getState().appendToQueue(queueId, data?.musics ?? [], random, seed);
 
         return data ?? { musics: [], nextCursor: null };
     } catch (err) {

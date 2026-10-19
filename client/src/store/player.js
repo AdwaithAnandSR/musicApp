@@ -530,8 +530,11 @@ export const usePlayer = create((set, get) => ({
         return true;
     },
 
-    appendToQueue: async (playlistId, tracks) => {
-        if (playlistId !== get().currentPlaylistId) return;
+    appendToQueue: async (playlistId, tracks, isRandom = false, seed = null) => {
+        const { currentPlaylistId, isRandomPlaylist, randomSeed } = get();
+        if (playlistId !== currentPlaylistId) return;
+        if (isRandom !== isRandomPlaylist) return;
+        if (isRandom && seed !== randomSeed) return;
         if (!tracks || !tracks.length) return;
 
         const { queue, player } = get();
