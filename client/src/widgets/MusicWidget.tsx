@@ -42,7 +42,7 @@ export interface MusicWidgetProps {
     favIconUri?: string;
     albumsIconUri?: string;
     downloadIconUri?: string;
-    playlistsIconUri?: string;
+    randomIconUri?: string;
     timerIconsUri?: string;
 }
 
@@ -64,7 +64,7 @@ export function MusicWidgetLayout(
         favIconUri = "",
         albumsIconUri = "",
         downloadIconUri = "",
-        playlistsIconUri = "",
+        randomIconUri = "",
         timerIconsUri = "",
     } = props;
 
@@ -246,7 +246,7 @@ export function MusicWidgetLayout(
                             modifiers={[size(50, 50), cornerRadius(15)]}
                         >
                             <Image
-                                source={{ uri: playlistsIconUri }}
+                                source={{ uri: randomIconUri }}
                                 contentScale="fit"
                                 modifiers={[size(35, 35)]}
                             />
@@ -280,6 +280,6 @@ export const musicWidget = createWidget("MusicWidget", MusicWidgetLayout, {
     favIconUri: "",
     albumsIconUri: "",
     downloadIconUri: "",
-    playlistsIconUri: "",
+    randomIconUri: "",
     timerIconsUri: "",
 });

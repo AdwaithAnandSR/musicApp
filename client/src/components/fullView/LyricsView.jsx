@@ -4,7 +4,7 @@ import { FlashList } from "@shopify/flash-list";
 
 import SyncedRenderItem from "@components/fullView/LyricRenderItem.jsx";
 import { useStatus } from "@store/appState.store.js";
-import { usePlayer } from "@store/player";
+import { useProgress } from "@store/player";
 
 const LyricItemAsText = ({ item }) => {
     return (
@@ -51,7 +51,7 @@ const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
 
         const lyrics = track.lyrics;
 
-        const unsubscribe = usePlayer.subscribe((state, prevState) => {
+        const unsubscribe = useProgress.subscribe((state, prevState) => {
             if (state.position === prevState?.position) return;
             const currentTime = state.position;
 

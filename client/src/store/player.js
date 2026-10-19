@@ -49,6 +49,12 @@ const normalizeTrack = async track => {
     };
 };
 
+export const useProgress = create(() => ({
+    position: 0,
+    duration: 0,
+    progress: 0
+}));
+
 export const usePlayer = create((set, get) => ({
     player: null,
     playbackListener: null,
@@ -69,9 +75,6 @@ export const usePlayer = create((set, get) => ({
     isStopped: true,
     repeatMode: "queue",
     timer: null,
-    position: 0,
-    duration: 0,
-    progress: 0,
     hasEnded: false,
     error: null,
     _playSeqId: 0,
@@ -166,18 +169,25 @@ export const usePlayer = create((set, get) => ({
                     updates.isBuffering = status.isBuffering;
                 if (current.isLoaded !== status.isLoaded)
                     updates.isLoaded = status.isLoaded;
-                if (current.position !== position) updates.position = position;
-                if (current.duration !== duration) updates.duration = duration;
-
-                const newProgress = duration ? position / duration : 0;
-                if (current.progress !== newProgress)
-                    updates.progress = newProgress;
 
                 const ended = status.didJustFinish || false;
                 if (current.hasEnded !== ended) updates.hasEnded = ended;
 
                 if (Object.keys(updates).length > 0) {
                     set(updates);
+                }
+
+                const currentProg = useProgress.getState();
+                const progUpdates = {};
+                if (currentProg.position !== position) progUpdates.position = position;
+                if (currentProg.duration !== duration) progUpdates.duration = duration;
+
+                const newProgress = duration ? position / duration : 0;
+                if (currentProg.progress !== newProgress)
+                    progUpdates.progress = newProgress;
+
+                if (Object.keys(progUpdates).length > 0) {
+                    useProgress.setState(progUpdates);
                 }
 
                 // Detect natural end of last track on local playlist with pending downloads
@@ -218,6 +228,7 @@ export const usePlayer = create((set, get) => ({
                         hasEnded: false
                     });
 
+                    useProgress.setState({ position: 0, duration: 0, progress: 0 });
                     useStatus.getState().resetShowLyrics();
 
                     get().updateLockScreen(nextTrack);
@@ -732,7 +743,8 @@ export const usePlayer = create((set, get) => ({
         get().resetValues();
     },
 
-    resetValues: () =>
+    resetValues: () => {
+        useProgress.setState({ position: 0, duration: 0, progress: 0 });
         set({
             player: null,
             playbackListener: null,
@@ -746,13 +758,11 @@ export const usePlayer = create((set, get) => ({
             currentTrack: null,
             currentTrackId: null,
             timer: null,
-            position: 0,
-            duration: 0,
-            progress: 0,
             isWaitingForDownload: false,
             isLocalPlaylist: false,
             playbackRate: 1.0
-        }),
+        });
+    },
 
     onLocalSongDownloaded: async () => {
         const { currentPlaylistId } = get();

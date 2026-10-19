@@ -78,7 +78,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P8** | Perf | Low | Duplicate fetch requests during Shuffle Play and pull-to-refresh | `true` |
 | **P9** | Perf | Low | Missing `recyclingKey` and long transitions on list images | `true` |
 | **P10** | Perf | Low | Seek slider fires 60 React renders/sec while dragging | `true` |
-| **P11** | Perf | Low | Playback position/progress in same store notifies all subscribers | `false` |
+| **P11** | Perf | Low | Playback position/progress in same store notifies all subscribers | `true` |
 | **P12** | Perf | Low | `handleToggleFavourite` predicate walks every cached query | `true` |
 | **P13** | Perf | Low | Unneeded FlashList props & missing `keyExtractor` | `false` |
 
@@ -350,10 +350,10 @@ The two biggest costs are on the Downloads screens, which do constant background
 - **Fix Applied:** Added `lastFlooredSec` shared value in `SliderContainer.jsx` to only call `runOnJS(setSeekTime)` when `Math.floor(time)` changes, reducing seeking renders to ~1/sec.
 
 #### P11 · Low
-- **Files:** `store/player.js:139-170`
-- **Fixed:** `false`
+- **Files:** `store/player.js:151-185`, `components/fullView/SliderContainer.jsx`, `components/fullView/LyricsView.jsx`, `components/fullView/VideoBackground.jsx`
+- **Fixed:** `true`
 - **Issue:** `position`, `progress` and `duration` live in the same store as the queue, so every 500 ms tick notifies all subscribers. Each selector is cheap but every ListItem has several.
-- **Fix:** Move them to their own store, or raise `updateInterval` unless the slider or lyrics are visible.
+- **Fix Applied:** Created a dedicated `useProgress` Zustand store for `position`, `duration`, and `progress`, updated off `playlistStatusUpdate`. Removed continuous position/progress updates from `usePlayer`, preventing store notifications and selector executions across all queue/list items during playback ticks. Updated `SliderContainer.jsx`, `LyricsView.jsx`, and `VideoBackground.jsx` to subscribe to `useProgress`.
 
 #### P12 · Low
 - **Files:** `controllers/playlists/handleToggleFavourite.js:21-38`

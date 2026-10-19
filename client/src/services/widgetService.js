@@ -6,6 +6,7 @@ import { musicWidget } from "@/widgets/MusicWidget";
 import { usePlayer } from "@store/player";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import MaterialIcons from "@react-native-vector-icons/material-icons";
+import FontAwesome5 from "@react-native-vector-icons/fontawesome5";
 
 let lastUpdatedArtworkSource = null;
 let cachedArtworkFileUri = "";
@@ -34,7 +35,7 @@ function getControlIconProps(icons) {
         favIconUri: icons?.fav || "",
         albumsIconUri: icons?.albums || "",
         downloadIconUri: icons?.download || "",
-        playlistsIconUri: icons?.playlist || "",
+        randomIconUri: icons?.playlist || "",
         timerIconsUri: icons?.timer || "",
     };
 }
@@ -54,27 +55,18 @@ async function getWidgetIconUris() {
     if (iconUris) return iconUris;
 
     try {
-        const [
-            play,
-            pause,
-            next,
-            prev,
-            fav,
-            albums,
-            download,
-            playlist,
-            timer,
-        ] = await Promise.all([
-            Ionicons.getImageSource("play", 32, "#FFFFFF"),
-            Ionicons.getImageSource("pause", 32, "#FFFFFF"),
-            MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF"),
-            MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF"),
-            MaterialIcons.getImageSource("favorite", 28, "#FFFFFF"),
-            MaterialIcons.getImageSource("album", 28, "#FFFFFF"),
-            MaterialIcons.getImageSource("download", 28, "#FFFFFF"),
-            Ionicons.getImageSource("albums", 28, "#FFFFFF"),
-            MaterialIcons.getImageSource("timer", 28, "#FFFFFF"),
-        ]);
+        const [play, pause, next, prev, fav, albums, download, random, timer] =
+            await Promise.all([
+                Ionicons.getImageSource("play", 32, "#FFFFFF"),
+                Ionicons.getImageSource("pause", 32, "#FFFFFF"),
+                MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF"),
+                MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF"),
+                MaterialIcons.getImageSource("favorite", 28, "#FFFFFF"),
+                MaterialIcons.getImageSource("album", 28, "#FFFFFF"),
+                MaterialIcons.getImageSource("download", 28, "#FFFFFF"),
+                FontAwesome5.getImageSource("random", 28, "#FFFFFF"),
+                MaterialIcons.getImageSource("timer", 28, "#FFFFFF"),
+            ]);
 
         iconUris = {
             play: play?.uri || "",
@@ -84,7 +76,7 @@ async function getWidgetIconUris() {
             fav: fav?.uri || "",
             albums: albums?.uri || "",
             download: download?.uri || "",
-            playlist: playlist?.uri || "",
+            random: random?.uri || "",
             timer: timer?.uri || "",
         };
     } catch (e) {

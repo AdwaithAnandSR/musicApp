@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { View, StyleSheet, AppState } from "react-native";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { usePlayer } from "@store/player";
+import { usePlayer, useProgress } from "@store/player";
 
 const ActiveVideoBackground = ({ videoUrl }) => {
     const isPlaying = usePlayer(state => state.isPlaying);
     const isBuffering = usePlayer(state => state.isBuffering);
-    const audioPosition = usePlayer(state => state.position);
+    const audioPosition = useProgress(state => state.position);
 
     const [appState, setAppState] = useState(AppState.currentState);
 

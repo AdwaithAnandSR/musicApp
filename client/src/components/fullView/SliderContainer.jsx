@@ -9,7 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
-import { usePlayer } from "@store/player";
+import { usePlayer, useProgress } from "@store/player";
 
 const { height: vh, width: vw } = Dimensions.get("window");
 
@@ -34,14 +34,14 @@ const formatTime = (ms) => {
 // Isolated leaf component: only this tiny Text re-renders on position changes,
 // NOT the entire SliderContainer with its gesture handler and animated styles.
 const CurrentTimeDisplay = () => {
-    const currentTime = usePlayer(state => state.position);
+    const currentTime = useProgress(state => state.position);
     return <Text style={styles.timeText}>{formatTime(currentTime)}</Text>;
 };
 
 const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     const [isSeeking, setIsSeeking] = useState(false);
     const [seekTime, setSeekTime] = useState(0);
-    const duration = usePlayer(state => state.duration);
+    const duration = useProgress(state => state.duration);
     const seekTo = usePlayer(state => state.seekTo);
 
     const thumbScale = useSharedValue(1);
@@ -53,7 +53,7 @@ const SliderContainer = ({ lightVibrant, defaultDuration }) => {
     // just a direct shared value update that the UI thread picks up.
     useEffect(() => {
         let lastProgress = -1;
-        const unsubscribe = usePlayer.subscribe((state) => {
+        const unsubscribe = useProgress.subscribe((state) => {
             const prog = state.progress || 0;
             if (prog !== lastProgress) {
                 lastProgress = prog;

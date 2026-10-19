@@ -3,7 +3,7 @@ import {
     Text,
     Dimensions,
     TouchableOpacity,
-    StyleSheet
+    StyleSheet,
 } from "react-native";
 import LottieView from "lottie-react-native";
 import { Image } from "expo-image";
@@ -12,7 +12,7 @@ import {
     useMultiSelect,
     useStatus,
     useAppStatus,
-    useDownloadStatus
+    useDownloadStatus,
 } from "../store/appState.store.js";
 import { usePlayer } from "../store/player.js";
 
@@ -20,27 +20,36 @@ import HighlightedText from "../components/HighlightedTitle.jsx";
 
 const { width: vw } = Dimensions.get("window");
 
-const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = null }) => {
-    const updateSelected = useMultiSelect(state => state.updateSelectedSongs);
-    const isSelecting = useMultiSelect(state => state.selectedSongs.length > 0);
-    const resetShowLyrics = useStatus(state => state.resetShowLyrics);
+const ListItem = ({
+    item,
+    ID,
+    text = "",
+    isRandomPlaylist = false,
+    randomSeed = null,
+}) => {
+    const updateSelected = useMultiSelect((state) => state.updateSelectedSongs);
+    const isSelecting = useMultiSelect(
+        (state) => state.selectedSongs.length > 0,
+    );
+    const resetShowLyrics = useStatus((state) => state.resetShowLyrics);
 
     const changePlaylistAndPlay = usePlayer(
-        state => state.changePlaylistAndPlay
+        (state) => state.changePlaylistAndPlay,
     );
 
     const isCurrentPlaying = usePlayer(
-        state =\u003e state.currentTrackId === (item.id || item._id) && state.isPlaying
+        (state =
+            state.currentTrackId === (item.id || item._id) && state.isPlaying),
     );
 
-    const isSelected = useMultiSelect(state =>
+    const isSelected = useMultiSelect((state) =>
         state.selectedSongs.some(
-            song => (song.id || song._id) === (item.id || item._id)
-        )
+            (song) => (song.id || song._id) === (item.id || item._id),
+        ),
     );
 
     const downloadingData = useDownloadStatus(
-        state => state.downloadingSongs[item.id || item._id]
+        (state) => state.downloadingSongs[item.id || item._id],
     );
 
     if (!item?.url) return null;
@@ -55,7 +64,7 @@ const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = 
                 trackId: item.id || item._id,
                 isLocal: !!item.isLocal,
                 isRandomPlaylist,
-                randomSeed
+                randomSeed,
             });
         } else {
             updateSelected(item);
@@ -81,7 +90,7 @@ const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = 
                     <Text
                         style={{
                             color: "rgb(246,7,135)",
-                            fontWeight: "bold"
+                            fontWeight: "bold",
                         }}
                     >
                         ✓
@@ -131,7 +140,7 @@ const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = 
                     style={{
                         width: 40,
                         height: 40,
-                        marginLeft: -10
+                        marginLeft: -10,
                     }}
                 />
             )}
@@ -147,23 +156,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: vw * 0.02,
         flexDirection: "row",
         alignItems: "center",
-        gap: vw * 0.03
+        gap: vw * 0.03,
     },
 
     checkBoxContainer: {
-        marginLeft: 10
+        marginLeft: 10,
     },
     imageContainer: {
         width: vw * 0.12,
         height: vw * 0.12,
         borderRadius: vw * 0.06,
         overflow: "hidden",
-        backgroundColor: "#232323"
+        backgroundColor: "#232323",
     },
     title: {
         color: "white",
         fontWeight: "bold",
-        flexShrink: 1
+        flexShrink: 1,
     },
     popUpContainer: {
         width: 200,
@@ -172,8 +181,8 @@ const styles = StyleSheet.create({
         position: "relative",
         right: 60,
         top: 0,
-        zIndex: 9999
-    }
+        zIndex: 9999,
+    },
 });
 
 export default ListItem;
