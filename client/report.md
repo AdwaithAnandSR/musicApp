@@ -72,7 +72,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P2** | Perf | High | Unthrottled download progress re-renders screen every tick | `true` |
 | **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `true` |
 | **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `false` |
-| **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `false` |
+| **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `true` |
 | **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `false` |
 | **P7** | Perf | Medium | Every lyric line subscribes to `currentLyricIndex` causing full re-renders | `true` |
 | **P8** | Perf | Low | Duplicate fetch requests during Shuffle Play and pull-to-refresh | `false` |
@@ -315,9 +315,9 @@ The two biggest costs are on the Downloads screens, which do constant background
 
 #### P5 · Medium
 - **Files:** `components/playlists/ListItem.jsx:30, 146-152`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Every playlist card renders a `LongPressOptions` modal, each with two shared values and two animated styles. Each card also subscribes to the whole `selectedSongs` array. The Playlists tab stays mounted under `PlaylistSongs`, so every song selection re-renders all its cards.
-- **Fix:** Mount the sheet only when `showOptions` is true, and read `selectedSongs` with `getState()` in the Add handler.
+- **Fix Applied:** Removed `selectedSongs` array subscription from `components/playlists/ListItem.jsx` and read `selectedSongs: useMultiSelect.getState().selectedSongs` on demand inside the Add button callback, preventing cards from re-rendering during song selection. Wrapped `<LongPressOptions>` in `{showOptions && ...}` so modals and shared values are mounted purely on demand.
 
 #### P6 · Medium
 - **Files:** `PlaylistSongs.jsx:201-211`, `Home.jsx:49-60`, `Search.jsx:57-65`

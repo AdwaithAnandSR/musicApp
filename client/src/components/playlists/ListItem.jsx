@@ -27,7 +27,6 @@ const ListItem = ({ item, index = 0, scrollY }) => {
     const isSelecting = useMultiSelect(
         state => state.selectedSongs?.length > 0
     );
-    const selectedSongs = useMultiSelect(state => state.selectedSongs);
     const setCurrentSelectedPlaylist = useAppStatus(
         state => state.setCurrentSelectedPlaylist
     );
@@ -130,7 +129,7 @@ const ListItem = ({ item, index = 0, scrollY }) => {
                             onPress={() =>
                                 addSongsToPlaylist({
                                     id: item._id,
-                                    selectedSongs,
+                                    selectedSongs: useMultiSelect.getState().selectedSongs,
                                     reset
                                 })
                             }
@@ -144,13 +143,15 @@ const ListItem = ({ item, index = 0, scrollY }) => {
             </View>
         </TouchableOpacity>
 
-        <LongPressOptions
-            id={item?._id}
-            visible={showOptions}
-            onClose={() => setShowOptions(false)}
-            isLocal={item?.isLocalFolder}
-            playlistName={item?.name}
-        />
+        {showOptions && (
+            <LongPressOptions
+                id={item?._id}
+                visible={showOptions}
+                onClose={() => setShowOptions(false)}
+                isLocal={item?.isLocalFolder}
+                playlistName={item?.name}
+            />
+        )}
     </>
     );
 };
