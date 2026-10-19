@@ -42,7 +42,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **A2** | Bug | High | `shouldUpdateQueue` misses `randomSeed` comparison | `true` |
 | **A3** | Bug | Medium | Length equality check causes unnecessary player teardown | `true` |
 | **A4** | Bug | Medium | `getEffectiveLoopMode` stays `none` after last page loads | `true` |
-| **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `false` |
+| **A5** | Bug | Medium | `shouldFetchPage` false in queue repeat mode causes premature wrap | `true` |
 | **A6** | Bug | Medium | Stale controller snapshot in `playlistControllers` | `false` |
 | **A7** | Bug | Medium | Unhandled errors in `changePlaylistAndPlay` leave dead player | `false` |
 | **A8** | Bug | Low | Missing trackId fallback, prev at 0, 1-song next issues | `false` |
@@ -115,9 +115,9 @@ The queue is matched to a screen by playlist ID alone, so anything that fetches 
 
 #### A5 · Medium
 - **Files:** `store/player.js:292, 333-336, 160`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** `shouldFetchPage` is false in the default queue repeat mode, so Next on the last loaded song wraps to index 0 even when more pages exist. Only the three-songs-left prefetch protects this. `hasEnded` is set on every finish but nothing reads it, so a slow or failed prefetch ends playback silently.
-- **Fix:** In queue mode, wait for `fetchNextPage` before wrapping.
+- **Fix Applied:** Changed `shouldFetchPage` to `repeatMode !== "one"` so fetching is allowed in queue mode, and guarded the wrap-to-0 with `!(controller && controller.hasNextPage)` so it only wraps when there are truly no more pages.
 
 #### A6 · Medium
 - **Files:** `PlaylistSongs.jsx:187-193`, `Home.jsx:41-47`, `store/player.js:78-86, 197`

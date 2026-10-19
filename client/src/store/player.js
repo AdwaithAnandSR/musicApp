@@ -295,7 +295,7 @@ export const usePlayer = create((set, get) => ({
 
         let nextIndex = currentTrackIndex + 1;
         const controller = playlistControllers[currentPlaylistId];
-        const shouldFetchPage = repeatMode !== "queue" && repeatMode !== "one";
+        const shouldFetchPage = repeatMode !== "one";
 
         if (nextIndex >= queue.length) {
             const isLocal = queue.length > 0 && queue[0].isLocal;
@@ -337,8 +337,10 @@ export const usePlayer = create((set, get) => ({
             }
 
             if (repeatMode === "queue") {
-                get().playByIndex(0);
-                return;
+                if (!(controller && controller.hasNextPage)) {
+                    get().playByIndex(0);
+                    return;
+                }
             }
 
             if (shouldFetchPage && controller && controller.hasNextPage) {
