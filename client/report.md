@@ -64,7 +64,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **D1** | Bug | Medium | Lyrics state not reset on `trackChanged`, locks gesture | `true` |
 | **D2** | Bug | Medium | `undefinedb0` shadow style crash on initial render | `true` |
 | **D3** | Bug | Medium | Unescaped search text crashes regex in `HighlightedTitle` | `true` |
-| **D4** | Bug | Low | Artwork color extraction race on rapid skips | `false` |
+| **D4** | Bug | Low | Artwork color extraction race on rapid skips | `true` |
 | **D5** | Bug | Low | `artistIndex` survives track changes showing empty chip | `true` |
 | **D6** | Bug | Low | Equalizer animates on current track even when paused | `true` |
 | **D7** | Bug | Low | Double-tap worklet captures entire track object | `false` |
@@ -262,9 +262,9 @@ Per-track UI state is reset by button handlers, not by the track change itself.
 
 #### D4 · Low
 - **Files:** `TrackControllerMinView.jsx:30-42`, `TrackControllerFullView.jsx:54-69`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Both call `getColors(...).then(setColors)` with no cancellation, so a slow result from a skipped track can overwrite the current colours. A track with no cover keeps the previous track's colours. The two components also extract separately with different cache keys (`url` and `trackId`).
-- **Fix:** Extract once, store the result on the track.
+- **Fix Applied:** Added cancellation guard (`isCurrent`) in `useEffect` in both `TrackControllerMinView.jsx` and `TrackControllerFullView.jsx` to ignore stale promises on rapid skips. Added explicit `setColors(null)` when artwork is missing. Aligned cache keys to `trackId || url` and saved extracted colors into `currentTrack.colors` so extraction only runs once per track.
 
 #### D5 · Low
 - **Files:** `components/fullView/OptionsContainer.jsx:20`

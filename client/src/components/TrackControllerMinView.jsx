@@ -28,18 +28,44 @@ const TrackControllerMinView = ({ tabBarHeight }) => {
     const isPlaying = usePlayer(state => state.isPlaying || state.isBuffering);
 
     useEffect(() => {
+        let isCurrent = true;
         const url = track?.cover || track?.artwork;
-        
-        if (track?.colors && Object.keys(track.colors).length > 0) {
+        const trackId = track?._id || track?.id;
+
+        if (!url) {
+            setColors(null);
+        } else if (track?.colors && Object.keys(track.colors).length > 0) {
             setColors(track.colors);
-        } else if (url) {
+        } else {
             getColors(url, {
                 fallback: "#712958",
                 cache: true,
-                key: url
-            }).then(c => setColors(c));
+                key: trackId || url
+            })
+                .then(c => {
+                    if (!isCurrent) return;
+                    setColors(c);
+                    if (!track?.colors) {
+                        usePlayer.setState(state => {
+                            if (!state.currentTrack) return state;
+                            const currentId = state.currentTrack._id || state.currentTrack.id;
+                            if (currentId !== trackId) return state;
+                            return {
+                                currentTrack: { ...state.currentTrack, colors: c }
+                            };
+                        });
+                    }
+                })
+                .catch(() => {
+                    if (!isCurrent) return;
+                    setColors(null);
+                });
         }
-    }, [track?.cover, track?.artwork, track?.colors]);
+
+        return () => {
+            isCurrent = false;
+        };
+    }, [track?._id, track?.id, track?.cover, track?.artwork, track?.colors]);
 
     if (!track || !track.url || isStopped) return null;
 

@@ -52,19 +52,46 @@ const TrackControllerFullView = () => {
 
     // Color extraction — only runs when track changes
     useEffect(() => {
+        let isCurrent = true;
+
         if (!trackId) {
+            setColors(null);
             if (router.canGoBack()) {
                 router.back();
             }
+        } else if (!coverUrl) {
+            setColors(null);
         } else if (track?.colors && Object.keys(track.colors).length > 0) {
             setColors(track.colors);
-        } else if (coverUrl) {
+        } else {
             getColors(coverUrl, {
                 fallback: "#fd47bd",
                 cache: true,
-                key: trackId
-            }).then(setColors);
+                key: trackId || coverUrl
+            })
+                .then(c => {
+                    if (!isCurrent) return;
+                    setColors(c);
+                    if (!track?.colors) {
+                        usePlayer.setState(state => {
+                            if (!state.currentTrack) return state;
+                            const currentId = state.currentTrack._id || state.currentTrack.id;
+                            if (currentId !== trackId) return state;
+                            return {
+                                currentTrack: { ...state.currentTrack, colors: c }
+                            };
+                        });
+                    }
+                })
+                .catch(() => {
+                    if (!isCurrent) return;
+                    setColors(null);
+                });
         }
+
+        return () => {
+            isCurrent = false;
+        };
     }, [trackId, coverUrl, track?.colors]);
 
     // ── Gesture shared values ──
