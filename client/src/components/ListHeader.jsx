@@ -203,6 +203,7 @@ const Header = ({
                             },
                         ]}
                     >
+                        {onToggleRandom && (
                         <TouchableOpacity
                             style={[
                                 styles.shuffleToggleBtn,
@@ -225,6 +226,7 @@ const Header = ({
                                 {isRandom ? "Shuffled" : "Shuffle"}
                             </Text>
                         </TouchableOpacity>
+                        )}
 
                         {isRandom && (
                             <TouchableOpacity
