@@ -107,6 +107,8 @@ const PopUpOptions = () => {
         setTimeout(async () => {
             const { deleteDownloadedSong } = require("../services/downloads/downloadService.js");
             await deleteDownloadedSong(pId, options.songId);
+            const { usePlayer } = require("../store/player.js");
+            usePlayer.getState().removeFromQueue(options.songId, options.playId);
             Toast.show("Download removed", "success");
         }, 250);
     };

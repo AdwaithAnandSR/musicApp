@@ -50,7 +50,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **B1** | Bug | High | Cloud playlist with downloaded first song treated as local | `true` |
 | **B2** | Bug | High | Downloads Shuffle Play overwritten by stored order & biased shuffle | `true` |
 | **B3** | Bug | Medium | Unfinished downloads loop wrap without waiting | `true` |
-| **B4** | Bug | Medium | Deleted download reverts to dead file URL in queue | `false` |
+| **B4** | Bug | Medium | Deleted download reverts to dead file URL in queue | `true` |
 | **B5** | Bug | Medium | Stale closure queue overwrite in download/delete handlers | `true` |
 | **B6** | Bug | Medium | `DownloadedPlaylistSongs` mutation cache prevents re-render on change | `false` |
 | **B7** | Bug | Low | Widget favourite toggle doesn't update `currentTrack.isFav` | `false` |
@@ -168,9 +168,9 @@ The store guesses whether a queue is local from its first song, and several hand
 
 #### B4 · Medium
 - **Files:** `store/player.js:760-808`, `PopUpOptions.jsx:104-112`
-- **Fixed:** `false`
+- **Fixed:** `true`
 - **Issue:** Download metadata stores `url: localUrl` and no cloud URL (`downloadService.js:576-582`). When a song from a local playlist is deleted, `onLocalSongDeleted` reverts it to `track.cloudUrl || track.url`, which is the deleted file path. Removing a download also never calls `removeFromQueue`, so the song stays queued with a dead source.
-- **Fix:** Save the original URL in metadata, and remove the track from the queue if there is none.
+- **Fix Applied:** Added `cloudUrl: song.cloudUrl || song.url` to the `songToSave` object in `downloadService.js` so the original streaming URL is preserved in metadata. Added `removeFromQueue(songId, playId)` in `PopUpOptions.jsx` `handleRemoveDownload` so the song is removed from the queue when the local playlist is currently playing.
 
 #### B5 · Medium
 - **Files:** `store/player.js:537-556, 676-758, 760-808`

@@ -575,6 +575,7 @@ export const downloadPlaylistSongs = async (
 
                 const songToSave = {
                     ...song,
+                    cloudUrl: song.cloudUrl || song.url,
                     localUrl,
                     isLocal: true,
                     url: localUrl,
