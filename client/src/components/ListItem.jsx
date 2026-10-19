@@ -30,7 +30,7 @@ const ListItem = ({ item, ID, text = "", isRandomPlaylist = false, randomSeed = 
     );
 
     const isCurrentPlaying = usePlayer(
-        state => state.currentTrackId === (item.id || item._id)
+        state =\u003e state.currentTrackId === (item.id || item._id) && state.isPlaying
     );
 
     const isSelected = useMultiSelect(state =>

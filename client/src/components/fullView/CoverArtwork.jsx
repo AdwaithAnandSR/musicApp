@@ -54,7 +54,7 @@ const CoverArtwork = ({
                 style={[
                     styles.imageFill,
                     {
-                        boxShadow: `0px 30px 100px ${shadowColor}b0`,
+                        boxShadow: shadowColor ? `0px 30px 40px ${shadowColor}b0` : "none",
                         opacity: showVideo && videoUrl ? 0 : 1
                     }
                 ]}
