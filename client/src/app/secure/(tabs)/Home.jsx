@@ -71,7 +71,6 @@ const Home = () => {
 
     const handleRefresh = () => {
         queryClient.resetQueries({ queryKey: ["HOME"] });
-        refetch();
     };
 
     const scrollToMiddle = index => {

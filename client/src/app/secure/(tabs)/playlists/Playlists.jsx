@@ -52,7 +52,6 @@ const Playlists = () => {
 
     const handleRefresh = () => {
         queryClient.resetQueries({ queryKey: ["playlists"] });
-        refetch();
     };
 
     const renderItem = ({ item, index }) => {

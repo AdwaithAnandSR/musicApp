@@ -137,31 +137,28 @@ const PlaylistSongs = () => {
         } catch (e) {}
 
         const newSeed = Math.random();
-        setSeed(newSeed);
-        setIsRandom(true);
-
+        const newQueryKey = [computedPlaylistId, "random", newSeed];
         let targetTracks = [];
 
         try {
-            const res = await getPlaylistSongs({
-                limit,
-                playlistId,
-                artistName,
-                pageParam: null,
-                random: true,
-                seed: newSeed
+            const data = await queryClient.fetchInfiniteQuery({
+                queryKey: newQueryKey,
+                queryFn: ({ pageParam = null }) =>
+                    getPlaylistSongs({
+                        limit,
+                        playlistId,
+                        artistName,
+                        pageParam,
+                        random: true,
+                        seed: newSeed
+                    }),
+                initialPageParam: null,
+                getNextPageParam: lastPage => lastPage?.nextCursor ?? undefined
             });
 
-            if (res) {
-                const newQueryKey = [computedPlaylistId, "random", newSeed];
-                queryClient.setQueryData(newQueryKey, {
-                    pages: [res],
-                    pageParams: [null]
-                });
-            }
-
+            const firstPage = data?.pages?.[0];
             targetTracks =
-                res?.musics?.map(({ _id, cover, ...rest }) => ({
+                firstPage?.musics?.map(({ _id, cover, ...rest }) => ({
                     id: _id,
                     _id,
                     artwork: cover,
@@ -171,6 +168,9 @@ const PlaylistSongs = () => {
         } catch (err) {
             console.log("Error in handlePlayShuffled fetch:", err);
         }
+
+        setSeed(newSeed);
+        setIsRandom(true);
 
         // Fallback: If network failed or returned empty list, fall back to current visible songs list
         if (!targetTracks.length && songs && songs.length > 0) {
@@ -195,9 +195,9 @@ const PlaylistSongs = () => {
     const handleRefresh = () => {
         if (isRandom) {
             setSeed(Math.random());
+        } else {
+            queryClient.resetQueries({ queryKey });
         }
-        queryClient.resetQueries({ queryKey });
-        refetch();
     };
 
     useEffect(() => {

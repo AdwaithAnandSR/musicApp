@@ -75,7 +75,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `true` |
 | **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `true` |
 | **P7** | Perf | Medium | Every lyric line subscribes to `currentLyricIndex` causing full re-renders | `true` |
-| **P8** | Perf | Low | Duplicate fetch requests during Shuffle Play and pull-to-refresh | `false` |
+| **P8** | Perf | Low | Duplicate fetch requests during Shuffle Play and pull-to-refresh | `true` |
 | **P9** | Perf | Low | Missing `recyclingKey` and long transitions on list images | `true` |
 | **P10** | Perf | Low | Seek slider fires 60 React renders/sec while dragging | `true` |
 | **P11** | Perf | Low | Playback position/progress in same store notifies all subscribers | `false` |
@@ -332,10 +332,10 @@ The two biggest costs are on the Downloads screens, which do constant background
 - **Fix Applied:** In `LyricRenderItem.jsx`, replaced individual `showSyncedLyric` and `currentLyricIndex` subscriptions with a single boolean selector (`state => state.showSyncedLyric && state.currentLyricIndex === index - 1`), limiting re-renders on line changes to only the two affected items. In `LyricsView.jsx`, removed the component-level `usePlayer(state => state.position)` subscription and substituted an off-render `usePlayer.subscribe` listener active only when synced lyrics are displayed, eliminating 2 Hz parent re-renders.
 
 #### P8 · Low
-- **Files:** `PlaylistSongs.jsx:122-149, 179-185`, `Playlists.jsx:53-56`
-- **Fixed:** `false`
+- **Files:** `PlaylistSongs.jsx:134-201`, `Playlists.jsx:53-56`, `Home.jsx:72-75`
+- **Fixed:** `true`
 - **Issue:** Shuffle Play requests page 1 itself while the new query key from `setSeed` and `setIsRandom` requests the same page. Pull-to-refresh calls `resetQueries` then `refetch`, a second request.
-- **Fix:** Use `queryClient.fetchInfiniteQuery` for Shuffle Play and drop the extra `refetch`.
+- **Fix Applied:** In `PlaylistSongs.jsx:handlePlayShuffled`, utilized `queryClient.fetchInfiniteQuery` to pre-fetch and populate cache under the new random seed key prior to updating state, allowing `useInfiniteQuery` to consume cached data without firing an extra request. In `handleRefresh` across `PlaylistSongs.jsx`, `Playlists.jsx`, and `Home.jsx`, removed redundant `refetch()` invocations after `queryClient.resetQueries` (and only re-seeded when random), eliminating duplicate concurrent requests on pull-to-refresh.
 
 #### P9 · Low
 - **Files:** `components/ListItem.jsx:93-103`, `components/playlists/ListItem.jsx:113`
