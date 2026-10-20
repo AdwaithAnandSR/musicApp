@@ -259,18 +259,33 @@ const PlaylistSongs = () => {
         return null;
     };
 
-    const scrollToMiddle = index => {
-        if (index === 0)
-            flashListRef.current?.scrollToOffset({
-                offset: 0,
-                animated: true
-            });
-        else
-            flashListRef.current?.scrollToIndex({
-                index,
-                animated: true,
-                viewPosition: 0.3
-            });
+    const scrollToMiddle = targetIndex => {
+        if (typeof targetIndex === "number") {
+            if (targetIndex === 0)
+                flashListRef.current?.scrollToOffset({
+                    offset: 0,
+                    animated: true
+                });
+            else
+                flashListRef.current?.scrollToIndex({
+                    index: targetIndex,
+                    animated: true,
+                    viewPosition: 0.3
+                });
+            return;
+        }
+
+        const { currentTrackId, currentPlaylistId } = usePlayer.getState();
+        if (currentPlaylistId === computedPlaylistId && currentTrackId) {
+            const index = songs.findIndex(s => (s.id || s._id) === currentTrackId);
+            if (index !== -1) {
+                flashListRef.current?.scrollToIndex({
+                    index,
+                    animated: true,
+                    viewPosition: 0.3
+                });
+            }
+        }
     };
 
     const handleDownloadSelect = async (numSongs, concurrency = 1, downloadVideo = false) => {
@@ -340,7 +355,6 @@ const PlaylistSongs = () => {
                 HEADER_HEIGHT={HEADER_HEIGHT}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
-                data={songs}
                 ID={computedPlaylistId}
                 containerStyles={{ height: HEADER_HEIGHT }}
                 isRandom={isRandom}

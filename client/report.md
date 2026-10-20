@@ -223,7 +223,7 @@ Remove and delete actions update the player queue without checking which playlis
 - **Files:** `ListHeader.jsx:20-65`, `Home.jsx:82-89`, `PlaylistSongs.jsx:338-350`, `DownloadedPlaylistSongs.jsx:119-127`
 - **Fixed:** `true`
 - **Issue:** Tapping the title scrolls to `currentTrackIndex`, which is an index in the player queue, not in this list. It lands on the wrong row, or nowhere, when the playing queue is another playlist or a shuffled order.
-- **Fix Applied:** Passed screen `data` (`allSongs` / `songs`) to `Header`. In `handleShortPress`, verified `currentPlaylistId === ID` and looked up `currentTrackId` in `data` (`data.findIndex(s => (s.id || s._id) === currentTrackId)`), scrolling only to the matched index in the active list.
+- **Fix Applied:** In parent screens (`Home.jsx`, `PlaylistSongs.jsx`, `DownloadedPlaylistSongs.jsx`), encapsulated active track index lookup inside `scrollToMiddle()` so `<Header>` never needs `data` passed as a prop, avoiding header re-renders on pagination. In `handleShortPress`, `<Header>` delegates to `scrollToMiddle()`, scrolling to the matched track only when the screen's playlist is active.
 
 #### C6 · Low
 - **Files:** `DownloadedPlaylistSongs.jsx:103-111`

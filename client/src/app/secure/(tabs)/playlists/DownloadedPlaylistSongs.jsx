@@ -82,11 +82,22 @@ const DownloadedPlaylistSongs = () => {
         setRefreshing(false);
     };
 
-    const scrollToMiddle = index => {
-        if (index === 0)
-            flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
-        else
-            flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+    const scrollToMiddle = targetIndex => {
+        if (typeof targetIndex === "number") {
+            if (targetIndex === 0)
+                flashListRef.current?.scrollToOffset({ offset: 0, animated: true });
+            else
+                flashListRef.current?.scrollToIndex({ index: targetIndex, animated: true, viewPosition: 0.3 });
+            return;
+        }
+
+        const { currentTrackId, currentPlaylistId } = usePlayer.getState();
+        if (currentPlaylistId === `local-${playlistId}` && currentTrackId) {
+            const index = songs.findIndex(s => (s.id || s._id) === currentTrackId);
+            if (index !== -1) {
+                flashListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+            }
+        }
     };
 
     const handleDeletePlaylist = () => {
@@ -120,7 +131,6 @@ const DownloadedPlaylistSongs = () => {
                 title={playlistName}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
-                data={songs}
                 ID={`local-${playlistId}`}
                 containerStyles={{ height: HEADER_HEIGHT }}
                 onPlayShuffled={handlePlayShuffled}
