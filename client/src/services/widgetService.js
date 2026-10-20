@@ -11,6 +11,10 @@ let lastUpdatedArtworkSource = null;
 let cachedArtworkFileUri = "";
 let latestArtworkRequest = null;
 let iconUris = null;
+let isDownloadedListOpen = false;
+let currentDownloadedPlaylists = [];
+let lastKnownTrack = null;
+let lastKnownIsPlaying = false;
 
 const EMPTY_ICONS = {
     play: "",
@@ -221,6 +225,9 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
     if (Platform.OS === "web") return;
 
     try {
+        lastKnownTrack = track;
+        lastKnownIsPlaying = Boolean(isPlaying);
+
         const icons = await getWidgetIconUris();
 
         if (!track) {
@@ -233,6 +240,8 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                 isPlaying: false,
                 artworkUri: "",
                 playIconUri: icons.play || "",
+                showDownloadedList: isDownloadedListOpen,
+                downloadedPlaylists: currentDownloadedPlaylists,
                 ...getControlIconProps(icons),
             });
             return;
@@ -264,6 +273,8 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             artworkUri: immediateArtwork,
             playIconUri,
             trackBg,
+            showDownloadedList: isDownloadedListOpen,
+            downloadedPlaylists: currentDownloadedPlaylists,
             ...controlIcons,
         });
 
@@ -282,6 +293,8 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                         artworkUri,
                         playIconUri,
                         trackBg,
+                        showDownloadedList: isDownloadedListOpen,
+                        downloadedPlaylists: currentDownloadedPlaylists,
                         ...controlIcons,
                     });
                 })
@@ -304,7 +317,7 @@ export function initWidgetInteractionListener() {
     if (Platform.OS === "web") return { remove: () => {} };
 
     try {
-        return addUserInteractionListener((event) => {
+        return addUserInteractionListener(async (event) => {
             if (!event || event.source !== "MusicWidget") return;
 
             const player = usePlayer.getState();
@@ -348,11 +361,22 @@ export function initWidgetInteractionListener() {
                     }
                     break;
                 case "download":
-                    Linking.openURL(
-                        "music://secure/(tabs)/playlists/DownloadedPlaylistSongs",
-                    ).catch(() => {
-                        Linking.openURL("music://").catch(() => {});
-                    });
+                    try {
+                        const { getDownloadedPlaylists } = require("./downloads/downloadService.js");
+                        const rawPlaylists = await getDownloadedPlaylists();
+                        currentDownloadedPlaylists = (rawPlaylists || []).map((p) => ({
+                            id: String(p.id || p._id),
+                            name: p.name || "Untitled Playlist",
+                        }));
+                        isDownloadedListOpen = true;
+                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                    } catch (e) {
+                        console.warn("Failed to load downloaded playlists for widget:", e);
+                    }
+                    break;
+                case "exit_downloads":
+                    isDownloadedListOpen = false;
+                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
                 case "random":
                     Linking.openURL(
@@ -362,6 +386,25 @@ export function initWidgetInteractionListener() {
                     });
                     break;
                 default:
+                    if (event.target && event.target.startsWith("play_downloaded:")) {
+                        const playlistId = event.target.replace("play_downloaded:", "");
+                        try {
+                            const { getDownloadedSongs } = require("./downloads/downloadService.js");
+                            const songs = await getDownloadedSongs(playlistId);
+                            if (songs && songs.length > 0) {
+                                isDownloadedListOpen = false;
+                                player.changePlaylistAndPlay({
+                                    playlistId: `local-${playlistId}`,
+                                    trackId: songs[0].id || songs[0]._id,
+                                    tracksOverride: songs,
+                                    isLocal: true,
+                                    isLocalPlaylist: true,
+                                });
+                            }
+                        } catch (e) {
+                            console.warn("Failed to play downloaded playlist from widget:", e);
+                        }
+                    }
                     break;
             }
         });

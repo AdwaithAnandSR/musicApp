@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useLocalSearchParams, router } from 'expo-router';
@@ -72,7 +72,7 @@ const DownloadedPlaylistSongs = () => {
     useFocusEffect(
         useCallback(() => {
             loadSongs();
-        }, [loadSongs])
+        }, [playlistId])
     );
 
     const [refreshing, setRefreshing] = useState(false);

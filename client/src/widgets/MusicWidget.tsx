@@ -3,6 +3,7 @@ import {
     Box,
     Row,
     Column,
+    LazyColumn,
     Text,
     Image,
     Button,
@@ -44,6 +45,9 @@ export interface MusicWidgetProps {
     downloadIconUri?: string;
     randomIconUri?: string;
     timerIconsUri?: string;
+    closeIconUri?: string;
+    showDownloadedList?: boolean;
+    downloadedPlaylists?: Array<{ id: string; name: string }>;
 }
 
 export function MusicWidgetLayout(
@@ -66,6 +70,9 @@ export function MusicWidgetLayout(
         downloadIconUri = "",
         randomIconUri = "",
         timerIconsUri = "",
+        closeIconUri = "",
+        showDownloadedList = false,
+        downloadedPlaylists = [],
     } = props;
 
     const isDark = environment?.colorScheme !== "light";
@@ -203,66 +210,152 @@ export function MusicWidgetLayout(
 
                 <Spacer modifiers={[width(8)]} />
 
-                {/* Right Section: Quick Actions (Download, Favorite, Albums, Open App) */}
-                <Column
-                    verticalArrangement="center"
-                    modifiers={[fillMaxHeight()]}
-                >
-                    <Row verticalAlignment="center">
-                        <TextButton
-                            target="download"
-                            modifiers={[
-                                size(50, 50),
-                                cornerRadius(15),
-                                blur(50),
-                            ]}
+                {/* Right Section: Quick Actions or Downloaded Playlists */}
+                {showDownloadedList ? (
+                    <Column
+                        verticalArrangement="top"
+                        modifiers={[fillMaxHeight(), width(115)]}
+                    >
+                        {/* Header Row: Title + Exit Button */}
+                        <Row
+                            verticalAlignment="center"
+                            horizontalArrangement="spaceBetween"
+                            modifiers={[fillMaxWidth()]}
                         >
-                            <Image
-                                source={{ uri: downloadIconUri }}
-                                contentScale="fit"
-                                modifiers={[size(35, 35)]}
-                            />
-                        </TextButton>
+                            <Text
+                                color={titleColor}
+                                maxLines={1}
+                                style={{ fontSize: 11, fontWeight: "bold" }}
+                            >
+                                Downloads
+                            </Text>
+                            <TextButton
+                                target="exit_downloads"
+                                modifiers={[
+                                    size(22, 22),
+                                    cornerRadius(11),
+                                    background(buttonBg),
+                                ]}
+                            >
+                                {closeIconUri ? (
+                                    <Image
+                                        source={{ uri: closeIconUri }}
+                                        contentScale="fit"
+                                        modifiers={[size(14, 14)]}
+                                    />
+                                ) : (
+                                    <Text
+                                        color={titleColor}
+                                        style={{ fontSize: 11, fontWeight: "bold" }}
+                                    >
+                                        ✕
+                                    </Text>
+                                )}
+                            </TextButton>
+                        </Row>
 
-                        <Spacer modifiers={[width(10)]} />
+                        <Spacer modifiers={[height(4)]} />
 
-                        <TextButton
-                            target="fav"
-                            modifiers={[size(50, 50), cornerRadius(15)]}
-                        >
-                            <Image
-                                source={{ uri: favIconUri }}
-                                contentScale="fit"
-                                modifiers={[size(35, 35)]}
-                            />
-                        </TextButton>
-                    </Row>
+                        {downloadedPlaylists.length === 0 ? (
+                            <Column
+                                verticalArrangement="center"
+                                horizontalArrangement="center"
+                                modifiers={[fillMaxSize()]}
+                            >
+                                <Text
+                                    color={artistColor}
+                                    style={{ fontSize: 10 }}
+                                >
+                                    No downloads
+                                </Text>
+                            </Column>
+                        ) : (
+                            <LazyColumn modifiers={[fillMaxSize()]}>
+                                {downloadedPlaylists.map((p) => (
+                                    <Button
+                                        key={p.id}
+                                        target={`play_downloaded:${p.id}`}
+                                        modifiers={[
+                                            fillMaxWidth(),
+                                            height(32),
+                                            cornerRadius(8),
+                                            background(buttonBg),
+                                            paddingAll(4),
+                                        ]}
+                                    >
+                                        <Text
+                                            color={titleColor}
+                                            maxLines={1}
+                                            style={{ fontSize: 10 }}
+                                        >
+                                            {p.name}
+                                        </Text>
+                                    </Button>
+                                ))}
+                            </LazyColumn>
+                        )}
+                    </Column>
+                ) : (
+                    <Column
+                        verticalArrangement="center"
+                        modifiers={[fillMaxHeight()]}
+                    >
+                        <Row verticalAlignment="center">
+                            <TextButton
+                                target="download"
+                                modifiers={[
+                                    size(50, 50),
+                                    cornerRadius(15),
+                                    blur(50),
+                                ]}
+                            >
+                                <Image
+                                    source={{ uri: downloadIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(35, 35)]}
+                                />
+                            </TextButton>
 
-                    <Spacer modifiers={[height(20)]} />
+                            <Spacer modifiers={[width(10)]} />
 
-                    <Row verticalAlignment="center">
-                        <TextButton
-                            target="random"
-                            modifiers={[size(50, 50), cornerRadius(15)]}
-                        >
-                            <Image
-                                source={{ uri: randomIconUri }}
-                                contentScale="fit"
-                                modifiers={[size(35, 35)]}
-                            />
-                        </TextButton>
+                            <TextButton
+                                target="fav"
+                                modifiers={[size(50, 50), cornerRadius(15)]}
+                            >
+                                <Image
+                                    source={{ uri: favIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(35, 35)]}
+                                />
+                            </TextButton>
+                        </Row>
 
-                        <Spacer modifiers={[width(10)]} />
+                        <Spacer modifiers={[height(20)]} />
 
-                        <TextButton modifiers={[size(50, 50), cornerRadius(15)]}>
-                            <Image
-                                source={{ uri: timerIconsUri }}
-                                contentScale="fit"
-                                modifiers={[size(35, 35)]}
-                            />
-                        </TextButton>
-                    </Row>
-                </Column>
+                        <Row verticalAlignment="center">
+                            <TextButton
+                                target="random"
+                                modifiers={[size(50, 50), cornerRadius(15)]}
+                            >
+                                <Image
+                                    source={{ uri: randomIconUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(35, 35)]}
+                                />
+                            </TextButton>
+
+                            <Spacer modifiers={[width(10)]} />
+
+                            <TextButton modifiers={[size(50, 50), cornerRadius(15)]}>
+                                <Image
+                                    source={{ uri: timerIconsUri }}
+                                    contentScale="fit"
+                                    modifiers={[size(35, 35)]}
+                                />
+                            </TextButton>
+                        </Row>
+                    </Column>
+                )}
             </Row>
         </Box>
     );
@@ -282,4 +375,7 @@ export const musicWidget = createWidget("MusicWidget", MusicWidgetLayout, {
     downloadIconUri: "",
     randomIconUri: "",
     timerIconsUri: "",
+    closeIconUri: "",
+    showDownloadedList: false,
+    downloadedPlaylists: [],
 });
