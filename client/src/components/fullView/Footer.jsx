@@ -218,8 +218,7 @@ const TimerButton = () => {
 };
 
 const FavoriteButton = () => {
-    const track = usePlayer(state => state.currentTrack);
-    const isFav = track?.isFav || false;
+    const isFav = usePlayer(state => !!state.currentTrack?.isFav);
 
     const scale = useSharedValue(1);
     
@@ -230,6 +229,7 @@ const FavoriteButton = () => {
     });
 
     const handlePress = async () => {
+        const track = usePlayer.getState().currentTrack;
         if (!track) return;
 
         try {

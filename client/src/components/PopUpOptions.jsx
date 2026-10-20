@@ -31,9 +31,8 @@ const SPRING_CONFIG = {
 
 const PopUpOptions = () => {
     const options = useAppStatus(state => state.popUpOption);
-    const user = useAppStatus(state => state.user);
-    const selectedSongs = useMultiSelect(state => state.selectedSongs);
-    const isAdmin = user?.role === "admin";
+    const isAdmin = useAppStatus(state => state.user?.role === "admin");
+    const selectedSongsCount = useMultiSelect(state => state.selectedSongs.length);
     const [destModalSong, setDestModalSong] = useState(null);
 
     const visible = options.y !== -1 && !!options.songId && !!options.playId;
@@ -78,7 +77,7 @@ const PopUpOptions = () => {
         options.playId !== "SEARCH" &&
         !options.playId.startsWith("SEARCH-") &&
         /^[0-9a-fA-F]{24}$/.test(options.playId));
-    const count = selectedSongs.length;
+    const count = selectedSongsCount;
     const isMultiSelecting = count > 0;
 
     const handleSelect = () => {
@@ -114,6 +113,7 @@ const PopUpOptions = () => {
     };
 
     const handleBatchRemove = async () => {
+        const selectedSongs = useMultiSelect.getState().selectedSongs;
         const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
         close();
@@ -177,6 +177,7 @@ const PopUpOptions = () => {
     };
 
     const handleBatchDelete = async () => {
+        const selectedSongs = useMultiSelect.getState().selectedSongs;
         const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
         close();

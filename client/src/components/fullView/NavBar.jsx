@@ -50,7 +50,6 @@ const NavBar = () => {
                 );
             });
 
-    const track = usePlayer(state => state.currentTrack);
 
     const handleClose = () => {
         setShowMenu(false);
@@ -109,7 +108,7 @@ const NavBar = () => {
                                                 onPress={() => {
                                                     addSongsToPlaylist({
                                                         id: item._id || item.id,
-                                                        selectedSongs: [track],
+                                                        selectedSongs: [usePlayer.getState().currentTrack],
                                                         reset: handleClose
                                                     });
                                                 }}

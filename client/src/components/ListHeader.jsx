@@ -40,9 +40,8 @@ const Header = ({
         extrapolate: "clamp",
     });
 
-    const selectedSongs = useMultiSelect((state) => state.selectedSongs);
-    const user = useAppStatus((state) => state.user);
-    const isAdmin = user?.role === "admin";
+    const selectedSongsCount = useMultiSelect((state) => state.selectedSongs.length);
+    const isAdmin = useAppStatus((state) => state.user?.role === "admin");
     const isPlaylist =
         typeof ID === "string" &&
         ID !== "HOME" &&
@@ -60,6 +59,7 @@ const Header = ({
         typeof scrollToMiddle === "function" && scrollToMiddle(0);
 
     const handleBatchRemove = async () => {
+        const selectedSongs = useMultiSelect.getState().selectedSongs;
         const songIds = selectedSongs.map((s) => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
@@ -68,6 +68,7 @@ const Header = ({
     };
 
     const handleBatchDelete = async () => {
+        const selectedSongs = useMultiSelect.getState().selectedSongs;
         const songIds = selectedSongs.map((s) => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
@@ -148,7 +149,7 @@ const Header = ({
             cover: currentSelectedPlaylist?.cover || null,
         };
 
-        const songsToDownload = [...selectedSongs];
+        const songsToDownload = [...useMultiSelect.getState().selectedSongs];
         useMultiSelect.getState().reset();
 
         Toast.show(`Downloading ${songsToDownload.length} songs...`, "pending");
@@ -189,13 +190,13 @@ const Header = ({
                 containerStyles,
                 {
                     transform: [{ translateY }],
-                    marginTop: selectedSongs?.length > 0 ? 23 : 0,
+                    marginTop: selectedSongsCount > 0 ? 23 : 0,
                 },
             ]}
         >
             {isPlaylist &&
                 !isRecentlyAdded &&
-                (!selectedSongs || selectedSongs.length === 0) && (
+                selectedSongsCount === 0 && (
                     <Animated.View
                         style={[
                             styles.shuffleRow,
@@ -314,14 +315,14 @@ const Header = ({
                 </Text>
             </TouchableOpacity>
 
-            {selectedSongs?.length > 0 && (
+            {selectedSongsCount > 0 && (
                 <View style={styles.actionRow}>
                     <TouchableOpacity
                         onPress={() => useMultiSelect.getState().reset()}
                         activeOpacity={0.7}
                     >
                         <Text style={styles.selectedText}>
-                            Selected: {selectedSongs?.length} ✕
+                            Selected: {selectedSongsCount} ✕
                         </Text>
                     </TouchableOpacity>
 

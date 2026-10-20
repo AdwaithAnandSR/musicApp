@@ -44,7 +44,6 @@ const MenuItem = ({ label, onPress }) => (
 );
 
 const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
-    const track = usePlayer(state => state.currentTrack);
     const [isOpen, setIsOpen] = useState(false);
 
     useAnimatedReaction(
@@ -90,7 +89,7 @@ const PlaylistBottomSheet = ({ playlistTranslateY, closeSheet }) => {
     const handleAdd = item => {
         addSongsToPlaylist({
             id: item._id || item.id,
-            selectedSongs: [track],
+            selectedSongs: [usePlayer.getState().currentTrack],
             reset: () => {
                 playlistTranslateY.value = withTiming(
                     PLAYLIST_CLOSED_Y,

@@ -29,10 +29,9 @@ const Search = () => {
     const [debouncedText, setDebouncedText] = useState("");
     const typingTimeout = useRef(null);
 
-    const selectedSongs = useMultiSelect(state => state.selectedSongs);
+    const selectedSongsCount = useMultiSelect(state => state.selectedSongs.length);
     const resetMultiSelect = useMultiSelect(state => state.reset);
-    const user = useAppStatus(state => state.user);
-    const isAdmin = user?.role === "admin";
+    const isAdmin = useAppStatus(state => state.user?.role === "admin");
 
     const {
         data: songs = [],
@@ -82,6 +81,7 @@ const Search = () => {
     };
 
     const handleBatchDelete = async () => {
+        const selectedSongs = useMultiSelect.getState().selectedSongs;
         const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
 
@@ -131,14 +131,14 @@ const Search = () => {
                 onChangeText={handleChangeText}
             />
 
-            {selectedSongs.length > 0 && (
+            {selectedSongsCount > 0 && (
                 <View style={styles.actionRow}>
                     <TouchableOpacity
                         onPress={resetMultiSelect}
                         activeOpacity={0.7}
                     >
                         <Text style={styles.selectedText}>
-                            Selected: {selectedSongs.length} ✕
+                            Selected: {selectedSongsCount} ✕
                         </Text>
                     </TouchableOpacity>
 
@@ -149,7 +149,7 @@ const Search = () => {
                             activeOpacity={0.7}
                         >
                             <Text style={styles.deleteBtnText}>
-                                Delete ({selectedSongs.length})
+                                Delete ({selectedSongsCount})
                             </Text>
                         </TouchableOpacity>
                     )}
