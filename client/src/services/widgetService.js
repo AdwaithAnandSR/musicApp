@@ -6,7 +6,6 @@ import { musicWidget } from "@/widgets/MusicWidget";
 import { usePlayer } from "@store/player";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import MaterialIcons from "@react-native-vector-icons/material-icons";
-import FontAwesome5 from "@react-native-vector-icons/fontawesome5";
 
 let lastUpdatedArtworkSource = null;
 let cachedArtworkFileUri = "";
@@ -21,8 +20,9 @@ const EMPTY_ICONS = {
     fav: "",
     albums: "",
     download: "",
-    playlist: "",
+    random: "",
     timer: "",
+    close: "",
 };
 
 /**
@@ -35,8 +35,9 @@ function getControlIconProps(icons) {
         favIconUri: icons?.fav || "",
         albumsIconUri: icons?.albums || "",
         downloadIconUri: icons?.download || "",
-        randomIconUri: icons?.playlist || "",
+        randomIconUri: icons?.random || "",
         timerIconsUri: icons?.timer || "",
+        closeIconUri: icons?.close || "",
     };
 }
 
@@ -51,33 +52,98 @@ function getWidgetsDirectoryUri() {
     return `file://${rawPath}`;
 }
 
+async function resolveIconUri(dir, key, getImageSourceFn) {
+    if (dir) {
+        const cachedFile = new File(dir, `widget_icon_${key}.png`);
+        if (cachedFile.exists) {
+            return cachedFile.uri;
+        }
+    }
+
+    const source = await getImageSourceFn();
+    if (!source?.uri) return "";
+
+    if (dir) {
+        try {
+            const sourceFile = new File(source.uri);
+            const targetFile = new File(dir, `widget_icon_${key}.png`);
+            if (targetFile.exists) {
+                try {
+                    targetFile.delete();
+                } catch (_) {}
+            }
+            if (sourceFile.exists) {
+                sourceFile.copy(targetFile);
+                if (targetFile.exists) {
+                    return targetFile.uri;
+                }
+            }
+        } catch (e) {
+            console.warn(`Failed to copy icon ${key} to widgets dir:`, e);
+        }
+    }
+
+    return source.uri;
+}
+
 async function getWidgetIconUris() {
     if (iconUris) return iconUris;
 
     try {
-        const [play, pause, next, prev, fav, albums, download, random, timer] =
+        const dirUri = getWidgetsDirectoryUri();
+        let dir = null;
+        if (dirUri) {
+            dir = new Directory(dirUri);
+            if (!dir.exists) {
+                dir.create({ idempotent: true, intermediates: true });
+            }
+        }
+
+        const [play, pause, next, prev, fav, albums, download, random, timer, close] =
             await Promise.all([
-                Ionicons.getImageSource("play", 32, "#FFFFFF"),
-                Ionicons.getImageSource("pause", 32, "#FFFFFF"),
-                MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("favorite", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("album", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("download", 28, "#FFFFFF"),
-                FontAwesome5.getImageSource("random", 28, "#FFFFFF"),
-                MaterialIcons.getImageSource("timer", 28, "#FFFFFF"),
+                resolveIconUri(dir, "play", () =>
+                    Ionicons.getImageSource("play", 32, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "pause", () =>
+                    Ionicons.getImageSource("pause", 32, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "next", () =>
+                    MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "prev", () =>
+                    MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "fav", () =>
+                    MaterialIcons.getImageSource("favorite", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "albums", () =>
+                    MaterialIcons.getImageSource("album", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "download", () =>
+                    MaterialIcons.getImageSource("download", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "random", () =>
+                    MaterialIcons.getImageSource("shuffle", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "timer", () =>
+                    MaterialIcons.getImageSource("timer", 28, "#FFFFFF")
+                ),
+                resolveIconUri(dir, "close", () =>
+                    Ionicons.getImageSource("close", 24, "#FFFFFF")
+                ),
             ]);
 
         iconUris = {
-            play: play?.uri || "",
-            pause: pause?.uri || "",
-            next: next?.uri || "",
-            prev: prev?.uri || "",
-            fav: fav?.uri || "",
-            albums: albums?.uri || "",
-            download: download?.uri || "",
-            random: random?.uri || "",
-            timer: timer?.uri || "",
+            play,
+            pause,
+            next,
+            prev,
+            fav,
+            albums,
+            download,
+            random,
+            timer,
+            close,
         };
     } catch (e) {
         console.warn("Failed to generate widget icon images:", e);
