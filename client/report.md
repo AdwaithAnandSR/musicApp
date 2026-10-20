@@ -57,7 +57,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **C1** | Bug | High | `removeFromQueue` removes song from wrong active playlist | `true` |
 | **C2** | Bug | Medium | Permanent delete skips queue removal and busts all query cache | `true` |
 | **C3** | Bug | Medium | Removed song stays in shuffled cache without prefix match | `true` |
-| **C4** | Bug | Medium | Server ignores `isRandom` for special/artist/favourites | `false` |
+| **C4** | Bug | Medium | Server ignores `isRandom` for special/artist/favourites | `true` |
 | **C5** | Bug | Low | Tapping title scrolls using queue index instead of list index | `true` |
 | **C6** | Bug | Low | Shuffle toggle button has no handler in Downloaded playlists | `true` |
 | **C7** | Bug | Low | Search results queue does not append or register controller | `true` |
@@ -214,10 +214,10 @@ Remove and delete actions update the player queue without checking which playlis
 - **Fix Applied:** Changed `queryClient.setQueryData` to `queryClient.setQueriesData({ queryKey: [playlistId] }, ...)` for both single and batch song removals to match all shuffled/seeded query key variations by prefix.
 
 #### C4 · Medium
-- **Files:** `server/handlers/playlists/songs.playlist.js`, `ListHeader.jsx:46-50`
-- **Fixed:** `false`
+- **Files:** `server/handlers/playlists/songs.playlist.js`, `server/models/musics.js`
+- **Fixed:** `true`
 - **Issue:** The server checks the artist, special and favourites branches before `isRandom`, so random is ignored for them. The client still shows Shuffle, Reshuffle and "Shuffled" for any ID except Home and Search, and Shuffle Play plays in normal order.
-- **Fix:** Shuffle on the client for those lists, or hide the buttons.
+- **Fix Applied:** Added `isRandom` branch handling with seed validation, `stableRandom` range filtering, auto-wrap and cursor management to both Artist and Favourites playlists in `songs.playlist.js`. Kept Recently Added (`isSpecialPlaylist`) strictly chronological (`createdAt: -1`) per specification, and added an index on `stableRandom` in `server/models/musics.js`.
 
 #### C5 · Low
 - **Files:** `ListHeader.jsx:20-65`, `Home.jsx:82-89`, `PlaylistSongs.jsx:338-350`, `DownloadedPlaylistSongs.jsx:119-127`

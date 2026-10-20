@@ -66,6 +66,7 @@ const musicSchema = mongoose.Schema({
 });
 
 musicSchema.index({ createdAt: -1 });
+musicSchema.index({ stableRandom: 1 });
 
 
 musicSchema.index(

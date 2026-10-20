@@ -24,20 +24,53 @@ export const getSongs = async (req, res) => {
         // 🎵 ARTIST PLAYLIST
         // =========================
         if (isArtistPlaylist) {
-            let query = {};
-            if (cursor) query.createdAt = { $lt: new Date(Number(cursor)) };
-
             // Escape special regex chars from artist name
             const escapedName = artistName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             
             // Match exact artist name from comma-separated list, ignoring case
             const regex = new RegExp(`(^|,)\\s*${escapedName}\\s*(,|$)`, "i");
-            query.artist = { $regex: regex };
+            const baseQuery = { artist: { $regex: regex } };
 
-            songs = await Music.find(query)
-                .select(MUSIC_SELECT_FIELDS)
-                .sort({ createdAt: -1 })
-                .limit(parsedLimit);
+            if (isRandom) {
+                const randomSeed = Number(seed);
+                if (isNaN(randomSeed)) {
+                    return res.status(400).json({ error: "Invalid seed" });
+                }
+
+                let query = { ...baseQuery };
+                if (cursor) query.stableRandom = { $gt: Number(cursor) };
+                else query.stableRandom = { $gte: randomSeed };
+
+                songs = await Music.find(query)
+                    .select(`${MUSIC_SELECT_FIELDS} stableRandom`)
+                    .sort({ stableRandom: 1 })
+                    .limit(parsedLimit);
+
+                // 🔁 AUTO WRAP (no flags needed)
+                if (songs.length < parsedLimit) {
+                    const wrapQuery = cursor
+                        ? { stableRandom: { $lte: Number(cursor) } }
+                        : { stableRandom: { $lt: randomSeed } };
+
+                    const extra = await Music.find({
+                        ...baseQuery,
+                        ...wrapQuery
+                    })
+                        .select(`${MUSIC_SELECT_FIELDS} stableRandom`)
+                        .sort({ stableRandom: 1 })
+                        .limit(parsedLimit - songs.length);
+
+                    songs = [...songs, ...extra];
+                }
+            } else {
+                let query = { ...baseQuery };
+                if (cursor) query.createdAt = { $lt: new Date(Number(cursor)) };
+
+                songs = await Music.find(query)
+                    .select(MUSIC_SELECT_FIELDS)
+                    .sort({ createdAt: -1 })
+                    .limit(parsedLimit);
+            }
         }
         // =========================
         // 🎵 SPECIAL PLAYLIST (DIRECT MUSIC ACCESS - NEWEST FIRST)
@@ -56,13 +89,48 @@ export const getSongs = async (req, res) => {
         // 🎵 FAVOURITES PLAYLIST
         // =========================
         else if (isFavPlaylist) {
-            let query = { isFav: true };
-            if (cursor) query.favAt = { $lt: new Date(Number(cursor)) };
+            const baseQuery = { isFav: true };
 
-            songs = await Music.find(query)
-                .select(`${MUSIC_SELECT_FIELDS} favAt`)
-                .sort({ favAt: -1 })
-                .limit(parsedLimit);
+            if (isRandom) {
+                const randomSeed = Number(seed);
+                if (isNaN(randomSeed)) {
+                    return res.status(400).json({ error: "Invalid seed" });
+                }
+
+                let query = { ...baseQuery };
+                if (cursor) query.stableRandom = { $gt: Number(cursor) };
+                else query.stableRandom = { $gte: randomSeed };
+
+                songs = await Music.find(query)
+                    .select(`${MUSIC_SELECT_FIELDS} favAt stableRandom`)
+                    .sort({ stableRandom: 1 })
+                    .limit(parsedLimit);
+
+                // 🔁 AUTO WRAP (no flags needed)
+                if (songs.length < parsedLimit) {
+                    const wrapQuery = cursor
+                        ? { stableRandom: { $lte: Number(cursor) } }
+                        : { stableRandom: { $lt: randomSeed } };
+
+                    const extra = await Music.find({
+                        ...baseQuery,
+                        ...wrapQuery
+                    })
+                        .select(`${MUSIC_SELECT_FIELDS} favAt stableRandom`)
+                        .sort({ stableRandom: 1 })
+                        .limit(parsedLimit - songs.length);
+
+                    songs = [...songs, ...extra];
+                }
+            } else {
+                let query = { ...baseQuery };
+                if (cursor) query.favAt = { $lt: new Date(Number(cursor)) };
+
+                songs = await Music.find(query)
+                    .select(`${MUSIC_SELECT_FIELDS} favAt`)
+                    .sort({ favAt: -1 })
+                    .limit(parsedLimit);
+            }
         }
         // =========================
         // 🔀 RANDOM MODE (SIMPLIFIED)
@@ -140,17 +208,25 @@ export const getSongs = async (req, res) => {
         // =========================
         let nextCursor = null;
 
-        if (isFavPlaylist) {
+        if (isSpecialPlaylist) {
+            if (songs.length === parsedLimit)
+                nextCursor = songs[songs.length - 1].createdAt.getTime();
+        } else if (isRandom) {
+            if (isArtistPlaylist || isFavPlaylist) {
+                if (songs.length === parsedLimit)
+                    nextCursor = songs[songs.length - 1].stableRandom;
+            } else {
+                if (mappings.length === parsedLimit)
+                    nextCursor = mappings[mappings.length - 1].stableRandom;
+            }
+        } else if (isFavPlaylist) {
             if (songs.length === parsedLimit) {
                 const lastSong = songs[songs.length - 1];
                 nextCursor = lastSong.favAt ? lastSong.favAt.getTime() : lastSong.createdAt.getTime();
             }
-        } else if (isSpecialPlaylist || isArtistPlaylist) {
+        } else if (isArtistPlaylist) {
             if (songs.length === parsedLimit)
                 nextCursor = songs[songs.length - 1].createdAt.getTime();
-        } else if (isRandom) {
-            if (mappings.length === parsedLimit)
-                nextCursor = mappings[mappings.length - 1].stableRandom;
         } else {
             if (mappings.length === parsedLimit)
                 nextCursor = mappings[mappings.length - 1].order;
