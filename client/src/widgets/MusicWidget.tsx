@@ -9,6 +9,7 @@ import {
     Button,
     TextButton,
     Spacer,
+    CircularProgressIndicator,
 } from "@expo/ui/jetpack-compose";
 import {
     fillMaxSize,
@@ -46,8 +47,18 @@ export interface MusicWidgetProps {
     randomIconUri?: string;
     timerIconsUri?: string;
     closeIconUri?: string;
-    showDownloadedList?: boolean;
+    isRandomOn?: boolean;
+    randomActiveColor?: string;
+    widgetView?: "controls" | "playlists" | "songs";
     downloadedPlaylists?: Array<{ id: string; name: string }>;
+    selectedPlaylistName?: string;
+    downloadedSongs?: Array<{
+        id: string;
+        title: string;
+        isPlaying: boolean;
+    }>;
+    hasMoreSongs?: boolean;
+    isLoadingMore?: boolean;
 }
 
 export function MusicWidgetLayout(
@@ -71,8 +82,14 @@ export function MusicWidgetLayout(
         randomIconUri = "",
         timerIconsUri = "",
         closeIconUri = "",
-        showDownloadedList = false,
+        isRandomOn = false,
+        randomActiveColor = "#38BDF8",
+        widgetView = "controls",
         downloadedPlaylists = [],
+        selectedPlaylistName = "Songs",
+        downloadedSongs = [],
+        hasMoreSongs = false,
+        isLoadingMore = false,
     } = props;
 
     const isDark = environment?.colorScheme !== "light";
@@ -210,8 +227,167 @@ export function MusicWidgetLayout(
 
                 <Spacer modifiers={[width(8)]} />
 
-                {/* Right Section: Quick Actions or Downloaded Playlists */}
-                {showDownloadedList ? (
+                {/* Right Section: Quick Actions, Downloaded Playlists, or Songs */}
+                {widgetView === "songs" ? (
+                    <Column
+                        verticalArrangement="top"
+                        modifiers={[fillMaxHeight(), width(115)]}
+                    >
+                        {/* Header Row: Back + Title + Exit */}
+                        <Row
+                            verticalAlignment="center"
+                            horizontalArrangement="spaceBetween"
+                            modifiers={[fillMaxWidth()]}
+                        >
+                            <Row verticalAlignment="center" modifiers={[width(88)]}>
+                                <TextButton
+                                    target="back_to_playlists"
+                                    modifiers={[
+                                        size(20, 20),
+                                        cornerRadius(10),
+                                        background(buttonBg),
+                                    ]}
+                                >
+                                    <Text
+                                        color={titleColor}
+                                        style={{ fontSize: 11, fontWeight: "bold" }}
+                                    >
+                                        ←
+                                    </Text>
+                                </TextButton>
+                                <Spacer modifiers={[width(4)]} />
+                                <Text
+                                    color={titleColor}
+                                    maxLines={1}
+                                    style={{ fontSize: 10, fontWeight: "bold" }}
+                                >
+                                    {selectedPlaylistName}
+                                </Text>
+                            </Row>
+                            <TextButton
+                                target="exit_to_controls"
+                                modifiers={[
+                                    size(20, 20),
+                                    cornerRadius(10),
+                                    background(buttonBg),
+                                ]}
+                            >
+                                <Text
+                                    color={titleColor}
+                                    style={{ fontSize: 11, fontWeight: "bold" }}
+                                >
+                                    ✕
+                                </Text>
+                            </TextButton>
+                        </Row>
+
+                        <Spacer modifiers={[height(4)]} />
+
+                        {downloadedSongs.length === 0 ? (
+                            <Column
+                                verticalArrangement="center"
+                                horizontalArrangement="center"
+                                modifiers={[fillMaxSize()]}
+                            >
+                                <Text
+                                    color={artistColor}
+                                    style={{ fontSize: 10 }}
+                                >
+                                    No songs
+                                </Text>
+                            </Column>
+                        ) : (
+                            <LazyColumn modifiers={[fillMaxSize()]}>
+                                {downloadedSongs.map((s) => (
+                                    <Button
+                                        key={s.id}
+                                        target={`play_song:${s.id}`}
+                                        modifiers={[
+                                            fillMaxWidth(),
+                                            height(30),
+                                            cornerRadius(8),
+                                            background(
+                                                s.isPlaying
+                                                    ? `${randomActiveColor}33`
+                                                    : buttonBg,
+                                            ),
+                                            paddingAll(4),
+                                        ]}
+                                    >
+                                        <Row
+                                            verticalAlignment="center"
+                                            modifiers={[fillMaxWidth()]}
+                                        >
+                                            {s.isPlaying && (
+                                                <Text
+                                                    color={randomActiveColor}
+                                                    style={{
+                                                        fontSize: 8,
+                                                        fontWeight: "bold",
+                                                    }}
+                                                >
+                                                    ▶{" "}
+                                                </Text>
+                                            )}
+                                            <Text
+                                                color={
+                                                    s.isPlaying
+                                                        ? randomActiveColor
+                                                        : titleColor
+                                                }
+                                                maxLines={1}
+                                                style={{
+                                                    fontSize: 10,
+                                                    fontWeight: s.isPlaying
+                                                        ? "bold"
+                                                        : "normal",
+                                                }}
+                                            >
+                                                {s.title}
+                                            </Text>
+                                        </Row>
+                                    </Button>
+                                ))}
+
+                                {hasMoreSongs && (
+                                    <Button
+                                        target="load_more_songs"
+                                        modifiers={[
+                                            fillMaxWidth(),
+                                            height(28),
+                                            cornerRadius(8),
+                                            background(buttonBg),
+                                            paddingAll(4),
+                                        ]}
+                                    >
+                                        <Row
+                                            verticalAlignment="center"
+                                            horizontalArrangement="center"
+                                            modifiers={[fillMaxWidth()]}
+                                        >
+                                            {isLoadingMore ? (
+                                                <CircularProgressIndicator
+                                                    color={randomActiveColor}
+                                                    modifiers={[size(14, 14)]}
+                                                />
+                                            ) : (
+                                                <Text
+                                                    color={titleColor}
+                                                    style={{
+                                                        fontSize: 9,
+                                                        fontWeight: "bold",
+                                                    }}
+                                                >
+                                                    Load More ▾
+                                                </Text>
+                                            )}
+                                        </Row>
+                                    </Button>
+                                )}
+                            </LazyColumn>
+                        )}
+                    </Column>
+                ) : widgetView === "playlists" ? (
                     <Column
                         verticalArrangement="top"
                         modifiers={[fillMaxHeight(), width(115)]}
@@ -227,30 +403,22 @@ export function MusicWidgetLayout(
                                 maxLines={1}
                                 style={{ fontSize: 11, fontWeight: "bold" }}
                             >
-                                Downloads
+                                Playlists
                             </Text>
                             <TextButton
-                                target="exit_downloads"
+                                target="exit_to_controls"
                                 modifiers={[
-                                    size(22, 22),
-                                    cornerRadius(11),
+                                    size(20, 20),
+                                    cornerRadius(10),
                                     background(buttonBg),
                                 ]}
                             >
-                                {closeIconUri ? (
-                                    <Image
-                                        source={{ uri: closeIconUri }}
-                                        contentScale="fit"
-                                        modifiers={[size(14, 14)]}
-                                    />
-                                ) : (
-                                    <Text
-                                        color={titleColor}
-                                        style={{ fontSize: 11, fontWeight: "bold" }}
-                                    >
-                                        ✕
-                                    </Text>
-                                )}
+                                <Text
+                                    color={titleColor}
+                                    style={{ fontSize: 11, fontWeight: "bold" }}
+                                >
+                                    ✕
+                                </Text>
                             </TextButton>
                         </Row>
 
@@ -274,7 +442,7 @@ export function MusicWidgetLayout(
                                 {downloadedPlaylists.map((p) => (
                                     <Button
                                         key={p.id}
-                                        target={`play_downloaded:${p.id}`}
+                                        target={`select_playlist:${p.id}`}
                                         modifiers={[
                                             fillMaxWidth(),
                                             height(32),
@@ -335,12 +503,25 @@ export function MusicWidgetLayout(
                         <Row verticalAlignment="center">
                             <TextButton
                                 target="random"
-                                modifiers={[size(50, 50), cornerRadius(15)]}
+                                modifiers={[
+                                    size(50, 50),
+                                    cornerRadius(15),
+                                    background(
+                                        isRandomOn
+                                            ? `${randomActiveColor}33`
+                                            : buttonBg,
+                                    ),
+                                ]}
                             >
                                 <Image
                                     source={{ uri: randomIconUri }}
                                     contentScale="fit"
                                     modifiers={[size(35, 35)]}
+                                    tint={
+                                        isRandomOn
+                                            ? randomActiveColor
+                                            : "#FFFFFF"
+                                    }
                                 />
                             </TextButton>
 
@@ -376,6 +557,12 @@ export const musicWidget = createWidget("MusicWidget", MusicWidgetLayout, {
     randomIconUri: "",
     timerIconsUri: "",
     closeIconUri: "",
-    showDownloadedList: false,
+    isRandomOn: false,
+    randomActiveColor: "#38BDF8",
+    widgetView: "controls",
     downloadedPlaylists: [],
+    selectedPlaylistName: "Songs",
+    downloadedSongs: [],
+    hasMoreSongs: false,
+    isLoadingMore: false,
 });

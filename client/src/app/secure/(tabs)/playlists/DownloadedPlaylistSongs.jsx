@@ -112,16 +112,14 @@ const DownloadedPlaylistSongs = () => {
     
     const handlePlayShuffled = () => {
         if (!songs.length) return;
-        const targetTracks = [...songs];
-        for (let i = targetTracks.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [targetTracks[i], targetTracks[j]] = [targetTracks[j], targetTracks[i]];
-        }
         usePlayer.getState().changePlaylistAndPlay({
             playlistId: `local-${playlistId}`,
-            trackId: targetTracks[0].id || targetTracks[0]._id,
-            tracksOverride: targetTracks,
-            isLocal: true
+            trackId: null,
+            tracksOverride: songs,
+            isLocal: true,
+            isLocalPlaylist: true,
+            isRandomPlaylist: true,
+            randomSeed: Math.random()
         });
     };
 

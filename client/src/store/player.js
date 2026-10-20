@@ -346,8 +346,30 @@ export const usePlayer = create((set, get) => ({
         const shouldFetchPage = repeatMode !== "one";
 
         if (nextIndex >= queue.length) {
-            const isLocal = get().isLocalPlaylist;
+            const controller = playlistControllers[currentPlaylistId];
+            const shouldFetchPage = repeatMode !== "one";
 
+            // 1. If controller has more pages (online or paginated local), fetch next page
+            if (shouldFetchPage && controller && controller.getHasNextPage()) {
+                const preFetchPlaylistId = currentPlaylistId;
+
+                try {
+                    await controller.fetchNextPage();
+                } catch (e) {
+                    console.error("Pagination error:", e);
+                }
+
+                if (get().currentPlaylistId !== preFetchPlaylistId) return;
+
+                const newQueue = get().queue;
+                if (nextIndex < newQueue.length) {
+                    get().playByIndex(nextIndex);
+                }
+                return;
+            }
+
+            // 2. If local playlist, check if active downloads finished or are pending
+            const isLocal = get().isLocalPlaylist;
             if (isLocal) {
                 let actualPlaylistId = currentPlaylistId;
                 if (String(currentPlaylistId).startsWith("local-")) {
@@ -384,29 +406,12 @@ export const usePlayer = create((set, get) => ({
                 }
             }
 
+            // 3. Repeat mode queue wrap
             if (repeatMode === "queue") {
-                if (!(controller && controller.getHasNextPage())) {
-                    get().playByIndex(0);
-                    return;
-                }
+                get().playByIndex(0);
+                return;
             }
 
-            if (shouldFetchPage && controller && controller.getHasNextPage()) {
-                const preFetchPlaylistId = currentPlaylistId;
-
-                try {
-                    await controller.fetchNextPage();
-                } catch (e) {
-                    console.error("Pagination error:", e);
-                }
-
-                if (get().currentPlaylistId !== preFetchPlaylistId) return;
-
-                const newQueue = get().queue;
-                if (nextIndex < newQueue.length) {
-                    get().playByIndex(nextIndex);
-                }
-            }
             return;
         }
 
@@ -467,20 +472,85 @@ export const usePlayer = create((set, get) => ({
 
         /*
          * 1. If explicitly playing a local/downloaded playlist,
-         *    load songs from local metadata.
+         *    load songs from local metadata or override.
          */
-        if (isLocal && !tracksOverride) {
-            let actualPlaylistId = playlistId;
-            if (String(playlistId).startsWith("local-")) {
-                actualPlaylistId = String(playlistId).replace("local-", "");
-            }
-            const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
+        if (isLocal) {
+            if (!tracksOverride) {
+                let actualPlaylistId = playlistId;
+                if (String(playlistId).startsWith("local-")) {
+                    actualPlaylistId = String(playlistId).replace("local-", "");
+                }
+                const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
 
-            tracks = downloadedSongs.map(song => ({
-                ...song,
-                isLocal: true,
-                url: song.localUrl
-            }));
+                tracks = downloadedSongs.map(song => ({
+                    ...song,
+                    isLocal: true,
+                    url: song.localUrl
+                }));
+            } else {
+                tracks = tracksOverride.map(song => ({
+                    ...song,
+                    isLocal: true,
+                    url: song.localUrl || song.url
+                }));
+            }
+
+            // If random mode is requested for local playlist, ensure true randomness & pagination
+            if (isRandomPlaylist && tracks && tracks.length > 0) {
+                const allShuffled = [...tracks];
+                for (let i = allShuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allShuffled[i], allShuffled[j]] = [allShuffled[j], allShuffled[i]];
+                }
+
+                if (trackId) {
+                    const targetIdx = allShuffled.findIndex(
+                        t => (t._id || t.id) === trackId
+                    );
+                    if (targetIdx > 0) {
+                        const [tapped] = allShuffled.splice(targetIdx, 1);
+                        allShuffled.unshift(tapped);
+                    }
+                }
+
+                const LOCAL_PAGE_SIZE = 20;
+                if (allShuffled.length > LOCAL_PAGE_SIZE) {
+                    let offset = LOCAL_PAGE_SIZE;
+                    let isFetching = false;
+                    const localController = {
+                        getHasNextPage: () => offset < allShuffled.length,
+                        getIsFetchingNextPage: () => isFetching,
+                        fetchNextPage: async () => {
+                            if (isFetching || offset >= allShuffled.length) return;
+                            isFetching = true;
+                            try {
+                                const nextChunk = allShuffled.slice(
+                                    offset,
+                                    offset + LOCAL_PAGE_SIZE
+                                );
+                                offset += nextChunk.length;
+                                await get().appendToQueue(
+                                    playlistId,
+                                    nextChunk,
+                                    true,
+                                    randomSeed
+                                );
+                            } finally {
+                                isFetching = false;
+                            }
+                        }
+                    };
+                    get().setPlaylistController(playlistId, localController);
+                    tracks = allShuffled.slice(0, LOCAL_PAGE_SIZE);
+                } else {
+                    tracks = allShuffled;
+                    const { playlistControllers } = get();
+                    if (playlistControllers[playlistId]) {
+                        const { [playlistId]: _, ...rest } = playlistControllers;
+                        set({ playlistControllers: rest });
+                    }
+                }
+            }
         }
 
         /*
@@ -773,6 +843,21 @@ export const usePlayer = create((set, get) => ({
 
         // 1. If currently playing a dedicated local playlist
         if (currentPlaylistId && get().queue.length > 0 && get().isLocalPlaylist) {
+            const controller = get().playlistControllers[currentPlaylistId];
+            const { isWaitingForDownload, currentTrackIndex } = get();
+
+            // If the local playlist has an active pagination controller that has more pages,
+            // don't clobber the paginated queue with full downloadedSongs.
+            if (controller && controller.getHasNextPage()) {
+                if (isWaitingForDownload) {
+                    set({ isWaitingForDownload: false });
+                    controller.fetchNextPage().then(() => {
+                        get().playByIndex(currentTrackIndex + 1);
+                    });
+                }
+                return;
+            }
+
             let actualPlaylistId = currentPlaylistId;
             if (String(currentPlaylistId).startsWith("local-")) {
                 actualPlaylistId = String(currentPlaylistId).replace(

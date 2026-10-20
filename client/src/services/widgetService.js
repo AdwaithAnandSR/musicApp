@@ -6,15 +6,50 @@ import { musicWidget } from "@/widgets/MusicWidget";
 import { usePlayer } from "@store/player";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import MaterialIcons from "@react-native-vector-icons/material-icons";
+import { isDarkColor, makeLightColor } from "./colors";
 
 let lastUpdatedArtworkSource = null;
 let cachedArtworkFileUri = "";
 let latestArtworkRequest = null;
 let iconUris = null;
-let isDownloadedListOpen = false;
+let widgetViewMode = "controls"; // "controls" | "playlists" | "songs"
+let selectedPlaylist = null;
+let allLoadedSongs = [];
+let displayedSongsCount = 20;
+let isLoadingMoreSongs = false;
 let currentDownloadedPlaylists = [];
 let lastKnownTrack = null;
 let lastKnownIsPlaying = false;
+let isWidgetRandomOn = false;
+
+function getSongsSnapshotData(currentPlayingId) {
+    if (widgetViewMode !== "songs" || !selectedPlaylist) {
+        return {
+            selectedPlaylistName: "Songs",
+            downloadedSongs: [],
+            hasMoreSongs: false,
+            isLoadingMore: false,
+        };
+    }
+
+    const sliced = allLoadedSongs.slice(0, displayedSongsCount);
+    const downloadedSongs = sliced.map((s) => {
+        const id = String(s.id || s._id);
+        const isCurrent = currentPlayingId ? id === String(currentPlayingId) : false;
+        return {
+            id,
+            title: s.title || "Untitled Track",
+            isPlaying: isCurrent,
+        };
+    });
+
+    return {
+        selectedPlaylistName: selectedPlaylist.name || "Songs",
+        downloadedSongs,
+        hasMoreSongs: displayedSongsCount < allLoadedSongs.length,
+        isLoadingMore: isLoadingMoreSongs,
+    };
+}
 
 const EMPTY_ICONS = {
     play: "",
@@ -217,6 +252,38 @@ async function resolveWidgetArtwork(rawArtwork) {
 }
 
 /**
+ * Picks an accent color extracted from album art that contrasts sharply
+ * with cardBg and is guaranteed never to melt into the background.
+ */
+function getContrastingActiveColor(track, cardBg, isDark = true) {
+    const colors = track?.colors;
+    if (colors) {
+        const bgIsDark = cardBg ? isDarkColor(cardBg) : isDark;
+        if (bgIsDark) {
+            if (colors.lightVibrant && !isDarkColor(colors.lightVibrant)) {
+                return colors.lightVibrant;
+            }
+            if (colors.vibrant) {
+                return isDarkColor(colors.vibrant)
+                    ? makeLightColor(colors.vibrant, 0.6)
+                    : colors.vibrant;
+            }
+            if (colors.dominant && !isDarkColor(colors.dominant)) {
+                return colors.dominant;
+            }
+        } else {
+            if (colors.darkVibrant && isDarkColor(colors.darkVibrant)) {
+                return colors.darkVibrant;
+            }
+            if (colors.vibrant && isDarkColor(colors.vibrant)) {
+                return colors.vibrant;
+            }
+        }
+    }
+    return isDark ? "#38BDF8" : "#0284C7";
+}
+
+/**
  * Updates the home screen widget snapshot with current playback information.
  * Uses optimistic updates so track details and controls change instantly
  * without waiting for remote album art to download.
@@ -234,14 +301,18 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             lastUpdatedArtworkSource = null;
             cachedArtworkFileUri = "";
             latestArtworkRequest = null;
+            const songsData = getSongsSnapshotData(null);
             musicWidget.updateSnapshot({
                 title: "No track playing",
                 artist: "Tap to open Music",
                 isPlaying: false,
                 artworkUri: "",
                 playIconUri: icons.play || "",
-                showDownloadedList: isDownloadedListOpen,
+                widgetView: widgetViewMode,
                 downloadedPlaylists: currentDownloadedPlaylists,
+                isRandomOn: isWidgetRandomOn,
+                randomActiveColor: "#38BDF8",
+                ...songsData,
                 ...getControlIconProps(icons),
             });
             return;
@@ -257,6 +328,9 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             track.colors?.darkVibrant ||
             track.colors?.dominant ||
             track.colors?.average;
+        const randomActiveColor = getContrastingActiveColor(track, trackBg, true);
+        const currentPlayingId = track?._id || track?.id || null;
+        const songsData = getSongsSnapshotData(currentPlayingId);
 
         latestArtworkRequest = rawArtwork;
 
@@ -273,8 +347,11 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             artworkUri: immediateArtwork,
             playIconUri,
             trackBg,
-            showDownloadedList: isDownloadedListOpen,
+            widgetView: widgetViewMode,
             downloadedPlaylists: currentDownloadedPlaylists,
+            isRandomOn: isWidgetRandomOn,
+            randomActiveColor,
+            ...songsData,
             ...controlIcons,
         });
 
@@ -286,6 +363,9 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                     if (!artworkUri || latestArtworkRequest !== rawArtwork) {
                         return;
                     }
+                    const freshTrack = lastKnownTrack;
+                    const freshPlayingId = freshTrack?._id || freshTrack?.id || null;
+                    const freshSongsData = getSongsSnapshotData(freshPlayingId);
                     musicWidget.updateSnapshot({
                         title,
                         artist,
@@ -293,8 +373,11 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                         artworkUri,
                         playIconUri,
                         trackBg,
-                        showDownloadedList: isDownloadedListOpen,
+                        widgetView: widgetViewMode,
                         downloadedPlaylists: currentDownloadedPlaylists,
+                        isRandomOn: isWidgetRandomOn,
+                        randomActiveColor,
+                        ...freshSongsData,
                         ...controlIcons,
                     });
                 })
@@ -368,41 +451,92 @@ export function initWidgetInteractionListener() {
                             id: String(p.id || p._id),
                             name: p.name || "Untitled Playlist",
                         }));
-                        isDownloadedListOpen = true;
+                        widgetViewMode = "playlists";
                         updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     } catch (e) {
                         console.warn("Failed to load downloaded playlists for widget:", e);
                     }
                     break;
-                case "exit_downloads":
-                    isDownloadedListOpen = false;
+                case "exit_to_controls":
+                    widgetViewMode = "controls";
+                    selectedPlaylist = null;
+                    allLoadedSongs = [];
+                    displayedSongsCount = 20;
                     updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
+                case "back_to_playlists":
+                    widgetViewMode = "playlists";
+                    selectedPlaylist = null;
+                    allLoadedSongs = [];
+                    displayedSongsCount = 20;
+                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                    break;
+                case "load_more_songs":
+                    if (displayedSongsCount < allLoadedSongs.length) {
+                        displayedSongsCount = Math.min(displayedSongsCount + 20, allLoadedSongs.length);
+                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                    }
+                    break;
                 case "random":
-                    Linking.openURL(
-                        "music://secure/(tabs)/playlists/Playlists",
-                    ).catch(() => {
-                        Linking.openURL("music://").catch(() => {});
-                    });
+                    isWidgetRandomOn = !isWidgetRandomOn;
+                    // If viewing songs, reshuffle or re-order them
+                    if (widgetViewMode === "songs" && allLoadedSongs.length > 0 && selectedPlaylist) {
+                        if (isWidgetRandomOn) {
+                            for (let i = allLoadedSongs.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [allLoadedSongs[i], allLoadedSongs[j]] = [allLoadedSongs[j], allLoadedSongs[i]];
+                            }
+                        } else {
+                            try {
+                                const { getDownloadedSongs } = require("./downloads/downloadService.js");
+                                const raw = await getDownloadedSongs(selectedPlaylist.id);
+                                allLoadedSongs = raw || [];
+                            } catch (_) {}
+                        }
+                    }
+                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
                 default:
-                    if (event.target && event.target.startsWith("play_downloaded:")) {
-                        const playlistId = event.target.replace("play_downloaded:", "");
+                    if (event.target && event.target.startsWith("select_playlist:")) {
+                        const playlistId = event.target.replace("select_playlist:", "");
                         try {
                             const { getDownloadedSongs } = require("./downloads/downloadService.js");
-                            const songs = await getDownloadedSongs(playlistId);
-                            if (songs && songs.length > 0) {
-                                isDownloadedListOpen = false;
+                            const rawSongs = await getDownloadedSongs(playlistId);
+                            const found = currentDownloadedPlaylists.find((p) => p.id === playlistId);
+                            selectedPlaylist = found || { id: playlistId, name: "Playlist" };
+
+                            let songsToUse = rawSongs ? [...rawSongs] : [];
+                            if (isWidgetRandomOn && songsToUse.length > 1) {
+                                for (let i = songsToUse.length - 1; i > 0; i--) {
+                                    const j = Math.floor(Math.random() * (i + 1));
+                                    [songsToUse[i], songsToUse[j]] = [songsToUse[j], songsToUse[i]];
+                                }
+                            }
+
+                            allLoadedSongs = songsToUse;
+                            displayedSongsCount = 20;
+                            widgetViewMode = "songs";
+                            updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                        } catch (e) {
+                            console.warn("Failed to load playlist songs for widget:", e);
+                        }
+                    } else if (event.target && event.target.startsWith("play_song:")) {
+                        const songId = event.target.replace("play_song:", "");
+                        if (selectedPlaylist && allLoadedSongs.length > 0) {
+                            try {
+                                const randomSeed = isWidgetRandomOn ? Math.random() : null;
                                 player.changePlaylistAndPlay({
-                                    playlistId: `local-${playlistId}`,
-                                    trackId: songs[0].id || songs[0]._id,
-                                    tracksOverride: songs,
+                                    playlistId: `local-${selectedPlaylist.id}`,
+                                    trackId: songId,
+                                    tracksOverride: allLoadedSongs,
                                     isLocal: true,
                                     isLocalPlaylist: true,
+                                    isRandomPlaylist: isWidgetRandomOn,
+                                    randomSeed: randomSeed,
                                 });
+                            } catch (e) {
+                                console.warn("Failed to play song from widget:", e);
                             }
-                        } catch (e) {
-                            console.warn("Failed to play downloaded playlist from widget:", e);
                         }
                     }
                     break;
