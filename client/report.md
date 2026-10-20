@@ -67,7 +67,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **D4** | Bug | Low | Artwork color extraction race on rapid skips | `true` |
 | **D5** | Bug | Low | `artistIndex` survives track changes showing empty chip | `true` |
 | **D6** | Bug | Low | Equalizer animates on current track even when paused | `true` |
-| **D7** | Bug | Low | Double-tap worklet captures entire track object | `false` |
+| **D7** | Bug | Low | Double-tap worklet captures entire track object | `true` |
 | **P1** | Perf | High | 2s polling interval re-reads and re-renders downloaded playlists | `true` |
 | **P2** | Perf | High | Unthrottled download progress re-renders screen every tick | `true` |
 | **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `true` |
@@ -279,10 +279,10 @@ Per-track UI state is reset by button handlers, not by the track change itself.
 - **Fix Applied:** Updated the selector in `ListItem.jsx` to `state => state.currentTrackId === (item.id || item._id) && state.isPlaying`, so the equalizer only renders when actively playing.
 
 #### D7 · Low
-- **Files:** `TrackControllerFullView.jsx:222-233`
-- **Fixed:** `false`
+- **Files:** `TrackControllerFullView.jsx:249-265`
+- **Fixed:** `true`
 - **Issue:** The double-tap worklet captures the whole track object, which carries the lyrics arrays, so Reanimated copies it to the UI runtime whenever the gesture is rebuilt.
-- **Fix:** Read `isFav` in the JS callback instead. (Audit note: profile before spending time).
+- **Fix Applied:** Moved favorite status check and haptics into `handleDoubleTap` on the JS thread (`usePlayer.getState().currentTrack?.isFav`), invoked via `runOnJS(handleDoubleTap)()`. `triggerHeartAnimation` runs immediately on the UI thread without capturing the `track` object or serializing lyrics arrays into the UI runtime.
 
 ---
 

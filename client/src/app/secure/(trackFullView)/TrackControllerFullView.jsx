@@ -246,17 +246,21 @@ const TrackControllerFullView = () => {
             }
         });
 
+    const handleDoubleTap = () => {
+        const currentTrack = usePlayer.getState().currentTrack;
+        if (!currentTrack?.isFav) {
+            toggleFavourite();
+        } else {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+    };
+
     const doubleTapGesture = Gesture.Tap()
         .numberOfTaps(2)
         .onEnd(() => {
             "worklet";
             triggerHeartAnimation();
-
-            if (!track?.isFav) {
-                runOnJS(toggleFavourite)();
-            } else {
-                runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-            }
+            runOnJS(handleDoubleTap)();
         });
 
     const longPressGesture = Gesture.LongPress()
