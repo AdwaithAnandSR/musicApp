@@ -83,6 +83,7 @@ const Home = () => {
                 title="Musics"
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
+                data={allSongs}
                 ID={"HOME"}
                 containerStyles={{ height: HEADER_HEIGHT }}
             />

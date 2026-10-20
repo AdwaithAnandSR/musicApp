@@ -120,6 +120,7 @@ const DownloadedPlaylistSongs = () => {
                 title={playlistName}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
+                data={songs}
                 ID={`local-${playlistId}`}
                 containerStyles={{ height: HEADER_HEIGHT }}
                 onPlayShuffled={handlePlayShuffled}

@@ -340,6 +340,7 @@ const PlaylistSongs = () => {
                 HEADER_HEIGHT={HEADER_HEIGHT}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
+                data={songs}
                 ID={computedPlaylistId}
                 containerStyles={{ height: HEADER_HEIGHT }}
                 isRandom={isRandom}

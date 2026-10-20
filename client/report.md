@@ -58,7 +58,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **C2** | Bug | Medium | Permanent delete skips queue removal and busts all query cache | `true` |
 | **C3** | Bug | Medium | Removed song stays in shuffled cache without prefix match | `true` |
 | **C4** | Bug | Medium | Server ignores `isRandom` for special/artist/favourites | `false` |
-| **C5** | Bug | Low | Tapping title scrolls using queue index instead of list index | `false` |
+| **C5** | Bug | Low | Tapping title scrolls using queue index instead of list index | `true` |
 | **C6** | Bug | Low | Shuffle toggle button has no handler in Downloaded playlists | `true` |
 | **C7** | Bug | Low | Search results queue does not append or register controller | `false` |
 | **D1** | Bug | Medium | Lyrics state not reset on `trackChanged`, locks gesture | `true` |
@@ -220,10 +220,10 @@ Remove and delete actions update the player queue without checking which playlis
 - **Fix:** Shuffle on the client for those lists, or hide the buttons.
 
 #### C5 · Low
-- **Files:** `ListHeader.jsx:54-57`
-- **Fixed:** `false`
+- **Files:** `ListHeader.jsx:20-65`, `Home.jsx:82-89`, `PlaylistSongs.jsx:338-350`, `DownloadedPlaylistSongs.jsx:119-127`
+- **Fixed:** `true`
 - **Issue:** Tapping the title scrolls to `currentTrackIndex`, which is an index in the player queue, not in this list. It lands on the wrong row, or nowhere, when the playing queue is another playlist or a shuffled order.
-- **Fix:** Check `currentPlaylistId` and look up `currentTrackId` in the list data.
+- **Fix Applied:** Passed screen `data` (`allSongs` / `songs`) to `Header`. In `handleShortPress`, verified `currentPlaylistId === ID` and looked up `currentTrackId` in `data` (`data.findIndex(s => (s.id || s._id) === currentTrackId)`), scrolling only to the matched index in the active list.
 
 #### C6 · Low
 - **Files:** `DownloadedPlaylistSongs.jsx:103-111`

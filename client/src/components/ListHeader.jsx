@@ -23,6 +23,7 @@ const Header = ({
     total,
     scrollY,
     scrollToMiddle,
+    data = [],
     ID,
     isRandom = false,
     onToggleRandom,
@@ -51,8 +52,17 @@ const Header = ({
     const isRecentlyAdded = ID === "6a3e689cfba948ae55682fe3"; // Recently Added Playlist ID
 
     const handleShortPress = () => {
-        const index = usePlayer.getState().currentTrackIndex;
-        if (index !== -1) scrollToMiddle(index);
+        const { currentTrackId, currentPlaylistId } = usePlayer.getState();
+        if (currentPlaylistId !== ID || !currentTrackId) return;
+
+        if (Array.isArray(data) && data.length > 0) {
+            const index = data.findIndex(
+                s => (s.id || s._id) === currentTrackId
+            );
+            if (index !== -1 && typeof scrollToMiddle === "function") {
+                scrollToMiddle(index);
+            }
+        }
     };
 
     const handleLongPress = () =>
