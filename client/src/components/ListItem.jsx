@@ -38,8 +38,7 @@ const ListItem = ({
     );
 
     const isCurrentPlaying = usePlayer(
-        (state =
-            state.currentTrackId === (item.id || item._id) && state.isPlaying),
+        state => state.currentTrackId === (item.id || item._id) && state.isPlaying
     );
 
     const isSelected = useMultiSelect((state) =>

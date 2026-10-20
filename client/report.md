@@ -370,7 +370,7 @@ The two biggest costs are on the Downloads screens, which do constant background
 ---
 
 ## Checked and Fine (Do Not Chase)
-- The slider's progress path (shared value fed by `usePlayer.subscribe`)
+- The slider's progress path (shared value fed by `useProgress.subscribe`)
 - The `CurrentTimeDisplay` leaf component
 - The selectors in `ListItem` and the controls (all return primitives)
 
