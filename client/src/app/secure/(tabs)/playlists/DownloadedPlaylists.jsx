@@ -80,8 +80,8 @@ const DownloadedPlaylists = () => {
             
             <AnimatedFlashList
                 data={playlists}
+                keyExtractor={item => item.id || item._id}
                 renderItem={({ item }) => <ListItem item={item} />}
-                estimatedItemSize={70}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <Text style={styles.emptyText}>No downloaded playlists.</Text>

@@ -80,7 +80,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P10** | Perf | Low | Seek slider fires 60 React renders/sec while dragging | `true` |
 | **P11** | Perf | Low | Playback position/progress in same store notifies all subscribers | `true` |
 | **P12** | Perf | Low | `handleToggleFavourite` predicate walks every cached query | `true` |
-| **P13** | Perf | Low | Unneeded FlashList props & missing `keyExtractor` | `false` |
+| **P13** | Perf | Low | Unneeded FlashList props & missing `keyExtractor` | `true` |
 
 ---
 
@@ -362,10 +362,10 @@ The two biggest costs are on the Downloads screens, which do constant background
 - **Fix Applied:** Replaced blanket predicate with targeted predicate matching only `currentPlaylistId` from player store.
 
 #### P13 · Low
-- **Files:** Eight FlashList usages, `Home.jsx:88`
-- **Fixed:** `false`
+- **Files:** Eight FlashList usages, `Home.jsx`, `DownloadedPlaylistSongs.jsx`, `DownloadedPlaylists.jsx`
+- **Fixed:** `true`
 - **Issue:** `estimatedItemSize` and `initialNumToRender` are no longer needed by FlashList 2.x as far as I know; check the v2 migration notes before removing them. `DownloadedPlaylistSongs.jsx:113` has no `keyExtractor`.
-- **Fix:** Review FlashList 2.x migration notes and add missing `keyExtractor`.
+- **Fix Applied:** Added missing `keyExtractor` to `DownloadedPlaylistSongs.jsx` and `DownloadedPlaylists.jsx`. Removed obsolete `estimatedItemSize` across all eight FlashList components and dropped redundant `initialNumToRender` from `Home.jsx` according to FlashList 2.x API.
 
 ---
 

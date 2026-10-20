@@ -367,7 +367,6 @@ const PlaylistSongs = () => {
             <AnimatedFlashList
                 ref={flashListRef}
                 data={songs}
-                estimatedItemSize={70}
                 renderItem={({ item }) => (
                     <ListItem
                         ID={computedPlaylistId}

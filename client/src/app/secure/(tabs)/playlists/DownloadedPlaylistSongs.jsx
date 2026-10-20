@@ -140,7 +140,7 @@ const DownloadedPlaylistSongs = () => {
             <AnimatedFlashList
                 ref={flashListRef}
                 data={songs}
-                estimatedItemSize={70}
+                keyExtractor={item => item.id || item._id}
                 renderItem={({ item }) => <ListItem ID={`local-${playlistId}`} item={item} />}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={

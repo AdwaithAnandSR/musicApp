@@ -73,7 +73,6 @@ const Playlists = () => {
                 data={playlists}
                 keyExtractor={(item, index) => item._id || String(index)}
                 renderItem={renderItem}
-                estimatedItemSize={170}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     isLoading ? (

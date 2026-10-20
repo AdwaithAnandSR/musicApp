@@ -140,7 +140,6 @@ const LyricsView = ({ track = {}, lightVibrant, showVideo }) => {
             <FlashList
                 ref={lyricsRef}
                 data={data}
-                estimatedItemSize={100}
                 showsVerticalScrollIndicator={false}
                 keyExtractor={(item, index) =>
                     `${item?._id ?? "blank"}-${index}`

@@ -108,8 +108,6 @@ const Home = () => {
                 showsVerticalScrollIndicator={false}
                 keyExtractor={item => item.id || item._id}
                 onEndReachedThreshold={0.5}
-                initialNumToRender={7}
-                estimatedItemSize={80}
                 onEndReached={() => {
                     if (!isFetchingNextPage && hasNextPage) fetchNextPage();
                 }}

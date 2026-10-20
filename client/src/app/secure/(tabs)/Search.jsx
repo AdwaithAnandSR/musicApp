@@ -181,7 +181,6 @@ const Search = () => {
 
             <FlashList
                 keyExtractor={item => item.id || item._id}
-                estimatedItemSize={80}
                 data={songs}
                 renderItem={({ item }) => (
                     <ListItem
