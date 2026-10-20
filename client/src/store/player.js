@@ -844,11 +844,11 @@ export const usePlayer = create((set, get) => ({
         // 1. If currently playing a dedicated local playlist
         if (currentPlaylistId && get().queue.length > 0 && get().isLocalPlaylist) {
             const controller = get().playlistControllers[currentPlaylistId];
-            const { isWaitingForDownload, currentTrackIndex } = get();
 
             // If the local playlist has an active pagination controller that has more pages,
             // don't clobber the paginated queue with full downloadedSongs.
             if (controller && controller.getHasNextPage()) {
+                const { isWaitingForDownload, currentTrackIndex } = get();
                 if (isWaitingForDownload) {
                     set({ isWaitingForDownload: false });
                     controller.fetchNextPage().then(() => {
