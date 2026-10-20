@@ -17,6 +17,7 @@ import PopUpOptions from "@components/PopUpOptions.jsx";
 import searchSongs from "@controllers/search.controller.js";
 import queryClient from "@services/queryClient";
 import { useMultiSelect, useAppStatus } from "@store/appState.store.js";
+import { usePlayer } from "@store/player.js";
 import { deleteSongsPermanentBatch } from "@controllers/admin.js";
 import Toast from "@services/Toast.js";
 
@@ -65,6 +66,29 @@ const Search = () => {
     });
 
     useEffect(() => {
+        if (!debouncedText || debouncedText.length < 3) return;
+        const searchId = `SEARCH-${debouncedText}`;
+        usePlayer.getState().setPlaylistController(searchId, {
+            fetchNextPage,
+            getHasNextPage: () => hasNextPage,
+            getIsFetchingNextPage: () => isFetchingNextPage
+        });
+        return () => {
+            const { playlistControllers } = usePlayer.getState();
+            if (playlistControllers[searchId]) {
+                const { [searchId]: _, ...rest } = playlistControllers;
+                usePlayer.setState({ playlistControllers: rest });
+            }
+        };
+    }, [debouncedText, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+    useEffect(() => {
+        if (debouncedText && debouncedText.length >= 3 && songs && songs.length > 0) {
+            usePlayer.getState().appendToQueue(`SEARCH-${debouncedText}`, songs);
+        }
+    }, [songs, debouncedText]);
+
+    useEffect(() => {
         return () => {
             if (typingTimeout.current) clearTimeout(typingTimeout.current);
         };
@@ -100,7 +124,6 @@ const Search = () => {
                             const res = await deleteSongsPermanentBatch(songIds);
                             if (res?.success) {
                                 Toast.show("Songs Deleted", "success");
-                                const { usePlayer } = require("@store/player.js");
                                 usePlayer.getState().removeFromQueue(songIds);
                                 queryClient.invalidateQueries({ queryKey: [`SEARCH-${debouncedText}`] });
                                 queryClient.invalidateQueries({ queryKey: ["HOME"] });

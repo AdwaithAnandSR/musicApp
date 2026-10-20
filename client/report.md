@@ -60,7 +60,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **C4** | Bug | Medium | Server ignores `isRandom` for special/artist/favourites | `false` |
 | **C5** | Bug | Low | Tapping title scrolls using queue index instead of list index | `true` |
 | **C6** | Bug | Low | Shuffle toggle button has no handler in Downloaded playlists | `true` |
-| **C7** | Bug | Low | Search results queue does not append or register controller | `false` |
+| **C7** | Bug | Low | Search results queue does not append or register controller | `true` |
 | **D1** | Bug | Medium | Lyrics state not reset on `trackChanged`, locks gesture | `true` |
 | **D2** | Bug | Medium | `undefinedb0` shadow style crash on initial render | `true` |
 | **D3** | Bug | Medium | Unescaped search text crashes regex in `HighlightedTitle` | `true` |
@@ -232,10 +232,10 @@ Remove and delete actions update the player queue without checking which playlis
 - **Fix Applied:** In `ListHeader.jsx`, wrapped the shuffle toggle button in `{onToggleRandom && (...)}` so the non-functional toggle button is hidden when no handler is provided, while keeping the functional "Shuffle Play" button.
 
 #### C7 · Low
-- **Files:** `Search.jsx:155-165`
-- **Fixed:** `false`
+- **Files:** `Search.jsx:67-90`
+- **Fixed:** `true`
 - **Issue:** Search results play through `ID = SEARCH-<text>`, but search never calls `appendToQueue` or registers a controller. The queue stops at the pages loaded when the song was tapped, and later taps hit the length mismatch in A3.
-- **Fix:** Call `appendToQueue` and register pagination controller for search.
+- **Fix Applied:** Registered pagination controller for `SEARCH-${debouncedText}` (`fetchNextPage`, `getHasNextPage`, `getIsFetchingNextPage`) with cleanup in `useEffect`. Added an effect to call `appendToQueue(SEARCH-${debouncedText}, songs)` whenever new search pages are loaded, enabling automatic pre-fetching and queue synchronization for search playback.
 
 ---
 
