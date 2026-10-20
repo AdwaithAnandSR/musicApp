@@ -3,7 +3,7 @@ import PlaylistSong from "../../models/playlistSong.js";
 
 import mongoose from "mongoose";
 
-const MUSIC_SELECT_FIELDS = "_id title cover artist colors duration url videoUrl createdAt ytId synced lyrics lyricsAsText isFav";
+const MUSIC_SELECT_FIELDS = "_id title cover artist colors duration url videoUrl createdAt ytId synced isFav";
 
 export const getSongs = async (req, res) => {
     try {
@@ -172,9 +172,7 @@ export const getSongs = async (req, res) => {
 
             const songsRaw = await Music.find({
                 _id: { $in: songIds }
-            }).select(
-                "_id title cover artist duration url createdAt ytId synced lyrics lyricsAsText isFav"
-            );
+            }).select(MUSIC_SELECT_FIELDS);
 
             // preserve order
             const map = new Map(songsRaw.map(s => [s._id.toString(), s]));

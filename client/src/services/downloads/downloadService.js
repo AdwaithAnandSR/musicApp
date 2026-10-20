@@ -150,6 +150,7 @@ export const deleteDownloadedPlaylist = async playlistId => {
                             for (const ext of videoExts) {
                                 try { new File(targetDir, `${songId}_video.${ext}`).delete(); } catch(e){}
                             }
+                            try { new File(targetDir, `${songId}_lyrics.json`).delete(); } catch(e){}
                         } catch(e) {}
                     }
                 }
@@ -214,6 +215,8 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
                 const videoFile = new File(targetDir, `${songId}_video.${ext}`);
                 if (videoFile.exists) { try { videoFile.delete(); } catch(e) {} }
             }
+            const lyricsFile = new File(targetDir, `${songId}_lyrics.json`);
+            if (lyricsFile.exists) { try { lyricsFile.delete(); } catch(e) {} }
         }
     } catch (e) {
         console.log("Failed to delete song file or cover:", e);
@@ -472,6 +475,30 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
             return { downloadTasks: rest };
         });
 
+        if (downloadSuccess) {
+            try {
+                const lyricsFile = new File(targetPlaylistDir, `${songId}_lyrics.json`);
+                if (!lyricsFile.exists) {
+                    let lyricsData = (song.lyrics?.length || song.lyricsAsText?.length) ? {
+                        lyrics: song.lyrics || [],
+                        lyricsAsText: song.lyricsAsText || [],
+                        synced: song.synced || false
+                    } : null;
+
+                    if (!lyricsData) {
+                        try {
+                            const { getLyricsForTrack } = require("../lyricsService.js");
+                            lyricsData = await getLyricsForTrack(song);
+                        } catch (e) {}
+                    }
+
+                    if (lyricsData && (lyricsData.lyrics?.length || lyricsData.lyricsAsText?.length)) {
+                        lyricsFile.write(JSON.stringify(lyricsData));
+                    }
+                }
+            } catch (e) {}
+        }
+
         return downloadSuccess ? { localUrl: localAudioUrl, localCoverUrl, localVideoUrl } : null;
     } catch (e) {
         console.log("Download error:", e, e?.message);
@@ -592,8 +619,9 @@ export const downloadPlaylistSongs = async (
                             playlist.id
                         ]?.find(s => (s.id || s._id) === songId) || {};
 
+                const { lyrics, lyricsAsText, ...cleanSong } = song;
                 const songToSave = {
-                    ...song,
+                    ...cleanSong,
                     cloudUrl: song.cloudUrl || song.url,
                     localUrl,
                     isLocal: true,
@@ -665,4 +693,27 @@ export const getLocalUrlForSong = async (songId) => {
 export const getLocalSongInfo = async (songId) => {
     if (!cachedMeta) await getMeta();
     return songIdToLocalInfo.get(songId) || null;
+};
+
+export const readLocalLyrics = async (songId) => {
+    try {
+        const meta = await getMeta();
+        for (const pId in meta.songs) {
+            const song = meta.songs[pId].find(s => (s.id || s._id) === songId);
+            if (song && song.localUrl) {
+                const downloadsDir = new Directory(Paths.document, "downloads");
+                const parts = song.localUrl.split('/');
+                const parentDirName = parts[parts.length - 2];
+                const targetDir = new Directory(downloadsDir, parentDirName);
+                const file = new File(targetDir, `${songId}_lyrics.json`);
+                if (file.exists) {
+                    const text = await file.text();
+                    return JSON.parse(text);
+                }
+            }
+        }
+    } catch (e) {
+        console.log("Error reading local lyrics:", e);
+    }
+    return null;
 };

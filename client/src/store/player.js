@@ -233,6 +233,7 @@ export const usePlayer = create((set, get) => ({
 
                     get().updateLockScreen(nextTrack);
                     get().updateWidget(nextTrack, get().isPlaying);
+                    get().loadTrackLyrics(nextTrack);
 
                     // Pre-fetch next page if 3 or fewer tracks away from queue end
                     const controller = playlistControllers[currentPlaylistId];
@@ -293,6 +294,7 @@ export const usePlayer = create((set, get) => ({
             });
             player.skipTo(index);
             player.play();
+            get().loadTrackLyrics(track);
         } else {
             // Player not yet created; initialize with current queue
             const loopMode = get().getEffectiveLoopMode();
@@ -317,6 +319,7 @@ export const usePlayer = create((set, get) => ({
 
             newPlaylist.skipTo(index);
             newPlaylist.play();
+            get().loadTrackLyrics(track);
         }
     },
 
@@ -602,6 +605,7 @@ export const usePlayer = create((set, get) => ({
             });
 
             get().updateLockScreen(currentTrack);
+            get().loadTrackLyrics(currentTrack);
         } catch (err) {
             console.error("changePlaylistAndPlay: failed to create player", err);
             get().resetValues();
@@ -905,6 +909,35 @@ export const usePlayer = create((set, get) => ({
 
         if (queueUpdated) {
             set({ queue: updatedQueue });
+        }
+    },
+
+    loadTrackLyrics: async (track) => {
+        if (!track) return;
+        const songId = track._id || track.id;
+        if (!songId) return;
+
+        try {
+            const { getLyricsForTrack } = require("../services/lyricsService.js");
+            const lyricsData = await getLyricsForTrack(track);
+            if (lyricsData && get().currentTrackId === songId) {
+                set((state) => ({
+                    currentTrack:
+                        state.currentTrack &&
+                        (state.currentTrack._id || state.currentTrack.id) === songId
+                            ? {
+                                  ...state.currentTrack,
+                                  lyrics: lyricsData.lyrics,
+                                  lyricsAsText: lyricsData.lyricsAsText,
+                                  synced:
+                                      lyricsData.synced ??
+                                      state.currentTrack.synced
+                              }
+                            : state.currentTrack
+                }));
+            }
+        } catch (e) {
+            console.log("Failed to load lyrics for track:", e);
         }
     }
 }));

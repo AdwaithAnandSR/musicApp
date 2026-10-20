@@ -71,7 +71,7 @@ D3 (regex escape), D2 (shadow fallback), D5, D6, C6, P10, P13.
 | **P1** | Perf | High | 2s polling interval re-reads and re-renders downloaded playlists | `true` |
 | **P2** | Perf | High | Unthrottled download progress re-renders screen every tick | `true` |
 | **P3** | Perf | Medium | `VideoBackground` re-renders 2x/sec on position even when video off | `true` |
-| **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `false` |
+| **P4** | Perf | Medium | Heavy lyrics data included in playlist responses & serialized in meta | `true` |
 | **P5** | Perf | Medium | Every playlist card mounts modal & subscribes to all `selectedSongs` | `true` |
 | **P6** | Perf | Medium | In-place item re-mapping breaks React Query structural sharing | `true` |
 | **P7** | Perf | Medium | Every lyric line subscribes to `currentLyricIndex` causing full re-renders | `true` |
@@ -308,10 +308,10 @@ The two biggest costs are on the Downloads screens, which do constant background
 - **Fix Applied:** Split `VideoBackground` into a top-level wrapper that returns `null` immediately when `!showVideo || !videoUrl`, and an `ActiveVideoBackground` child component that mounts only when video mode is active. This completely removes the 2x/sec position subscription and avoids initializing the native video player when video is disabled.
 
 #### P4 · Medium
-- **Files:** `server/handlers/playlists/songs.playlist.js:6`, `downloadService.js:48-57`
-- **Fixed:** `false`
+- **Files:** `server/handlers/playlists/songs.playlist.js:6`, `server/routes/lyrics.js`, `downloadService.js`, `lyricsService.js`, `store/player.js`
+- **Fixed:** `true`
 - **Issue:** `MUSIC_SELECT_FIELDS` includes `lyrics` and `lyricsAsText`, so every song in every list page carries its full lyrics. They are held in the query cache, the queue, multi-select and the download metadata, and `saveMeta` serialises the entire `meta.json` after each downloaded song.
-- **Fix:** Return lyrics only for the current track from a separate route.
+- **Fix Applied:** Removed `lyrics` and `lyricsAsText` from `MUSIC_SELECT_FIELDS` in `songs.playlist.js`. Added `GET /lyrics/:songId` endpoint in `server/routes/lyrics.js` to return lyrics on-demand for a single track. Added `lyricsService.js` on the client with in-memory caching and offline fallback, loading lyrics into `currentTrack` as songs play. In `downloadService.js`, excluded lyrics from `meta.songs` to keep `meta.json` lean, saving standalone `${songId}_lyrics.json` files for offline lyric support.
 
 #### P5 · Medium
 - **Files:** `components/playlists/ListItem.jsx:30, 146-152`
