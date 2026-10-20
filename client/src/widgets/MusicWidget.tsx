@@ -242,7 +242,7 @@ export function MusicWidgetLayout(
 
                     <Row verticalAlignment="center">
                         <TextButton
-                            target="albums"
+                            target="random"
                             modifiers={[size(50, 50), cornerRadius(15)]}
                         >
                             <Image

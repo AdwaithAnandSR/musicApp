@@ -288,7 +288,7 @@ export function initWidgetInteractionListener() {
                         Linking.openURL("music://").catch(() => {});
                     });
                     break;
-                case "albums":
+                case "random":
                     Linking.openURL(
                         "music://secure/(tabs)/playlists/Playlists",
                     ).catch(() => {
