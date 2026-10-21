@@ -9,7 +9,7 @@ import {
     Button,
     TextButton,
     Spacer,
-    CircularProgressIndicator,
+    LoadingIndicator,
 } from "@expo/ui/jetpack-compose";
 import {
     fillMaxSize,
@@ -59,6 +59,7 @@ export interface MusicWidgetProps {
     }>;
     hasMoreSongs?: boolean;
     isLoadingMore?: boolean;
+    isLoadingInitial?: boolean;
 }
 
 export function MusicWidgetLayout(
@@ -90,6 +91,7 @@ export function MusicWidgetLayout(
         downloadedSongs = [],
         hasMoreSongs = false,
         isLoadingMore = false,
+        isLoadingInitial = false,
     } = props;
 
     const isDark = environment?.colorScheme !== "light";
@@ -283,7 +285,18 @@ export function MusicWidgetLayout(
 
                         <Spacer modifiers={[height(4)]} />
 
-                        {downloadedSongs.length === 0 ? (
+                        {isLoadingInitial ? (
+                            <Column
+                                verticalArrangement="center"
+                                horizontalArrangement="center"
+                                modifiers={[fillMaxSize()]}
+                            >
+                                <LoadingIndicator
+                                    color={randomActiveColor}
+                                    modifiers={[size(28, 28)]}
+                                />
+                            </Column>
+                        ) : downloadedSongs.length === 0 ? (
                             <Column
                                 verticalArrangement="center"
                                 horizontalArrangement="center"
@@ -366,7 +379,7 @@ export function MusicWidgetLayout(
                                             modifiers={[fillMaxWidth()]}
                                         >
                                             {isLoadingMore ? (
-                                                <CircularProgressIndicator
+                                                <LoadingIndicator
                                                     color={randomActiveColor}
                                                     modifiers={[size(14, 14)]}
                                                 />

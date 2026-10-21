@@ -18,6 +18,7 @@ let selectedPlaylist = null;
 let allLoadedSongs = [];
 let displayedSongsCount = 20;
 let isLoadingMoreSongs = false;
+let isInitialLoadingSongs = false;
 let favNextCursor = null;
 let currentDownloadedPlaylists = [];
 let lastKnownTrack = null;
@@ -31,6 +32,7 @@ function getSongsSnapshotData(currentPlayingId) {
             downloadedSongs: [],
             hasMoreSongs: false,
             isLoadingMore: false,
+            isLoadingInitial: false,
         };
     }
 
@@ -55,6 +57,7 @@ function getSongsSnapshotData(currentPlayingId) {
         downloadedSongs,
         hasMoreSongs: hasMore,
         isLoadingMore: isLoadingMoreSongs,
+        isLoadingInitial: isInitialLoadingSongs,
     };
 }
 
@@ -436,8 +439,13 @@ export function initWidgetInteractionListener() {
                     try {
                         selectedPlaylist = { id: "FAVOURITES_PLAYLIST_ID", name: "Favourites" };
                         widgetViewMode = "songs";
+                        allLoadedSongs = [];
                         displayedSongsCount = 20;
                         favNextCursor = null;
+                        isInitialLoadingSongs = true;
+
+                        // Immediately switch widget to songs view displaying the loading indicator
+                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
 
                         const randomSeed = isWidgetRandomOn ? Math.random() : null;
                         let songs = [];
@@ -479,9 +487,11 @@ export function initWidgetInteractionListener() {
 
                         allLoadedSongs = songs;
                         favNextCursor = nextCursor;
-                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     } catch (e) {
                         console.warn("Failed to load favourites for widget:", e);
+                    } finally {
+                        isInitialLoadingSongs = false;
+                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     }
                     break;
                 case "download":
@@ -504,6 +514,8 @@ export function initWidgetInteractionListener() {
                     allLoadedSongs = [];
                     displayedSongsCount = 20;
                     favNextCursor = null;
+                    isInitialLoadingSongs = false;
+                    isLoadingMoreSongs = false;
                     updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
                 case "back_to_playlists":
@@ -516,6 +528,8 @@ export function initWidgetInteractionListener() {
                     allLoadedSongs = [];
                     displayedSongsCount = 20;
                     favNextCursor = null;
+                    isInitialLoadingSongs = false;
+                    isLoadingMoreSongs = false;
                     updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
                 case "load_more_songs":
@@ -557,6 +571,8 @@ export function initWidgetInteractionListener() {
                     // If viewing songs, reshuffle or re-order them
                     if (widgetViewMode === "songs" && allLoadedSongs.length > 0 && selectedPlaylist) {
                         if (selectedPlaylist.id === "FAVOURITES_PLAYLIST_ID") {
+                            isInitialLoadingSongs = true;
+                            updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                             try {
                                 const randomSeed = isWidgetRandomOn ? Math.random() : null;
                                 const { getPlaylistSongs } = require("@controllers/playlists/fetch");
@@ -569,7 +585,18 @@ export function initWidgetInteractionListener() {
                                 allLoadedSongs = res?.musics || [];
                                 favNextCursor = res?.nextCursor || null;
                                 displayedSongsCount = 20;
-                            } catch (_) {}
+                            } catch (_) {
+                                if (isWidgetRandomOn && allLoadedSongs.length > 1) {
+                                    for (let i = allLoadedSongs.length - 1; i > 0; i--) {
+                                        const j = Math.floor(Math.random() * (i + 1));
+                                        [allLoadedSongs[i], allLoadedSongs[j]] = [allLoadedSongs[j], allLoadedSongs[i]];
+                                    }
+                                }
+                            } finally {
+                                isInitialLoadingSongs = false;
+                                updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                            }
+                            return;
                         } else if (isWidgetRandomOn) {
                             for (let i = allLoadedSongs.length - 1; i > 0; i--) {
                                 const j = Math.floor(Math.random() * (i + 1));
