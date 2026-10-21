@@ -7,6 +7,7 @@ import { usePlayer } from "@store/player";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import MaterialIcons from "@react-native-vector-icons/material-icons";
 import { isDarkColor, makeLightColor } from "./colors";
+import { storage } from "./storage";
 
 let lastUpdatedArtworkSource = null;
 let cachedArtworkFileUri = "";
@@ -17,10 +18,11 @@ let selectedPlaylist = null;
 let allLoadedSongs = [];
 let displayedSongsCount = 20;
 let isLoadingMoreSongs = false;
+let favNextCursor = null;
 let currentDownloadedPlaylists = [];
 let lastKnownTrack = null;
 let lastKnownIsPlaying = false;
-let isWidgetRandomOn = false;
+let isWidgetRandomOn = storage.getBoolean("widget_random_on") ?? false;
 
 function getSongsSnapshotData(currentPlayingId) {
     if (widgetViewMode !== "songs" || !selectedPlaylist) {
@@ -43,10 +45,15 @@ function getSongsSnapshotData(currentPlayingId) {
         };
     });
 
+    const hasMore =
+        selectedPlaylist.id === "FAVOURITES_PLAYLIST_ID"
+            ? Boolean(favNextCursor) || displayedSongsCount < allLoadedSongs.length
+            : displayedSongsCount < allLoadedSongs.length;
+
     return {
         selectedPlaylistName: selectedPlaylist.name || "Songs",
         downloadedSongs,
-        hasMoreSongs: displayedSongsCount < allLoadedSongs.length,
+        hasMoreSongs: hasMore,
         isLoadingMore: isLoadingMoreSongs,
     };
 }
@@ -426,21 +433,55 @@ export function initWidgetInteractionListener() {
                     });
                     break;
                 case "fav":
-                    if (player.currentTrack) {
-                        const songId =
-                            player.currentTrack._id || player.currentTrack.id;
-                        if (songId) {
+                    try {
+                        selectedPlaylist = { id: "FAVOURITES_PLAYLIST_ID", name: "Favourites" };
+                        widgetViewMode = "songs";
+                        displayedSongsCount = 20;
+                        favNextCursor = null;
+
+                        const randomSeed = isWidgetRandomOn ? Math.random() : null;
+                        let songs = [];
+                        let nextCursor = null;
+
+                        try {
+                            const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+                            const res = await getPlaylistSongs({
+                                playlistId: "FAVOURITES_PLAYLIST_ID",
+                                limit: 20,
+                                random: isWidgetRandomOn,
+                                seed: randomSeed,
+                            });
+                            songs = res?.musics || [];
+                            nextCursor = res?.nextCursor || null;
+                        } catch (netErr) {
+                            console.warn("Widget Favourites remote fetch failed, checking local:", netErr);
                             try {
-                                const handleToggleFavourite =
-                                    require("@controllers/playlists/handleToggleFavourite").default;
-                                handleToggleFavourite(songId);
-                            } catch (e) {
-                                console.warn(
-                                    "Failed to toggle favourite from widget:",
-                                    e,
-                                );
-                            }
+                                const { getMeta } = require("./downloads/downloadService.js");
+                                const meta = await getMeta();
+                                const allLocalSongs = Object.values(meta?.songs || {}).flat();
+                                const favIds = new Set();
+                                songs = allLocalSongs.filter((s) => {
+                                    const id = s.id || s._id;
+                                    if (s.isFav && !favIds.has(id)) {
+                                        favIds.add(id);
+                                        return true;
+                                    }
+                                    return false;
+                                });
+                                if (isWidgetRandomOn && songs.length > 1) {
+                                    for (let i = songs.length - 1; i > 0; i--) {
+                                        const j = Math.floor(Math.random() * (i + 1));
+                                        [songs[i], songs[j]] = [songs[j], songs[i]];
+                                    }
+                                }
+                            } catch (_) {}
                         }
+
+                        allLoadedSongs = songs;
+                        favNextCursor = nextCursor;
+                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                    } catch (e) {
+                        console.warn("Failed to load favourites for widget:", e);
                     }
                     break;
                 case "download":
@@ -462,26 +503,74 @@ export function initWidgetInteractionListener() {
                     selectedPlaylist = null;
                     allLoadedSongs = [];
                     displayedSongsCount = 20;
+                    favNextCursor = null;
                     updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
                 case "back_to_playlists":
-                    widgetViewMode = "playlists";
+                    if (selectedPlaylist?.id === "FAVOURITES_PLAYLIST_ID") {
+                        widgetViewMode = "controls";
+                    } else {
+                        widgetViewMode = "playlists";
+                    }
                     selectedPlaylist = null;
                     allLoadedSongs = [];
                     displayedSongsCount = 20;
+                    favNextCursor = null;
                     updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
                 case "load_more_songs":
-                    if (displayedSongsCount < allLoadedSongs.length) {
+                    if (selectedPlaylist?.id === "FAVOURITES_PLAYLIST_ID" && favNextCursor) {
+                        isLoadingMoreSongs = true;
+                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                        try {
+                            const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+                            const res = await getPlaylistSongs({
+                                playlistId: "FAVOURITES_PLAYLIST_ID",
+                                limit: 20,
+                                pageParam: favNextCursor,
+                                random: isWidgetRandomOn,
+                                seed: isWidgetRandomOn ? Math.random() : null,
+                            });
+                            if (res?.musics?.length > 0) {
+                                allLoadedSongs = [...allLoadedSongs, ...res.musics];
+                                favNextCursor = res?.nextCursor || null;
+                                displayedSongsCount = allLoadedSongs.length;
+                            } else {
+                                favNextCursor = null;
+                            }
+                        } catch (e) {
+                            console.warn("Failed to load more favourites for widget:", e);
+                        } finally {
+                            isLoadingMoreSongs = false;
+                            updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                        }
+                    } else if (displayedSongsCount < allLoadedSongs.length) {
                         displayedSongsCount = Math.min(displayedSongsCount + 20, allLoadedSongs.length);
                         updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     }
                     break;
                 case "random":
                     isWidgetRandomOn = !isWidgetRandomOn;
+                    try {
+                        storage.set("widget_random_on", isWidgetRandomOn);
+                    } catch (_) {}
                     // If viewing songs, reshuffle or re-order them
                     if (widgetViewMode === "songs" && allLoadedSongs.length > 0 && selectedPlaylist) {
-                        if (isWidgetRandomOn) {
+                        if (selectedPlaylist.id === "FAVOURITES_PLAYLIST_ID") {
+                            try {
+                                const randomSeed = isWidgetRandomOn ? Math.random() : null;
+                                const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+                                const res = await getPlaylistSongs({
+                                    playlistId: "FAVOURITES_PLAYLIST_ID",
+                                    limit: 20,
+                                    random: isWidgetRandomOn,
+                                    seed: randomSeed,
+                                });
+                                allLoadedSongs = res?.musics || [];
+                                favNextCursor = res?.nextCursor || null;
+                                displayedSongsCount = 20;
+                            } catch (_) {}
+                        } else if (isWidgetRandomOn) {
                             for (let i = allLoadedSongs.length - 1; i > 0; i--) {
                                 const j = Math.floor(Math.random() * (i + 1));
                                 [allLoadedSongs[i], allLoadedSongs[j]] = [allLoadedSongs[j], allLoadedSongs[i]];
@@ -524,13 +613,14 @@ export function initWidgetInteractionListener() {
                         const songId = event.target.replace("play_song:", "");
                         if (selectedPlaylist && allLoadedSongs.length > 0) {
                             try {
+                                const isLocal = selectedPlaylist.id !== "FAVOURITES_PLAYLIST_ID";
                                 const randomSeed = isWidgetRandomOn ? Math.random() : null;
                                 player.changePlaylistAndPlay({
-                                    playlistId: `local-${selectedPlaylist.id}`,
+                                    playlistId: isLocal ? `local-${selectedPlaylist.id}` : selectedPlaylist.id,
                                     trackId: songId,
                                     tracksOverride: allLoadedSongs,
-                                    isLocal: true,
-                                    isLocalPlaylist: true,
+                                    isLocal: isLocal,
+                                    isLocalPlaylist: isLocal,
                                     isRandomPlaylist: isWidgetRandomOn,
                                     randomSeed: randomSeed,
                                 });
