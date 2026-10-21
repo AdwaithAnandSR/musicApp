@@ -24,6 +24,24 @@ export const getIsAuth = () => {
 };
 export const setIsAuth = v => storage.set("isAuth", v);
 
+// ── Last Playback Session ──────────────────────────────────
+export const saveLastPlaybackSession = session => {
+    try {
+        storage.set("last_playback_session", JSON.stringify(session));
+    } catch (e) {
+        console.warn("Failed to save last playback session:", e);
+    }
+};
+
+export const getLastPlaybackSession = () => {
+    try {
+        const raw = storage.getString("last_playback_session");
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+        return null;
+    }
+};
+
 // ── Storage health ──────────────────────────────────────
 const size = storage.size;
 console.log(

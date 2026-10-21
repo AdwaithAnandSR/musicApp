@@ -235,6 +235,21 @@ export const usePlayer = create((set, get) => ({
                     get().updateWidget(nextTrack, get().isPlaying);
                     get().loadTrackLyrics(nextTrack);
 
+                    // Persist playback session for widget instant resume
+                    try {
+                        const { saveLastPlaybackSession } = require("@services/storage.js");
+                        const upcomingTrack = queue[currentIndex + 1];
+                        saveLastPlaybackSession({
+                            playlistId: currentPlaylistId,
+                            songId: nextTrack._id || nextTrack.id,
+                            nextSongId: upcomingTrack ? (upcomingTrack._id || upcomingTrack.id) : null,
+                            isRandom: Boolean(get().isRandomPlaylist),
+                            randomSeed: get().randomSeed || null,
+                            isLocal: Boolean(get().isLocalPlaylist),
+                            pageNum: Math.floor(currentIndex / 20) + 1,
+                        });
+                    } catch (_) {}
+
                     // Pre-fetch next page if 3 or fewer tracks away from queue end
                     const controller = playlistControllers[currentPlaylistId];
                     if (
@@ -653,6 +668,21 @@ export const usePlayer = create((set, get) => ({
             isWaitingForDownload: false,
             isActiveForLockScreen: false
         });
+
+        // Persist playback session for widget instant resume
+        try {
+            const { saveLastPlaybackSession } = require("@services/storage.js");
+            const upcomingTrack = resolvedTracks[initialIndex + 1];
+            saveLastPlaybackSession({
+                playlistId,
+                songId: currentTrack._id || currentTrack.id,
+                nextSongId: upcomingTrack ? (upcomingTrack._id || upcomingTrack.id) : null,
+                isRandom: Boolean(isRandomPlaylist),
+                randomSeed: randomSeed || null,
+                isLocal: Boolean(isLocal),
+                pageNum: Math.floor(initialIndex / 20) + 1,
+            });
+        } catch (_) {}
 
         try {
             const loopMode = get().getEffectiveLoopMode();
