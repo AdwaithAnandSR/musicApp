@@ -55,6 +55,8 @@ export const useProgress = create(() => ({
     progress: 0
 }));
 
+let playerTimerTimeout = null;
+
 export const usePlayer = create((set, get) => ({
     player: null,
     playbackListener: null,
@@ -821,7 +823,31 @@ export const usePlayer = create((set, get) => ({
         set({ playbackRate: rate });
     },
 
-    setTimer: async time => set({ timer: time }),
+    setTimer: async time => {
+        if (playerTimerTimeout) {
+            clearTimeout(playerTimerTimeout);
+            playerTimerTimeout = null;
+        }
+
+        set({ timer: time });
+
+        if (time != null && time > Date.now()) {
+            const delay = time - Date.now();
+            playerTimerTimeout = setTimeout(() => {
+                get().clearPlayer();
+            }, delay);
+        }
+
+        try {
+            const { storage } = require("@services/storage.js");
+            if (time == null) {
+                storage.set("widget_timer_index", -1);
+                storage.delete("widget_timer_label");
+            }
+        } catch (_) {}
+
+        get().updateWidget();
+    },
 
     updateRepeatMode: mode => {
         set({ repeatMode: mode });
@@ -833,6 +859,16 @@ export const usePlayer = create((set, get) => ({
 
     clearPlayer: () => {
         const { player, playbackListener, trackChangedListener } = get();
+
+        if (playerTimerTimeout) {
+            clearTimeout(playerTimerTimeout);
+            playerTimerTimeout = null;
+        }
+        try {
+            const { storage } = require("@services/storage.js");
+            storage.set("widget_timer_index", -1);
+            storage.delete("widget_timer_label");
+        } catch (_) {}
 
         playbackListener?.remove();
         trackChangedListener?.remove();

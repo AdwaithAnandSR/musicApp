@@ -85,7 +85,8 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         alignSelf: "center",
         marginVertical: vh * 0.03,
-        justifyContent: "center"
+        justifyContent: "center",
+        
     },
     imageFill: {
         width: "100%",

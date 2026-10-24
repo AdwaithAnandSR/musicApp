@@ -37,8 +37,8 @@ const ListItem = ({
         (state) => state.changePlaylistAndPlay,
     );
 
-    const isCurrentPlaying = usePlayer(
-        state => state.currentTrackId === (item.id || item._id) && state.isPlaying
+    const isCurrentTrack = usePlayer(
+        state => state.currentTrackId === (item.id || item._id)
     );
 
     const isSelected = useMultiSelect((state) =>
@@ -116,7 +116,7 @@ const ListItem = ({
                 <HighlightedText
                     title={item.title}
                     search={text}
-                    isCurrent={isCurrentPlaying}
+                    isCurrent={isCurrentTrack}
                 />
                 {downloadingData?.status === "downloading" && (
                     <Text style={{ color: "gray", fontSize: 12, marginTop: 4 }}>
@@ -131,7 +131,7 @@ const ListItem = ({
                 )}
             </View>
 
-            {isCurrentPlaying && (
+            {isCurrentTrack && (
                 <LottieView
                     autoPlay
                     source={require("../assets/animations/musicPlayingAnim.json")}

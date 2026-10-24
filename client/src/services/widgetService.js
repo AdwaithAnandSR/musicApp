@@ -61,6 +61,46 @@ function getSongsSnapshotData(currentPlayingId) {
     };
 }
 
+export const TIMER_OPTIONS = [
+    { label: "1 min", ms: 1 * 60 * 1000 },
+    { label: "5 min", ms: 5 * 60 * 1000 },
+    { label: "10 min", ms: 10 * 60 * 1000 },
+    { label: "30 min", ms: 30 * 60 * 1000 },
+    { label: "1 hr", ms: 60 * 60 * 1000 },
+    { label: "2 hr", ms: 2 * 60 * 60 * 1000 },
+    { label: "5 hr", ms: 5 * 60 * 60 * 1000 },
+    { label: "Off", ms: 0 },
+];
+
+function getTimerSnapshotData() {
+    const player = usePlayer.getState();
+    const timer = player?.timer;
+    if (timer != null && timer > Date.now()) {
+        const storedLabel = storage.getString("widget_timer_label");
+        if (storedLabel) {
+            return {
+                isTimerOn: true,
+                timerLabel: storedLabel,
+            };
+        }
+        const remainingMs = timer - Date.now();
+        const minutes = Math.ceil(remainingMs / (60 * 1000));
+        let label = `${minutes} min`;
+        if (minutes >= 60) {
+            const hours = Math.round(minutes / 60);
+            label = `${hours} hr`;
+        }
+        return {
+            isTimerOn: true,
+            timerLabel: label,
+        };
+    }
+    return {
+        isTimerOn: false,
+        timerLabel: "",
+    };
+}
+
 const EMPTY_ICONS = {
     play: "",
     pause: "",
@@ -312,6 +352,7 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             cachedArtworkFileUri = "";
             latestArtworkRequest = null;
             const songsData = getSongsSnapshotData(null);
+            const timerData = getTimerSnapshotData();
             musicWidget.updateSnapshot({
                 title: "No track playing",
                 artist: "Tap to open Music",
@@ -323,6 +364,7 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                 isRandomOn: isWidgetRandomOn,
                 randomActiveColor: "#38BDF8",
                 ...songsData,
+                ...timerData,
                 ...getControlIconProps(icons),
             });
             return;
@@ -350,6 +392,8 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                 ? cachedArtworkFileUri
                 : "";
 
+        const timerData = getTimerSnapshotData();
+
         musicWidget.updateSnapshot({
             title,
             artist,
@@ -362,6 +406,7 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
             isRandomOn: isWidgetRandomOn,
             randomActiveColor,
             ...songsData,
+            ...timerData,
             ...controlIcons,
         });
 
@@ -376,6 +421,7 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                     const freshTrack = lastKnownTrack;
                     const freshPlayingId = freshTrack?._id || freshTrack?.id || null;
                     const freshSongsData = getSongsSnapshotData(freshPlayingId);
+                    const freshTimerData = getTimerSnapshotData();
                     musicWidget.updateSnapshot({
                         title,
                         artist,
@@ -388,6 +434,7 @@ export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
                         isRandomOn: isWidgetRandomOn,
                         randomActiveColor,
                         ...freshSongsData,
+                        ...freshTimerData,
                         ...controlIcons,
                     });
                 })
@@ -759,6 +806,32 @@ export function initWidgetInteractionListener() {
                     }
                     updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     break;
+                case "timer": {
+                    const currentTimer = player.timer;
+                    const isCurrentlyActive = currentTimer != null && currentTimer > Date.now();
+
+                    let currentIndex = storage.getNumber("widget_timer_index");
+                    if (currentIndex == null || currentIndex < 0 || !isCurrentlyActive) {
+                        currentIndex = -1;
+                    }
+
+                    const nextIndex = (currentIndex + 1) % TIMER_OPTIONS.length;
+                    const selectedOption = TIMER_OPTIONS[nextIndex];
+
+                    if (selectedOption.ms === 0) {
+                        player.setTimer(null);
+                        storage.set("widget_timer_index", -1);
+                        storage.delete("widget_timer_label");
+                    } else {
+                        const targetTimestamp = Date.now() + selectedOption.ms;
+                        player.setTimer(targetTimestamp);
+                        storage.set("widget_timer_index", nextIndex);
+                        storage.set("widget_timer_label", selectedOption.label);
+                    }
+
+                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                    break;
+                }
                 default:
                     if (event.target && event.target.startsWith("select_playlist:")) {
                         const playlistId = event.target.replace("select_playlist:", "");

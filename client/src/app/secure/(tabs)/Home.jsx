@@ -2,11 +2,11 @@ import { useRef, useEffect, useState, useMemo } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Host, LoadingIndicator as Loader } from '@expo/ui/jetpack-compose';
 
 import { fetchSongs } from "@controllers/song.controller.js";
 import ListItem from "@components/ListItem.jsx";
 import Header from "@components/ListHeader.jsx";
-import Loader from "@components/Loader";
 
 import { usePlayer } from "@store/player";
 import queryClient from "@services/queryClient";
@@ -117,13 +117,19 @@ const Home = () => {
                 }}
                 ListEmptyComponent={
                     isLoading ? (
-                        <Loader size={"large"} />
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
                     ) : (
                         <Text style={styles.text}>No songs</Text>
                     )
                 }
                 ListFooterComponent={
-                    isFetchingNextPage && <Loader size={"large"} />
+                    isFetchingNextPage && (
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
+                    )
                 }
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],

@@ -10,8 +10,8 @@ import {
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Host, LoadingIndicator as Loader } from '@expo/ui/jetpack-compose';
 
-import Loader from "@components/Loader";
 import ListItem from "@components/ListItem.jsx";
 import PopUpOptions from "@components/PopUpOptions.jsx";
 import searchSongs from "@controllers/search.controller.js";
@@ -194,11 +194,17 @@ const Search = () => {
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
                 ListFooterComponent={
-                    isFetchingNextPage && <Loader size={"large"} />
+                    isFetchingNextPage && (
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
+                    )
                 }
                 ListEmptyComponent={
                     isLoading ? (
-                        <Loader size={"large"} />
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
                     ) : debouncedText.length >= 3 ? (
                         <Text style={styles.statusText}>No Songs Found!</Text>
                     ) : null

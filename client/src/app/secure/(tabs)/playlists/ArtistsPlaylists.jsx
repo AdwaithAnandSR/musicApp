@@ -2,10 +2,10 @@ import { useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Host, LoadingIndicator as Loader } from '@expo/ui/jetpack-compose';
 
 import ListItem from "@components/playlists/ListItem.jsx";
 import Header from "@components/ListHeader.jsx";
-import Loader from "@components/Loader";
 
 import { fetchArtists } from "@controllers/playlists/fetch";
 
@@ -62,7 +62,9 @@ const ArtistsPlaylists = () => {
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     isLoading ? (
-                        <Loader size={"large"} />
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
                     ) : (
                         <Text
                             style={{
@@ -76,7 +78,11 @@ const ArtistsPlaylists = () => {
                     )
                 }
                 ListFooterComponent={
-                    isFetchingNextPage && <Loader size={"large"} />
+                    isFetchingNextPage && (
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
+                    )
                 }
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT,

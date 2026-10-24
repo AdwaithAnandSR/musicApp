@@ -2,11 +2,11 @@ import { useState } from "react";
 import { View, Text, StyleSheet, Animated } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Host, LoadingIndicator as Loader } from "@expo/ui/jetpack-compose";
 
 import ListItem from "@components/playlists/ListItem.jsx";
 import CreatePlaylistCard from "@components/playlists/CreatePlaylistCard.jsx";
 import Header from "@components/ListHeader.jsx";
-import Loader from "@components/Loader";
 
 import { fetchPlaylists } from "@controllers/playlists/fetch";
 
@@ -20,7 +20,7 @@ const Playlists = () => {
 
     const onScroll = Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: true }
+        { useNativeDriver: true },
     );
 
     const {
@@ -30,14 +30,14 @@ const Playlists = () => {
         hasNextPage,
         isFetchingNextPage,
         refetch,
-        isFetching
+        isFetching,
     } = useInfiniteQuery({
         queryKey: ["playlists"],
         queryFn: fetchPlaylists,
-        getNextPageParam: lastPage => lastPage.nextPage
+        getNextPageParam: (lastPage) => lastPage.nextPage,
     });
 
-    const apiPlaylists = data?.pages.flatMap(page => page.playlists) || [];
+    const apiPlaylists = data?.pages.flatMap((page) => page.playlists) || [];
 
     const playlists = [
         { _id: "CREATE_PLAYLIST", isCreateButton: true },
@@ -45,9 +45,9 @@ const Playlists = () => {
             _id: "LOCAL_DOWNLOADS",
             name: "Downloads",
             isLocalDownloadsFolder: true,
-            cover: null
+            cover: null,
         },
-        ...apiPlaylists
+        ...apiPlaylists,
     ];
 
     const handleRefresh = () => {
@@ -76,13 +76,15 @@ const Playlists = () => {
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     isLoading ? (
-                        <Loader size={"large"} />
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
                     ) : (
                         <Text
                             style={{
                                 color: "white",
                                 textAlign: "center",
-                                marginTop: 10
+                                marginTop: 10,
                             }}
                         >
                             no playlists.
@@ -90,11 +92,15 @@ const Playlists = () => {
                     )
                 }
                 ListFooterComponent={
-                    isFetchingNextPage && <Loader size={"large"} />
+                    isFetchingNextPage && (
+                        <Host matchContents style={{ alignSelf: "center" }}>
+                            <Loader />
+                        </Host>
+                    )
                 }
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT,
-                    paddingBottom: 5
+                    paddingBottom: 5,
                 }}
                 onEndReached={() => {
                     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
@@ -112,8 +118,8 @@ const Playlists = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "black"
-    }
+        backgroundColor: "black",
+    },
 });
 
 export default Playlists;

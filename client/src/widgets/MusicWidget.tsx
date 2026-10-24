@@ -48,6 +48,8 @@ export interface MusicWidgetProps {
     timerIconsUri?: string;
     closeIconUri?: string;
     isRandomOn?: boolean;
+    isTimerOn?: boolean;
+    timerLabel?: string;
     randomActiveColor?: string;
     widgetView?: "controls" | "playlists" | "songs";
     downloadedPlaylists?: Array<{ id: string; name: string }>;
@@ -84,6 +86,8 @@ export function MusicWidgetLayout(
         timerIconsUri = "",
         closeIconUri = "",
         isRandomOn = false,
+        isTimerOn = false,
+        timerLabel = "",
         randomActiveColor = "#38BDF8",
         widgetView = "controls",
         downloadedPlaylists = [],
@@ -241,7 +245,10 @@ export function MusicWidgetLayout(
                             horizontalArrangement="spaceBetween"
                             modifiers={[fillMaxWidth()]}
                         >
-                            <Row verticalAlignment="center" modifiers={[width(88)]}>
+                            <Row
+                                verticalAlignment="center"
+                                modifiers={[width(88)]}
+                            >
                                 <TextButton
                                     target="back_to_playlists"
                                     modifiers={[
@@ -252,7 +259,10 @@ export function MusicWidgetLayout(
                                 >
                                     <Text
                                         color={titleColor}
-                                        style={{ fontSize: 11, fontWeight: "bold" }}
+                                        style={{
+                                            fontSize: 11,
+                                            fontWeight: "bold",
+                                        }}
                                     >
                                         ←
                                     </Text>
@@ -266,21 +276,6 @@ export function MusicWidgetLayout(
                                     {selectedPlaylistName}
                                 </Text>
                             </Row>
-                            <TextButton
-                                target="exit_to_controls"
-                                modifiers={[
-                                    size(20, 20),
-                                    cornerRadius(10),
-                                    background(buttonBg),
-                                ]}
-                            >
-                                <Text
-                                    color={titleColor}
-                                    style={{ fontSize: 11, fontWeight: "bold" }}
-                                >
-                                    ✕
-                                </Text>
-                            </TextButton>
                         </Row>
 
                         <Spacer modifiers={[height(4)]} />
@@ -322,7 +317,7 @@ export function MusicWidgetLayout(
                                             background(
                                                 s.isPlaying
                                                     ? `${randomActiveColor}33`
-                                                    : buttonBg,
+                                                    : "transparent",
                                             ),
                                             paddingAll(4),
                                         ]}
@@ -331,17 +326,6 @@ export function MusicWidgetLayout(
                                             verticalAlignment="center"
                                             modifiers={[fillMaxWidth()]}
                                         >
-                                            {s.isPlaying && (
-                                                <Text
-                                                    color={randomActiveColor}
-                                                    style={{
-                                                        fontSize: 8,
-                                                        fontWeight: "bold",
-                                                    }}
-                                                >
-                                                    ▶{" "}
-                                                </Text>
-                                            )}
                                             <Text
                                                 color={
                                                     s.isPlaying
@@ -369,7 +353,7 @@ export function MusicWidgetLayout(
                                             fillMaxWidth(),
                                             height(28),
                                             cornerRadius(8),
-                                            background(buttonBg),
+
                                             paddingAll(4),
                                         ]}
                                     >
@@ -540,12 +524,49 @@ export function MusicWidgetLayout(
 
                             <Spacer modifiers={[width(10)]} />
 
-                            <TextButton modifiers={[size(50, 50), cornerRadius(15)]}>
-                                <Image
-                                    source={{ uri: timerIconsUri }}
-                                    contentScale="fit"
-                                    modifiers={[size(35, 35)]}
-                                />
+                            <TextButton
+                                target="timer"
+                                modifiers={[
+                                    size(50, 50),
+                                    cornerRadius(15),
+                                    background(
+                                        isTimerOn
+                                            ? `${randomActiveColor}33`
+                                            : buttonBg,
+                                    ),
+                                ]}
+                            >
+                                <Column
+                                    verticalArrangement="center"
+                                    horizontalArrangement="center"
+                                >
+                                    {isTimerOn && timerLabel ? (
+                                        <Text
+                                            color={randomActiveColor}
+                                            style={{
+                                                fontSize: 9,
+                                                fontWeight: "bold",
+                                            }}
+                                        >
+                                            {timerLabel}
+                                        </Text>
+                                    ) : null}
+                                    <Image
+                                        source={{ uri: timerIconsUri }}
+                                        contentScale="fit"
+                                        modifiers={[
+                                            size(
+                                                isTimerOn ? 22 : 35,
+                                                isTimerOn ? 22 : 35,
+                                            ),
+                                        ]}
+                                        tint={
+                                            isTimerOn
+                                                ? randomActiveColor
+                                                : "#FFFFFF"
+                                        }
+                                    />
+                                </Column>
                             </TextButton>
                         </Row>
                     </Column>
@@ -571,6 +592,8 @@ export const musicWidget = createWidget("MusicWidget", MusicWidgetLayout, {
     timerIconsUri: "",
     closeIconUri: "",
     isRandomOn: false,
+    isTimerOn: false,
+    timerLabel: "",
     randomActiveColor: "#38BDF8",
     widgetView: "controls",
     downloadedPlaylists: [],
