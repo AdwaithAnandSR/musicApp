@@ -5,16 +5,15 @@ import {
     StyleSheet,
     TouchableOpacity,
     Modal,
-    Dimensions
+    Dimensions,
 } from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
     withTiming,
-    runOnJS
+    runOnJS,
 } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 
 import handleDelete from "@controllers/playlists/handleDeletePlaylist.js";
@@ -25,16 +24,10 @@ const { width: vw } = Dimensions.get("window");
 const SPRING_CONFIG = {
     damping: 20,
     stiffness: 200,
-    mass: 0.8
+    mass: 0.8,
 };
 
-const LongPressOptions = ({
-    id,
-    visible,
-    onClose,
-    isLocal,
-    playlistName
-}) => {
+const LongPressOptions = ({ id, visible, onClose, isLocal, playlistName }) => {
     const translateY = useSharedValue(300);
     const backdropOpacity = useSharedValue(0);
 
@@ -53,11 +46,11 @@ const LongPressOptions = ({
     }, [visible]);
 
     const sheetStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: translateY.value }]
+        transform: [{ translateY: translateY.value }],
     }));
 
     const backdropStyle = useAnimatedStyle(() => ({
-        opacity: backdropOpacity.value
+        opacity: backdropOpacity.value,
     }));
 
     const handleDeletePress = () => {
@@ -84,13 +77,7 @@ const LongPressOptions = ({
             <Animated.View
                 style={[styles.backdrop, backdropStyle]}
                 pointerEvents="none"
-            >
-                <BlurView
-                    intensity={30}
-                    tint="dark"
-                    style={StyleSheet.absoluteFill}
-                />
-            </Animated.View>
+            />
 
             {/* Full-screen tap target to dismiss */}
             <TouchableOpacity
@@ -133,10 +120,7 @@ const LongPressOptions = ({
                             onPress={handleDeletePress}
                         >
                             <View
-                                style={[
-                                    styles.iconCircle,
-                                    styles.deleteIconBg
-                                ]}
+                                style={[styles.iconCircle, styles.deleteIconBg]}
                             >
                                 <Ionicons
                                     name="trash-outline"
@@ -174,21 +158,20 @@ const LongPressOptions = ({
 const styles = StyleSheet.create({
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0, 0, 0, 0.4)"
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
     },
     dismissArea: {
         flex: 1,
-        justifyContent: "flex-end"
+        justifyContent: "flex-end",
     },
-    sheetContainer: {
-    },
+    sheetContainer: {},
     sheet: {
         backgroundColor: "#1a1a1a",
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         paddingTop: 10,
         paddingBottom: 40,
-        paddingHorizontal: 20
+        paddingHorizontal: 20,
     },
     handleBar: {
         width: 40,
@@ -196,62 +179,62 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         backgroundColor: "#555",
         alignSelf: "center",
-        marginBottom: 16
+        marginBottom: 16,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        paddingBottom: 14
+        paddingBottom: 14,
     },
     headerText: {
         color: "#e0e0e0",
         fontSize: vw * 0.045,
         fontWeight: "600",
-        flex: 1
+        flex: 1,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: "#333",
-        marginBottom: 8
+        marginBottom: 8,
     },
     option: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 14,
-        gap: 14
+        gap: 14,
     },
     iconCircle: {
         width: 38,
         height: 38,
         borderRadius: 19,
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
     },
     deleteIconBg: {
-        backgroundColor: "rgba(255, 59, 92, 0.12)"
+        backgroundColor: "rgba(255, 59, 92, 0.12)",
     },
     optionText: {
         color: "#e0e0e0",
         fontSize: 16,
         fontWeight: "500",
-        flex: 1
+        flex: 1,
     },
     deleteText: {
-        color: "#ff3b5c"
+        color: "#ff3b5c",
     },
     cancelBtn: {
         marginTop: 12,
         backgroundColor: "#2a2a2a",
         borderRadius: 14,
         paddingVertical: 14,
-        alignItems: "center"
+        alignItems: "center",
     },
     cancelText: {
         color: "#22f97e",
         fontSize: 16,
-        fontWeight: "bold"
-    }
+        fontWeight: "bold",
+    },
 });
 
 export default LongPressOptions;

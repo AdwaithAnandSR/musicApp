@@ -9,7 +9,7 @@ import { useDownloadStatus, useStatus } from "@store/appState.store.js";
  * Normalizes a track to preserve both cloud and local URLs.
  * Checks local storage cache to resolve downloaded audio/video paths.
  */
-const normalizeTrack = async track => {
+const normalizeTrack = async (track) => {
     if (!track) return null;
 
     const cloudUrl = track.cloudUrl || track.url;
@@ -20,7 +20,9 @@ const normalizeTrack = async track => {
     let isLocal = track.isLocal || false;
 
     try {
-        const { getLocalSongInfo } = require("@services/downloads/downloadService");
+        const {
+            getLocalSongInfo,
+        } = require("@services/downloads/downloadService");
         const songId = track._id || track.id;
         if (songId) {
             const localInfo = await getLocalSongInfo(songId);
@@ -45,14 +47,14 @@ const normalizeTrack = async track => {
         cloudUrl,
         videoUrl: finalVideoUrl,
         cloudVideoUrl,
-        isLocal
+        isLocal,
     };
 };
 
 export const useProgress = create(() => ({
     position: 0,
     duration: 0,
-    progress: 0
+    progress: 0,
 }));
 
 let playerTimerTimeout = null;
@@ -62,6 +64,7 @@ export const usePlayer = create((set, get) => ({
     playbackListener: null,
     trackChangedListener: null,
     isActiveForLockScreen: false,
+    isDurationFetched: false,
     queue: [],
 
     currentPlaylistId: null,
@@ -84,11 +87,11 @@ export const usePlayer = create((set, get) => ({
     playlistControllers: {},
 
     setPlaylistController: (id, controller) => {
-        set(state => ({
+        set((state) => ({
             playlistControllers: {
                 ...state.playlistControllers,
-                [id]: controller
-            }
+                [id]: controller,
+            },
         }));
         // Sync native loop mode when pagination state changes
         const { player, currentPlaylistId } = get();
@@ -98,7 +101,12 @@ export const usePlayer = create((set, get) => ({
     },
 
     getEffectiveLoopMode: () => {
-        const { repeatMode, currentPlaylistId, playlistControllers, isLocalPlaylist } = get();
+        const {
+            repeatMode,
+            currentPlaylistId,
+            playlistControllers,
+            isLocalPlaylist,
+        } = get();
         if (repeatMode === "one") return "single";
         if (repeatMode === "queue") {
             const controller = playlistControllers[currentPlaylistId];
@@ -110,7 +118,8 @@ export const usePlayer = create((set, get) => ({
                 if (String(actualId).startsWith("local-")) {
                     actualId = String(actualId).replace("local-", "");
                 }
-                const downloading = useDownloadStatus.getState().downloadingPlaylists[actualId];
+                const downloading =
+                    useDownloadStatus.getState().downloadingPlaylists[actualId];
                 if (downloading && downloading.length > 0) return "none";
             }
             return "all";
@@ -118,7 +127,7 @@ export const usePlayer = create((set, get) => ({
         return "none";
     },
 
-    updateLockScreen: track => {
+    updateLockScreen: (track) => {
         const { player, isActiveForLockScreen } = get();
         if (!player || !track) return;
 
@@ -126,7 +135,7 @@ export const usePlayer = create((set, get) => ({
             title: track.title,
             artist: track?.artist?.split(",")?.[0] || track?.artist,
             artworkUrl: track.cover || track.artwork,
-            albumTitle: track.album || track.albumTitle
+            albumTitle: track.album || track.albumTitle,
         };
 
         if (!isActiveForLockScreen) {
@@ -134,7 +143,7 @@ export const usePlayer = create((set, get) => ({
                 showSeekForward: true,
                 showSeekBackward: true,
                 showNextTrack: true,
-                showPreviousTrack: true
+                showPreviousTrack: true,
             });
             set({ isActiveForLockScreen: true });
         } else {
@@ -144,21 +153,40 @@ export const usePlayer = create((set, get) => ({
 
     updateWidget: (track, isPlaying) => {
         try {
-            const currentTrack = track !== undefined ? track : get().currentTrack;
-            const currentPlaying = isPlaying !== undefined ? isPlaying : get().isPlaying;
-            const { updateMusicWidgetSnapshot } = require("@services/widgetService");
+            const currentTrack =
+                track !== undefined ? track : get().currentTrack;
+            const currentPlaying =
+                isPlaying !== undefined ? isPlaying : get().isPlaying;
+            const {
+                updateMusicWidgetSnapshot,
+            } = require("@services/widgetService");
             updateMusicWidgetSnapshot(currentTrack, currentPlaying);
         } catch (e) {
             console.log("Error updating widget:", e);
         }
     },
 
-    setupListeners: playlist => {
+    setupListeners: (playlist) => {
         const statusListener = playlist.addListener(
             "playlistStatusUpdate",
-            status => {
+            (status) => {
                 const current = get();
+
+                // Guard against stale status events emitted for a previous track during track transitions
+                if (
+                    typeof status.currentIndex === "number" &&
+                    status.currentIndex !== current.currentTrackIndex
+                ) {
+                    return;
+                }
+
                 const track = current.currentTrack;
+                const hasNativeDuration = Boolean(
+                    status.duration && status.duration > 0,
+                );
+                const shouldUpdateLockScreen =
+                    !current.isDurationFetched && hasNativeDuration;
+
                 const duration = status.duration || track?.duration || 0;
                 const position = status.currentTime || 0;
 
@@ -171,6 +199,8 @@ export const usePlayer = create((set, get) => ({
                     updates.isBuffering = status.isBuffering;
                 if (current.isLoaded !== status.isLoaded)
                     updates.isLoaded = status.isLoaded;
+                if (!current.isDurationFetched && hasNativeDuration)
+                    updates.isDurationFetched = true;
 
                 const ended = status.didJustFinish || false;
                 if (current.hasEnded !== ended) updates.hasEnded = ended;
@@ -179,10 +209,17 @@ export const usePlayer = create((set, get) => ({
                     set(updates);
                 }
 
+                // Only set/update lock screen metadata once native duration is ready
+                if (shouldUpdateLockScreen && track) {
+                    get().updateLockScreen(track);
+                }
+
                 const currentProg = useProgress.getState();
                 const progUpdates = {};
-                if (currentProg.position !== position) progUpdates.position = position;
-                if (currentProg.duration !== duration) progUpdates.duration = duration;
+                if (currentProg.position !== position)
+                    progUpdates.position = position;
+                if (currentProg.duration !== duration)
+                    progUpdates.duration = duration;
 
                 const newProgress = duration ? position / duration : 0;
                 if (currentProg.progress !== newProgress)
@@ -204,7 +241,9 @@ export const usePlayer = create((set, get) => ({
                             actualId = String(actualId).replace("local-", "");
                         }
                         const downloading =
-                            useDownloadStatus.getState().downloadingPlaylists[actualId];
+                            useDownloadStatus.getState().downloadingPlaylists[
+                                actualId
+                            ];
                         if (downloading && downloading.length > 0) {
                             set({ isWaitingForDownload: true });
                         }
@@ -214,7 +253,7 @@ export const usePlayer = create((set, get) => ({
                 if (get().timer != null && get().timer < Date.now()) {
                     get().clearPlayer();
                 }
-            }
+            },
         );
 
         const trackListener = playlist.addListener(
@@ -227,24 +266,33 @@ export const usePlayer = create((set, get) => ({
                         currentTrackIndex: currentIndex,
                         currentTrackId: nextTrack._id || nextTrack.id,
                         currentTrack: nextTrack,
-                        hasEnded: false
+                        hasEnded: false,
+                        isDurationFetched: false, // <-- Reset so playlistStatusUpdate triggers lock screen once loaded
                     });
 
-                    useProgress.setState({ position: 0, duration: 0, progress: 0 });
+                    useProgress.setState({
+                        position: 0,
+                        duration: 0,
+                        progress: 0,
+                    });
                     useStatus.getState().resetShowLyrics();
 
-                    get().updateLockScreen(nextTrack);
+                    // Removed premature get().updateLockScreen(nextTrack) from here
                     get().updateWidget(nextTrack, get().isPlaying);
                     get().loadTrackLyrics(nextTrack);
 
                     // Persist playback session for widget instant resume
                     try {
-                        const { saveLastPlaybackSession } = require("@services/storage.js");
+                        const {
+                            saveLastPlaybackSession,
+                        } = require("@services/storage.js");
                         const upcomingTrack = queue[currentIndex + 1];
                         saveLastPlaybackSession({
                             playlistId: currentPlaylistId,
                             songId: nextTrack._id || nextTrack.id,
-                            nextSongId: upcomingTrack ? (upcomingTrack._id || upcomingTrack.id) : null,
+                            nextSongId: upcomingTrack
+                                ? upcomingTrack._id || upcomingTrack.id
+                                : null,
                             isRandom: Boolean(get().isRandomPlaylist),
                             randomSeed: get().randomSeed || null,
                             isLocal: Boolean(get().isLocalPlaylist),
@@ -260,20 +308,20 @@ export const usePlayer = create((set, get) => ({
                         !controller.getIsFetchingNextPage() &&
                         queue.length - currentIndex <= 3
                     ) {
-                        controller.fetchNextPage().catch(e => {
+                        controller.fetchNextPage().catch((e) => {
                             console.error("Pagination prefetch error:", e);
                         });
                     }
                 }
-            }
+            },
         );
 
         return { statusListener, trackListener };
     },
 
-    playByTrackId: trackId => {
+    playByTrackId: (trackId) => {
         const { queue } = get();
-        const index = queue.findIndex(t => (t._id || t.id) === trackId);
+        const index = queue.findIndex((t) => (t._id || t.id) === trackId);
         if (index === -1) return false;
         get().playByIndex(index);
         return true;
@@ -286,11 +334,10 @@ export const usePlayer = create((set, get) => ({
         else player.play();
     },
 
-    playByIndex: async index => {
+    playByIndex: async (index) => {
         const { queue, player, currentTrackIndex, isPlaying } = get();
 
         if (index === currentTrackIndex && isPlaying) {
-            // Restart the current track (e.g. next() on a 1-song queue)
             if (player) {
                 player.seekTo(0);
                 player.play();
@@ -307,18 +354,18 @@ export const usePlayer = create((set, get) => ({
                 currentTrackIndex: index,
                 currentTrackId: track._id || track.id,
                 currentTrack: track,
-                isStopped: false
+                isStopped: false,
+                isDurationFetched: false, // <-- Reset here
             });
             player.skipTo(index);
             player.play();
             get().loadTrackLyrics(track);
         } else {
-            // Player not yet created; initialize with current queue
             const loopMode = get().getEffectiveLoopMode();
             const newPlaylist = createAudioPlaylist({
-                sources: queue.map(t => ({ uri: t.url })),
+                sources: queue.map((t) => ({ uri: t.url })),
                 loop: loopMode,
-                updateInterval: 500
+                updateInterval: 500,
             });
 
             const { statusListener, trackListener } =
@@ -331,7 +378,8 @@ export const usePlayer = create((set, get) => ({
                 currentTrackIndex: index,
                 currentTrackId: track._id || track.id,
                 currentTrack: track,
-                isStopped: false
+                isStopped: false,
+                isDurationFetched: false, // <-- Reset here
             });
 
             newPlaylist.skipTo(index);
@@ -347,7 +395,7 @@ export const usePlayer = create((set, get) => ({
             repeatMode,
             playlistControllers,
             currentPlaylistId,
-            player
+            player,
         } = get();
 
         if (!player) return;
@@ -392,16 +440,16 @@ export const usePlayer = create((set, get) => ({
                 if (String(currentPlaylistId).startsWith("local-")) {
                     actualPlaylistId = String(currentPlaylistId).replace(
                         "local-",
-                        ""
+                        "",
                     );
                 }
                 const downloadedSongs =
                     await getDownloadedSongs(actualPlaylistId);
                 if (downloadedSongs.length > queue.length) {
-                    const newTracks = downloadedSongs.map(song => ({
+                    const newTracks = downloadedSongs.map((song) => ({
                         ...song,
                         isLocal: true,
-                        url: song.localUrl
+                        url: song.localUrl,
                     }));
 
                     for (let i = queue.length; i < newTracks.length; i++) {
@@ -477,7 +525,7 @@ export const usePlayer = create((set, get) => ({
         tracksOverride,
         isLocal = false,
         isRandomPlaylist = false,
-        randomSeed = null
+        randomSeed = null,
     }) => {
         const { currentPlaylistId, queue, player } = get();
 
@@ -497,18 +545,19 @@ export const usePlayer = create((set, get) => ({
                 if (String(playlistId).startsWith("local-")) {
                     actualPlaylistId = String(playlistId).replace("local-", "");
                 }
-                const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
+                const downloadedSongs =
+                    await getDownloadedSongs(actualPlaylistId);
 
-                tracks = downloadedSongs.map(song => ({
+                tracks = downloadedSongs.map((song) => ({
                     ...song,
                     isLocal: true,
-                    url: song.localUrl
+                    url: song.localUrl,
                 }));
             } else {
-                tracks = tracksOverride.map(song => ({
+                tracks = tracksOverride.map((song) => ({
                     ...song,
                     isLocal: true,
-                    url: song.localUrl || song.url
+                    url: song.localUrl || song.url,
                 }));
             }
 
@@ -517,12 +566,15 @@ export const usePlayer = create((set, get) => ({
                 const allShuffled = [...tracks];
                 for (let i = allShuffled.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
-                    [allShuffled[i], allShuffled[j]] = [allShuffled[j], allShuffled[i]];
+                    [allShuffled[i], allShuffled[j]] = [
+                        allShuffled[j],
+                        allShuffled[i],
+                    ];
                 }
 
                 if (trackId) {
                     const targetIdx = allShuffled.findIndex(
-                        t => (t._id || t.id) === trackId
+                        (t) => (t._id || t.id) === trackId,
                     );
                     if (targetIdx > 0) {
                         const [tapped] = allShuffled.splice(targetIdx, 1);
@@ -538,24 +590,25 @@ export const usePlayer = create((set, get) => ({
                         getHasNextPage: () => offset < allShuffled.length,
                         getIsFetchingNextPage: () => isFetching,
                         fetchNextPage: async () => {
-                            if (isFetching || offset >= allShuffled.length) return;
+                            if (isFetching || offset >= allShuffled.length)
+                                return;
                             isFetching = true;
                             try {
                                 const nextChunk = allShuffled.slice(
                                     offset,
-                                    offset + LOCAL_PAGE_SIZE
+                                    offset + LOCAL_PAGE_SIZE,
                                 );
                                 offset += nextChunk.length;
                                 await get().appendToQueue(
                                     playlistId,
                                     nextChunk,
                                     true,
-                                    randomSeed
+                                    randomSeed,
                                 );
                             } finally {
                                 isFetching = false;
                             }
-                        }
+                        },
                     };
                     get().setPlaylistController(playlistId, localController);
                     tracks = allShuffled.slice(0, LOCAL_PAGE_SIZE);
@@ -563,7 +616,8 @@ export const usePlayer = create((set, get) => ({
                     tracks = allShuffled;
                     const { playlistControllers } = get();
                     if (playlistControllers[playlistId]) {
-                        const { [playlistId]: _, ...rest } = playlistControllers;
+                        const { [playlistId]: _, ...rest } =
+                            playlistControllers;
                         set({ playlistControllers: rest });
                     }
                 }
@@ -580,12 +634,12 @@ export const usePlayer = create((set, get) => ({
             }
 
             const data = queryClient.getQueryData(targetQueryKey);
-            tracks = data?.pages?.flatMap(page => page.musics) ?? [];
+            tracks = data?.pages?.flatMap((page) => page.musics) ?? [];
 
             if (!tracks.length) {
                 const activeQueries = queryClient.getQueriesData({
                     queryKey: targetQueryKey,
-                    exact: true
+                    exact: true,
                 });
 
                 if (activeQueries && activeQueries.length > 0) {
@@ -593,7 +647,7 @@ export const usePlayer = create((set, get) => ({
                         activeQueries[activeQueries.length - 1];
 
                     tracks =
-                        lastQueryData?.pages?.flatMap(page => page.musics) ??
+                        lastQueryData?.pages?.flatMap((page) => page.musics) ??
                         [];
                 }
             }
@@ -609,7 +663,7 @@ export const usePlayer = create((set, get) => ({
         if (get()._playSeqId !== seqId) return false;
 
         const targetIndex = resolvedTracks.findIndex(
-            t => (t._id || t.id) === trackId
+            (t) => (t._id || t.id) === trackId,
         );
         if (trackId && targetIndex === -1) return false;
         const initialIndex = targetIndex !== -1 ? targetIndex : 0;
@@ -654,7 +708,11 @@ export const usePlayer = create((set, get) => ({
             player.clearLockScreenControls();
             player.destroy();
         }
-        set({ player: null, playbackListener: null, trackChangedListener: null });
+        set({
+            player: null,
+            playbackListener: null,
+            trackChangedListener: null,
+        });
 
         const currentTrack = resolvedTracks[initialIndex];
         set({
@@ -668,7 +726,8 @@ export const usePlayer = create((set, get) => ({
             currentTrack: currentTrack,
             isStopped: false,
             isWaitingForDownload: false,
-            isActiveForLockScreen: false
+            isActiveForLockScreen: false,
+            isDurationFetched: false
         });
 
         // Persist playback session for widget instant resume
@@ -678,7 +737,9 @@ export const usePlayer = create((set, get) => ({
             saveLastPlaybackSession({
                 playlistId,
                 songId: currentTrack._id || currentTrack.id,
-                nextSongId: upcomingTrack ? (upcomingTrack._id || upcomingTrack.id) : null,
+                nextSongId: upcomingTrack
+                    ? upcomingTrack._id || upcomingTrack.id
+                    : null,
                 isRandom: Boolean(isRandomPlaylist),
                 randomSeed: randomSeed || null,
                 isLocal: Boolean(isLocal),
@@ -689,9 +750,9 @@ export const usePlayer = create((set, get) => ({
         try {
             const loopMode = get().getEffectiveLoopMode();
             const newPlaylist = createAudioPlaylist({
-                sources: resolvedTracks.map(t => ({ uri: t.url })),
+                sources: resolvedTracks.map((t) => ({ uri: t.url })),
                 loop: loopMode,
-                updateInterval: 500
+                updateInterval: 500,
             });
 
             const { statusListener, trackListener } =
@@ -703,13 +764,16 @@ export const usePlayer = create((set, get) => ({
             set({
                 player: newPlaylist,
                 playbackListener: statusListener,
-                trackChangedListener: trackListener
+                trackChangedListener: trackListener,
             });
 
-            get().updateLockScreen(currentTrack);
+            // get().updateLockScreen(currentTrack);
             get().loadTrackLyrics(currentTrack);
         } catch (err) {
-            console.error("changePlaylistAndPlay: failed to create player", err);
+            console.error(
+                "changePlaylistAndPlay: failed to create player",
+                err,
+            );
             get().resetValues();
             return false;
         }
@@ -717,7 +781,12 @@ export const usePlayer = create((set, get) => ({
         return true;
     },
 
-    appendToQueue: async (playlistId, tracks, isRandom = false, seed = null) => {
+    appendToQueue: async (
+        playlistId,
+        tracks,
+        isRandom = false,
+        seed = null,
+    ) => {
         const { currentPlaylistId, isRandomPlaylist, randomSeed } = get();
         if (playlistId !== currentPlaylistId) return;
         if (isRandom !== isRandomPlaylist) return;
@@ -726,12 +795,12 @@ export const usePlayer = create((set, get) => ({
 
         const { queue, player } = get();
 
-        const existingIds = new Set(queue.map(t => t._id || t.id));
-        const newTracks = tracks.filter(t => !existingIds.has(t._id || t.id));
+        const existingIds = new Set(queue.map((t) => t._id || t.id));
+        const newTracks = tracks.filter((t) => !existingIds.has(t._id || t.id));
         if (!newTracks.length) return;
 
         const resolvedNewTracks = await Promise.all(
-            newTracks.map(normalizeTrack)
+            newTracks.map(normalizeTrack),
         );
 
         // Re-read fresh state after await to avoid overwriting concurrent changes
@@ -744,8 +813,8 @@ export const usePlayer = create((set, get) => ({
             currentPlayer.loop = get().getEffectiveLoopMode();
         }
 
-        set(state => ({
-            queue: [...state.queue, ...resolvedNewTracks]
+        set((state) => ({
+            queue: [...state.queue, ...resolvedNewTracks],
         }));
     },
 
@@ -756,7 +825,7 @@ export const usePlayer = create((set, get) => ({
         const ids = Array.isArray(songIds) ? songIds : [songIds];
         const removeSet = new Set(ids);
         const { queue, currentTrackId, currentTrackIndex, player } = get();
-        if (!queue.some(t => removeSet.has(t._id || t.id))) return;
+        if (!queue.some((t) => removeSet.has(t._id || t.id))) return;
 
         const indicesToRemove = [];
         queue.forEach((t, index) => {
@@ -772,18 +841,18 @@ export const usePlayer = create((set, get) => ({
             }
         }
 
-        const newQueue = queue.filter(t => !removeSet.has(t._id || t.id));
+        const newQueue = queue.filter((t) => !removeSet.has(t._id || t.id));
 
         if (removeSet.has(currentTrackId)) {
             if (newQueue.length > 0) {
                 const nextIdx = Math.min(
                     currentTrackIndex,
-                    newQueue.length - 1
+                    newQueue.length - 1,
                 );
                 set({
                     queue: newQueue,
                     currentTrackIndex: -1,
-                    isWaitingForDownload: false
+                    isWaitingForDownload: false,
                 });
                 get().playByIndex(nextIdx);
             } else {
@@ -792,13 +861,13 @@ export const usePlayer = create((set, get) => ({
             }
         } else {
             const newIndex = newQueue.findIndex(
-                t => (t._id || t.id) === currentTrackId
+                (t) => (t._id || t.id) === currentTrackId,
             );
             set({ queue: newQueue, currentTrackIndex: newIndex });
         }
     },
 
-    seekTo: ms => {
+    seekTo: (ms) => {
         const { player } = get();
         player?.seekTo(ms);
     },
@@ -823,7 +892,7 @@ export const usePlayer = create((set, get) => ({
         set({ playbackRate: rate });
     },
 
-    setTimer: async time => {
+    setTimer: async (time) => {
         if (playerTimerTimeout) {
             clearTimeout(playerTimerTimeout);
             playerTimerTimeout = null;
@@ -849,7 +918,7 @@ export const usePlayer = create((set, get) => ({
         get().updateWidget();
     },
 
-    updateRepeatMode: mode => {
+    updateRepeatMode: (mode) => {
         set({ repeatMode: mode });
         const { player } = get();
         if (player) {
@@ -890,6 +959,7 @@ export const usePlayer = create((set, get) => ({
             playbackListener: null,
             trackChangedListener: null,
             isActiveForLockScreen: false,
+            isDurationFetched: false, // <-- Reset here
             isPlaying: false,
             isBuffering: false,
             isStopped: true,
@@ -900,7 +970,7 @@ export const usePlayer = create((set, get) => ({
             timer: null,
             isWaitingForDownload: false,
             isLocalPlaylist: false,
-            playbackRate: 1.0
+            playbackRate: 1.0,
         });
     },
 
@@ -908,7 +978,11 @@ export const usePlayer = create((set, get) => ({
         const { currentPlaylistId } = get();
 
         // 1. If currently playing a dedicated local playlist
-        if (currentPlaylistId && get().queue.length > 0 && get().isLocalPlaylist) {
+        if (
+            currentPlaylistId &&
+            get().queue.length > 0 &&
+            get().isLocalPlaylist
+        ) {
             const controller = get().playlistControllers[currentPlaylistId];
 
             // If the local playlist has an active pagination controller that has more pages,
@@ -928,19 +1002,20 @@ export const usePlayer = create((set, get) => ({
             if (String(currentPlaylistId).startsWith("local-")) {
                 actualPlaylistId = String(currentPlaylistId).replace(
                     "local-",
-                    ""
+                    "",
                 );
             }
             const downloadedSongs = await getDownloadedSongs(actualPlaylistId);
 
             // Re-read fresh state after await
-            const { queue, currentTrackIndex, player, isWaitingForDownload } = get();
+            const { queue, currentTrackIndex, player, isWaitingForDownload } =
+                get();
 
             if (downloadedSongs.length > queue.length) {
-                const newTracks = downloadedSongs.map(song => ({
+                const newTracks = downloadedSongs.map((song) => ({
                     ...song,
                     isLocal: true,
-                    url: song.localUrl
+                    url: song.localUrl,
                 }));
 
                 if (player) {
@@ -967,7 +1042,9 @@ export const usePlayer = create((set, get) => ({
         // 2. If playing a cloud playlist where upcoming songs just finished downloading
         const { player, queue } = get();
         if (player && queue.length > 0) {
-            const { getLocalSongInfo } = require("@services/downloads/downloadService");
+            const {
+                getLocalSongInfo,
+            } = require("@services/downloads/downloadService");
             let queueUpdated = false;
             const updatedQueue = [...queue];
 
@@ -983,7 +1060,7 @@ export const usePlayer = create((set, get) => ({
                         ...track,
                         url: localInfo.localUrl,
                         isLocal: true,
-                        videoUrl: localInfo.localVideoUrl || track.videoUrl
+                        videoUrl: localInfo.localVideoUrl || track.videoUrl,
                     };
                     updatedQueue[i] = newTrack;
 
@@ -996,7 +1073,10 @@ export const usePlayer = create((set, get) => ({
                             player.insert({ uri: localInfo.localUrl }, i);
                             player.remove(i + 1);
                         } catch (e) {
-                            console.log("Error swapping native source for downloaded song:", e);
+                            console.log(
+                                "Error swapping native source for downloaded song:",
+                                e,
+                            );
                         }
                     } else if (i === freshIndex) {
                         set({ currentTrack: newTrack });
@@ -1010,7 +1090,7 @@ export const usePlayer = create((set, get) => ({
         }
     },
 
-    onLocalSongDeleted: async deletedSongId => {
+    onLocalSongDeleted: async (deletedSongId) => {
         const queue = get().queue;
         if (!queue || !queue.length) return;
 
@@ -1025,7 +1105,9 @@ export const usePlayer = create((set, get) => ({
             if (deletedSongId && songId !== deletedSongId) continue;
 
             if (track.isLocal) {
-                const { getLocalSongInfo } = require("@services/downloads/downloadService");
+                const {
+                    getLocalSongInfo,
+                } = require("@services/downloads/downloadService");
                 const localInfo = await getLocalSongInfo(songId);
 
                 if (!localInfo?.localUrl) {
@@ -1036,12 +1118,15 @@ export const usePlayer = create((set, get) => ({
                         ...track,
                         url: cloudUrl,
                         isLocal: false,
-                        videoUrl: cloudVideoUrl
+                        videoUrl: cloudVideoUrl,
                     };
                     updatedQueue[i] = revertedTrack;
 
                     // Re-read fresh state after await for accurate comparison
-                    const { player: freshPlayer, currentTrackIndex: freshIndex } = get();
+                    const {
+                        player: freshPlayer,
+                        currentTrackIndex: freshIndex,
+                    } = get();
 
                     // If upcoming track in native queue, revert back to cloud source
                     if (freshPlayer && i > freshIndex) {
@@ -1049,7 +1134,10 @@ export const usePlayer = create((set, get) => ({
                             freshPlayer.insert({ uri: cloudUrl }, i);
                             freshPlayer.remove(i + 1);
                         } catch (e) {
-                            console.log("Error reverting native source for deleted song:", e);
+                            console.log(
+                                "Error reverting native source for deleted song:",
+                                e,
+                            );
                         }
                     } else if (i === freshIndex) {
                         set({ currentTrack: revertedTrack });
@@ -1069,26 +1157,29 @@ export const usePlayer = create((set, get) => ({
         if (!songId) return;
 
         try {
-            const { getLyricsForTrack } = require("../services/lyricsService.js");
+            const {
+                getLyricsForTrack,
+            } = require("../services/lyricsService.js");
             const lyricsData = await getLyricsForTrack(track);
             if (lyricsData && get().currentTrackId === songId) {
                 set((state) => ({
                     currentTrack:
                         state.currentTrack &&
-                        (state.currentTrack._id || state.currentTrack.id) === songId
+                        (state.currentTrack._id || state.currentTrack.id) ===
+                            songId
                             ? {
                                   ...state.currentTrack,
                                   lyrics: lyricsData.lyrics,
                                   lyricsAsText: lyricsData.lyricsAsText,
                                   synced:
                                       lyricsData.synced ??
-                                      state.currentTrack.synced
+                                      state.currentTrack.synced,
                               }
-                            : state.currentTrack
+                            : state.currentTrack,
                 }));
             }
         } catch (e) {
             console.log("Failed to load lyrics for track:", e);
         }
-    }
+    },
 }));

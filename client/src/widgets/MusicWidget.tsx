@@ -506,7 +506,7 @@ export function MusicWidgetLayout(
                                     background(
                                         isRandomOn
                                             ? `${randomActiveColor}33`
-                                            : buttonBg,
+                                            : "transparent",
                                     ),
                                 ]}
                             >
@@ -532,7 +532,7 @@ export function MusicWidgetLayout(
                                     background(
                                         isTimerOn
                                             ? `${randomActiveColor}33`
-                                            : buttonBg,
+                                            : "transparent",
                                     ),
                                 ]}
                             >

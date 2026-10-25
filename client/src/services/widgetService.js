@@ -13,6 +13,7 @@ let lastUpdatedArtworkSource = null;
 let cachedArtworkFileUri = "";
 let latestArtworkRequest = null;
 let iconUris = null;
+let iconUrisPromise = null;
 let widgetViewMode = "controls"; // "controls" | "playlists" | "songs"
 let selectedPlaylist = null;
 let allLoadedSongs = [];
@@ -156,13 +157,10 @@ async function resolveIconUri(dir, key, getImageSourceFn) {
         try {
             const sourceFile = new File(source.uri);
             const targetFile = new File(dir, `widget_icon_${key}.png`);
-            if (targetFile.exists) {
-                try {
-                    targetFile.delete();
-                } catch (_) {}
-            }
             if (sourceFile.exists) {
-                sourceFile.copy(targetFile);
+                if (sourceFile.uri !== targetFile.uri) {
+                    await sourceFile.copy(targetFile, { overwrite: true });
+                }
                 if (targetFile.exists) {
                     return targetFile.uri;
                 }
@@ -177,70 +175,76 @@ async function resolveIconUri(dir, key, getImageSourceFn) {
 
 async function getWidgetIconUris() {
     if (iconUris) return iconUris;
+    if (iconUrisPromise) return iconUrisPromise;
 
-    try {
-        const dirUri = getWidgetsDirectoryUri();
-        let dir = null;
-        if (dirUri) {
-            dir = new Directory(dirUri);
-            if (!dir.exists) {
-                dir.create({ idempotent: true, intermediates: true });
+    iconUrisPromise = (async () => {
+        try {
+            const dirUri = getWidgetsDirectoryUri();
+            let dir = null;
+            if (dirUri) {
+                dir = new Directory(dirUri);
+                if (!dir.exists) {
+                    dir.create({ idempotent: true, intermediates: true });
+                }
             }
+
+            const [play, pause, next, prev, fav, albums, download, random, timer, close] =
+                await Promise.all([
+                    resolveIconUri(dir, "play", () =>
+                        Ionicons.getImageSource("play", 32, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "pause", () =>
+                        Ionicons.getImageSource("pause", 32, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "next", () =>
+                        MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "prev", () =>
+                        MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "fav", () =>
+                        MaterialIcons.getImageSource("favorite", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "albums", () =>
+                        MaterialIcons.getImageSource("album", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "download", () =>
+                        MaterialIcons.getImageSource("download", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "random", () =>
+                        MaterialIcons.getImageSource("shuffle", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "timer", () =>
+                        MaterialIcons.getImageSource("timer", 28, "#FFFFFF")
+                    ),
+                    resolveIconUri(dir, "close", () =>
+                        Ionicons.getImageSource("close", 24, "#FFFFFF")
+                    ),
+                ]);
+
+            iconUris = {
+                play,
+                pause,
+                next,
+                prev,
+                fav,
+                albums,
+                download,
+                random,
+                timer,
+                close,
+            };
+            return iconUris;
+        } catch (e) {
+            console.warn("Failed to generate widget icon images:", e);
+            // Don't cache the failure permanently; allow a retry next time.
+            return { ...EMPTY_ICONS };
+        } finally {
+            iconUrisPromise = null;
         }
+    })();
 
-        const [play, pause, next, prev, fav, albums, download, random, timer, close] =
-            await Promise.all([
-                resolveIconUri(dir, "play", () =>
-                    Ionicons.getImageSource("play", 32, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "pause", () =>
-                    Ionicons.getImageSource("pause", 32, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "next", () =>
-                    MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "prev", () =>
-                    MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "fav", () =>
-                    MaterialIcons.getImageSource("favorite", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "albums", () =>
-                    MaterialIcons.getImageSource("album", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "download", () =>
-                    MaterialIcons.getImageSource("download", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "random", () =>
-                    MaterialIcons.getImageSource("shuffle", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "timer", () =>
-                    MaterialIcons.getImageSource("timer", 28, "#FFFFFF")
-                ),
-                resolveIconUri(dir, "close", () =>
-                    Ionicons.getImageSource("close", 24, "#FFFFFF")
-                ),
-            ]);
-
-        iconUris = {
-            play,
-            pause,
-            next,
-            prev,
-            fav,
-            albums,
-            download,
-            random,
-            timer,
-            close,
-        };
-    } catch (e) {
-        console.warn("Failed to generate widget icon images:", e);
-        // Don't cache the failure permanently; allow a retry next time.
-        return { ...EMPTY_ICONS };
-    }
-
-    return iconUris;
+    return iconUrisPromise;
 }
 
 /**
@@ -270,17 +274,16 @@ async function resolveWidgetArtwork(rawArtwork) {
             }
         }
 
-        if (targetFile.exists) {
-            try {
-                targetFile.delete();
-            } catch (_) {}
-        }
-
         // Local file: copy into widgets directory
         if (rawArtwork.startsWith("file://")) {
             const sourceFile = new File(rawArtwork);
             if (!sourceFile.exists) return "";
-            sourceFile.copy(targetFile);
+            if (sourceFile.uri === targetFile.uri) {
+                lastUpdatedArtworkSource = rawArtwork;
+                cachedArtworkFileUri = targetFile.uri;
+                return targetFile.uri;
+            }
+            await sourceFile.copy(targetFile, { overwrite: true });
         } else {
             // Remote URL (http / https): download into widgets directory
             await File.downloadFileAsync(rawArtwork, targetFile, {

@@ -1,24 +1,30 @@
 import React, { useState, useEffect, useCallback } from "react";
 import DestinationPickerModal from "./playlists/DestinationPickerModal.jsx";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal } from "react-native";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    Alert,
+    Modal,
+} from "react-native";
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withSpring,
     withTiming,
-    runOnJS
+    runOnJS,
 } from "react-native-reanimated";
-import { BlurView } from "expo-blur";
 import Ionicons from "@react-native-vector-icons/ionicons/static";
 import * as Haptics from "expo-haptics";
 
 import { useAppStatus, useMultiSelect } from "../store/appState.store.js";
 import removeSong, {
-    removeSongsBatch
+    removeSongsBatch,
 } from "../controllers/playlists/removeSong.js";
 import {
     deleteSongPermanent,
-    deleteSongsPermanentBatch
+    deleteSongsPermanentBatch,
 } from "../controllers/admin.js";
 import Toast from "../services/Toast.js";
 import queryClient from "../services/queryClient.js";
@@ -26,13 +32,15 @@ import queryClient from "../services/queryClient.js";
 const SPRING_CONFIG = {
     damping: 20,
     stiffness: 200,
-    mass: 0.8
+    mass: 0.8,
 };
 
 const PopUpOptions = () => {
-    const options = useAppStatus(state => state.popUpOption);
-    const isAdmin = useAppStatus(state => state.user?.role === "admin");
-    const selectedSongsCount = useMultiSelect(state => state.selectedSongs.length);
+    const options = useAppStatus((state) => state.popUpOption);
+    const isAdmin = useAppStatus((state) => state.user?.role === "admin");
+    const selectedSongsCount = useMultiSelect(
+        (state) => state.selectedSongs.length,
+    );
     const [destModalSong, setDestModalSong] = useState(null);
 
     const visible = options.y !== -1 && !!options.songId && !!options.playId;
@@ -56,27 +64,27 @@ const PopUpOptions = () => {
             translateY.value = withSpring(0, SPRING_CONFIG);
             backdropOpacity.value = withTiming(1, { duration: 250 });
         } else {
-             translateY.value = 500;
-             backdropOpacity.value = 0;
+            translateY.value = 500;
+            backdropOpacity.value = 0;
         }
     }, [visible]);
 
     const sheetStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: translateY.value }]
+        transform: [{ translateY: translateY.value }],
     }));
 
     const backdropStyle = useAnimatedStyle(() => ({
-        opacity: backdropOpacity.value
+        opacity: backdropOpacity.value,
     }));
 
     const isFavPlaylist = options.playId === "FAVOURITES_PLAYLIST_ID";
     const isPlaylist =
         isFavPlaylist ||
         (typeof options.playId === "string" &&
-        options.playId !== "HOME" &&
-        options.playId !== "SEARCH" &&
-        !options.playId.startsWith("SEARCH-") &&
-        /^[0-9a-fA-F]{24}$/.test(options.playId));
+            options.playId !== "HOME" &&
+            options.playId !== "SEARCH" &&
+            !options.playId.startsWith("SEARCH-") &&
+            /^[0-9a-fA-F]{24}$/.test(options.playId));
     const count = selectedSongsCount;
     const isMultiSelecting = count > 0;
 
@@ -84,7 +92,7 @@ const PopUpOptions = () => {
         close();
         const targetSong = options.song || {
             id: options.songId,
-            _id: options.songId
+            _id: options.songId,
         };
         setTimeout(() => {
             useMultiSelect.getState().updateSelectedSongs(targetSong);
@@ -98,36 +106,45 @@ const PopUpOptions = () => {
         }, 250);
     };
 
-    const isLocalDownload = typeof options.playId === "string" && options.playId.startsWith("local-");
+    const isLocalDownload =
+        typeof options.playId === "string" &&
+        options.playId.startsWith("local-");
 
     const handleRemoveDownload = async () => {
         const pId = options.playId.replace("local-", "");
         close();
         setTimeout(async () => {
-            const { deleteDownloadedSong } = require("../services/downloads/downloadService.js");
+            const {
+                deleteDownloadedSong,
+            } = require("../services/downloads/downloadService.js");
             await deleteDownloadedSong(pId, options.songId);
             const { usePlayer } = require("../store/player.js");
-            usePlayer.getState().removeFromQueue(options.songId, options.playId);
+            usePlayer
+                .getState()
+                .removeFromQueue(options.songId, options.playId);
             Toast.show("Download removed", "success");
         }, 250);
     };
 
     const handleBatchRemove = async () => {
         const selectedSongs = useMultiSelect.getState().selectedSongs;
-        const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
+        const songIds = selectedSongs.map((s) => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
         close();
         setTimeout(async () => {
             useMultiSelect.getState().reset();
-            
+
             if (isFavPlaylist) {
-                const handleToggleFavourite = require("../controllers/playlists/handleToggleFavourite.js").default;
+                const handleToggleFavourite =
+                    require("../controllers/playlists/handleToggleFavourite.js").default;
                 Toast.show("Removing Songs...", "pending");
                 for (const sid of songIds) {
                     await handleToggleFavourite(sid);
                 }
                 const { usePlayer } = require("../store/player.js");
-                usePlayer.getState().removeFromQueue(songIds, "FAVOURITES_PLAYLIST_ID");
+                usePlayer
+                    .getState()
+                    .removeFromQueue(songIds, "FAVOURITES_PLAYLIST_ID");
                 Toast.show("Removed from Favourites", "success");
             } else {
                 await removeSongsBatch({ playlistId: options.playId, songIds });
@@ -138,50 +155,69 @@ const PopUpOptions = () => {
     const handleDownloadSingle = () => {
         const targetSong = options.song || {
             id: options.songId,
-            _id: options.songId
+            _id: options.songId,
         };
         close();
         setTimeout(() => setDestModalSong(targetSong), 250);
     };
 
-    const handleDownloadSingleSubmit = async (playlistName, concurrency, downloadVideo = false) => {
+    const handleDownloadSingleSubmit = async (
+        playlistName,
+        concurrency,
+        downloadVideo = false,
+    ) => {
         const targetSong = destModalSong;
         setDestModalSong(null);
-        const { downloadPlaylistSongs } = require("../services/downloads/downloadService.js");
-        const currentSelectedPlaylist = useAppStatus.getState().currentSelectedPlaylist;
-        
+        const {
+            downloadPlaylistSongs,
+        } = require("../services/downloads/downloadService.js");
+        const currentSelectedPlaylist =
+            useAppStatus.getState().currentSelectedPlaylist;
+
         const safePlaylistName = playlistName.trim() || "My Downloads";
         let playlistId;
-        
-        if (currentSelectedPlaylist && safePlaylistName === currentSelectedPlaylist.name) {
-            playlistId = currentSelectedPlaylist._id || currentSelectedPlaylist.id;
+
+        if (
+            currentSelectedPlaylist &&
+            safePlaylistName === currentSelectedPlaylist.name
+        ) {
+            playlistId =
+                currentSelectedPlaylist._id || currentSelectedPlaylist.id;
         } else if (safePlaylistName === "My Downloads") {
             playlistId = "local_my_downloads";
         } else {
-            playlistId = "local_" + safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+            playlistId =
+                "local_" +
+                safePlaylistName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
         }
-        
+
         const playlistToSave = {
             id: playlistId,
             name: safePlaylistName,
-            cover: currentSelectedPlaylist?.cover || null
+            cover: currentSelectedPlaylist?.cover || null,
         };
-        
+
         Toast.show("Downloading song...", "pending");
         try {
-            await downloadPlaylistSongs(playlistToSave, [targetSong], 1, null, downloadVideo);
+            await downloadPlaylistSongs(
+                playlistToSave,
+                [targetSong],
+                1,
+                null,
+                downloadVideo,
+            );
             Toast.show("Download Complete!", "success");
-        } catch(e) {
+        } catch (e) {
             Toast.show("Download Failed", "error");
         }
     };
 
     const handleBatchDelete = async () => {
         const selectedSongs = useMultiSelect.getState().selectedSongs;
-        const songIds = selectedSongs.map(s => s.id || s._id).filter(Boolean);
+        const songIds = selectedSongs.map((s) => s.id || s._id).filter(Boolean);
         if (!songIds.length) return;
         close();
-        
+
         setTimeout(() => {
             Haptics.impactAsync("medium");
             Alert.alert(
@@ -197,31 +233,41 @@ const PopUpOptions = () => {
                             Toast.show("Deleting Songs", "pending");
 
                             try {
-                                const res = await deleteSongsPermanentBatch(songIds);
+                                const res =
+                                    await deleteSongsPermanentBatch(songIds);
                                 if (res?.success) {
                                     Toast.show("Songs Deleted", "success");
-                                    const { usePlayer } = require("../store/player.js");
-                                    usePlayer.getState().removeFromQueue(songIds);
+                                    const {
+                                        usePlayer,
+                                    } = require("../store/player.js");
+                                    usePlayer
+                                        .getState()
+                                        .removeFromQueue(songIds);
                                     if (isPlaylist && !isFavPlaylist) {
                                         await removeSongsBatch({
                                             playlistId: options.playId,
-                                            songIds
+                                            songIds,
                                         });
                                     }
-                                    queryClient.invalidateQueries({ queryKey: [options.playId] });
-                                    queryClient.invalidateQueries({ queryKey: ["HOME"] });
+                                    queryClient.invalidateQueries({
+                                        queryKey: [options.playId],
+                                    });
+                                    queryClient.invalidateQueries({
+                                        queryKey: ["HOME"],
+                                    });
                                 } else {
                                     Toast.show("Delete Failed", "error");
                                 }
                             } catch (err) {
                                 Toast.show(
-                                    err?.response?.data?.message || "Delete Failed",
-                                    "error"
+                                    err?.response?.data?.message ||
+                                        "Delete Failed",
+                                    "error",
                                 );
                             }
-                        }
-                    }
-                ]
+                        },
+                    },
+                ],
             );
         }, 250);
     };
@@ -242,28 +288,39 @@ const PopUpOptions = () => {
                             Toast.show("Deleting Song", "pending");
 
                             try {
-                                const res = await deleteSongPermanent(options.songId);
+                                const res = await deleteSongPermanent(
+                                    options.songId,
+                                );
                                 if (res?.success) {
                                     Toast.show("Song Deleted", "success");
-                                    const { usePlayer } = require("../store/player.js");
-                                    usePlayer.getState().removeFromQueue(options.songId);
+                                    const {
+                                        usePlayer,
+                                    } = require("../store/player.js");
+                                    usePlayer
+                                        .getState()
+                                        .removeFromQueue(options.songId);
                                     if (isPlaylist && !isFavPlaylist) {
                                         removeSong(options);
                                     }
-                                    queryClient.invalidateQueries({ queryKey: [options.playId] });
-                                    queryClient.invalidateQueries({ queryKey: ["HOME"] });
+                                    queryClient.invalidateQueries({
+                                        queryKey: [options.playId],
+                                    });
+                                    queryClient.invalidateQueries({
+                                        queryKey: ["HOME"],
+                                    });
                                 } else {
                                     Toast.show("Delete Failed", "error");
                                 }
                             } catch (err) {
                                 Toast.show(
-                                    err?.response?.data?.message || "Delete Failed",
-                                    "error"
+                                    err?.response?.data?.message ||
+                                        "Delete Failed",
+                                    "error",
                                 );
                             }
-                        }
-                    }
-                ]
+                        },
+                    },
+                ],
             );
         }, 250);
     };
@@ -272,11 +329,14 @@ const PopUpOptions = () => {
         close();
         setTimeout(async () => {
             if (isFavPlaylist) {
-                const handleToggleFavourite = require("../controllers/playlists/handleToggleFavourite.js").default;
+                const handleToggleFavourite =
+                    require("../controllers/playlists/handleToggleFavourite.js").default;
                 Toast.show("Removing from Favourites...", "pending");
                 await handleToggleFavourite(options.songId);
                 const { usePlayer } = require("../store/player.js");
-                usePlayer.getState().removeFromQueue(options.songId, options.playId);
+                usePlayer
+                    .getState()
+                    .removeFromQueue(options.songId, options.playId);
                 Toast.show("Removed from Favourites", "success");
             } else {
                 removeSong(options);
@@ -286,7 +346,6 @@ const PopUpOptions = () => {
 
     const songTitle = options.song?.title || "Options";
     const isRecentlyList = options.playId === "6a3e689cfba948ae55682fe3";
-
 
     return (
         <>
@@ -301,13 +360,7 @@ const PopUpOptions = () => {
                 <Animated.View
                     style={[styles.backdrop, backdropStyle]}
                     pointerEvents="none"
-                >
-                    <BlurView
-                        intensity={30}
-                        tint="dark"
-                        style={StyleSheet.absoluteFill}
-                    />
-                </Animated.View>
+                />
 
                 {/* Full-screen tap target to dismiss */}
                 <TouchableOpacity
@@ -316,12 +369,22 @@ const PopUpOptions = () => {
                     onPress={close}
                 >
                     <Animated.View style={[styles.sheetContainer, sheetStyle]}>
-                        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+                        <View
+                            style={styles.sheet}
+                            onStartShouldSetResponder={() => true}
+                        >
                             <View style={styles.handleBar} />
 
                             <View style={styles.header}>
-                                <Ionicons name="musical-notes" size={20} color="#a0a0a0" />
-                                <Text style={styles.headerText} numberOfLines={1}>
+                                <Ionicons
+                                    name="musical-notes"
+                                    size={20}
+                                    color="#a0a0a0"
+                                />
+                                <Text
+                                    style={styles.headerText}
+                                    numberOfLines={1}
+                                >
                                     {songTitle}
                                 </Text>
                             </View>
@@ -331,78 +394,232 @@ const PopUpOptions = () => {
                             {isMultiSelecting ? (
                                 <>
                                     {!isRecentlyList && isPlaylist && (
-                                        <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleBatchRemove}>
-                                            <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 255, 255, 0.1)" }]}>
-                                                <Ionicons name="remove-circle-outline" size={20} color="#e0e0e0" />
+                                        <TouchableOpacity
+                                            style={styles.option}
+                                            activeOpacity={0.6}
+                                            onPress={handleBatchRemove}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconCircle,
+                                                    {
+                                                        backgroundColor:
+                                                            "rgba(255, 255, 255, 0.1)",
+                                                    },
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name="remove-circle-outline"
+                                                    size={20}
+                                                    color="#e0e0e0"
+                                                />
                                             </View>
-                                            <Text style={styles.optionText}>Remove Selected ({count})</Text>
+                                            <Text style={styles.optionText}>
+                                                Remove Selected ({count})
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {isAdmin && !isLocalDownload && (
-                                        <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleBatchDelete}>
-                                            <View style={[styles.iconCircle, styles.deleteIconBg]}>
-                                                <Ionicons name="trash-outline" size={20} color="#ff3b5c" />
+                                        <TouchableOpacity
+                                            style={styles.option}
+                                            activeOpacity={0.6}
+                                            onPress={handleBatchDelete}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconCircle,
+                                                    styles.deleteIconBg,
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name="trash-outline"
+                                                    size={20}
+                                                    color="#ff3b5c"
+                                                />
                                             </View>
-                                            <Text style={[styles.optionText, styles.deleteText]}>Delete Selected ({count})</Text>
+                                            <Text
+                                                style={[
+                                                    styles.optionText,
+                                                    styles.deleteText,
+                                                ]}
+                                            >
+                                                Delete Selected ({count})
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
 
-                                    <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleClearSelection}>
-                                        <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 255, 255, 0.1)" }]}>
-                                            <Ionicons name="close-outline" size={20} color="#e0e0e0" />
+                                    <TouchableOpacity
+                                        style={styles.option}
+                                        activeOpacity={0.6}
+                                        onPress={handleClearSelection}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.iconCircle,
+                                                {
+                                                    backgroundColor:
+                                                        "rgba(255, 255, 255, 0.1)",
+                                                },
+                                            ]}
+                                        >
+                                            <Ionicons
+                                                name="close-outline"
+                                                size={20}
+                                                color="#e0e0e0"
+                                            />
                                         </View>
-                                        <Text style={styles.optionText}>Clear Selection</Text>
+                                        <Text style={styles.optionText}>
+                                            Clear Selection
+                                        </Text>
                                     </TouchableOpacity>
                                 </>
                             ) : (
                                 <>
                                     {!isRecentlyList && isPlaylist && (
-                                        <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleRemoveFromPlaylist}>
-                                            <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 255, 255, 0.1)" }]}>
-                                                <Ionicons name="remove-circle-outline" size={20} color="#e0e0e0" />
+                                        <TouchableOpacity
+                                            style={styles.option}
+                                            activeOpacity={0.6}
+                                            onPress={handleRemoveFromPlaylist}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconCircle,
+                                                    {
+                                                        backgroundColor:
+                                                            "rgba(255, 255, 255, 0.1)",
+                                                    },
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name="remove-circle-outline"
+                                                    size={20}
+                                                    color="#e0e0e0"
+                                                />
                                             </View>
-                                            <Text style={styles.optionText}>Remove from Playlist</Text>
+                                            <Text style={styles.optionText}>
+                                                Remove from Playlist
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
-                                    
+
                                     {isLocalDownload && (
-                                        <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleRemoveDownload}>
-                                            <View style={[styles.iconCircle, styles.deleteIconBg]}>
-                                                <Ionicons name="trash-outline" size={20} color="#ff3b5c" />
+                                        <TouchableOpacity
+                                            style={styles.option}
+                                            activeOpacity={0.6}
+                                            onPress={handleRemoveDownload}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconCircle,
+                                                    styles.deleteIconBg,
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name="trash-outline"
+                                                    size={20}
+                                                    color="#ff3b5c"
+                                                />
                                             </View>
-                                            <Text style={[styles.optionText, styles.deleteText]}>Remove Download</Text>
+                                            <Text
+                                                style={[
+                                                    styles.optionText,
+                                                    styles.deleteText,
+                                                ]}
+                                            >
+                                                Remove Download
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {isAdmin && !isLocalDownload && (
-                                        <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleDeletePermanent}>
-                                            <View style={[styles.iconCircle, styles.deleteIconBg]}>
-                                                <Ionicons name="trash-outline" size={20} color="#ff3b5c" />
+                                        <TouchableOpacity
+                                            style={styles.option}
+                                            activeOpacity={0.6}
+                                            onPress={handleDeletePermanent}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconCircle,
+                                                    styles.deleteIconBg,
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name="trash-outline"
+                                                    size={20}
+                                                    color="#ff3b5c"
+                                                />
                                             </View>
-                                            <Text style={[styles.optionText, styles.deleteText]}>Delete Song (Permanent)</Text>
+                                            <Text
+                                                style={[
+                                                    styles.optionText,
+                                                    styles.deleteText,
+                                                ]}
+                                            >
+                                                Delete Song (Permanent)
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
 
                                     {!isLocalDownload && (
-                                        <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleDownloadSingle}>
-                                            <View style={[styles.iconCircle, { backgroundColor: "rgba(34, 249, 126, 0.15)" }]}>
-                                                <Ionicons name="download-outline" size={20} color="#22f97e" />
+                                        <TouchableOpacity
+                                            style={styles.option}
+                                            activeOpacity={0.6}
+                                            onPress={handleDownloadSingle}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.iconCircle,
+                                                    {
+                                                        backgroundColor:
+                                                            "rgba(34, 249, 126, 0.15)",
+                                                    },
+                                                ]}
+                                            >
+                                                <Ionicons
+                                                    name="download-outline"
+                                                    size={20}
+                                                    color="#22f97e"
+                                                />
                                             </View>
-                                            <Text style={styles.optionText}>Download Song</Text>
+                                            <Text style={styles.optionText}>
+                                                Download Song
+                                            </Text>
                                         </TouchableOpacity>
                                     )}
 
-                                    <TouchableOpacity style={styles.option} activeOpacity={0.6} onPress={handleSelect}>
-                                        <View style={[styles.iconCircle, { backgroundColor: "rgba(255, 255, 255, 0.1)" }]}>
-                                            <Ionicons name="checkmark-circle-outline" size={20} color="#e0e0e0" />
+                                    <TouchableOpacity
+                                        style={styles.option}
+                                        activeOpacity={0.6}
+                                        onPress={handleSelect}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.iconCircle,
+                                                {
+                                                    backgroundColor:
+                                                        "rgba(255, 255, 255, 0.1)",
+                                                },
+                                            ]}
+                                        >
+                                            <Ionicons
+                                                name="checkmark-circle-outline"
+                                                size={20}
+                                                color="#e0e0e0"
+                                            />
                                         </View>
-                                        <Text style={styles.optionText}>Select Songs</Text>
+                                        <Text style={styles.optionText}>
+                                            Select Songs
+                                        </Text>
                                     </TouchableOpacity>
                                 </>
                             )}
-                            
-                            <TouchableOpacity style={styles.cancelBtn} activeOpacity={0.7} onPress={close}>
+
+                            <TouchableOpacity
+                                style={styles.cancelBtn}
+                                activeOpacity={0.7}
+                                onPress={close}
+                            >
                                 <Text style={styles.cancelText}>Cancel</Text>
                             </TouchableOpacity>
                         </View>
@@ -411,11 +628,14 @@ const PopUpOptions = () => {
             </Modal>
 
             {!!destModalSong && (
-                <DestinationPickerModal 
+                <DestinationPickerModal
                     visible={!!destModalSong}
                     onClose={() => setDestModalSong(null)}
                     onSelect={handleDownloadSingleSubmit}
-                    defaultName={useAppStatus.getState().currentSelectedPlaylist?.name || "My Downloads"}
+                    defaultName={
+                        useAppStatus.getState().currentSelectedPlaylist?.name ||
+                        "My Downloads"
+                    }
                 />
             )}
         </>
@@ -425,11 +645,11 @@ const PopUpOptions = () => {
 const styles = StyleSheet.create({
     backdrop: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: "rgba(0, 0, 0, 0.4)"
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
     },
     dismissArea: {
         flex: 1,
-        justifyContent: "flex-end"
+        justifyContent: "flex-end",
     },
     sheetContainer: {},
     sheet: {
@@ -438,7 +658,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 20,
         paddingTop: 10,
         paddingBottom: 40,
-        paddingHorizontal: 20
+        paddingHorizontal: 20,
     },
     handleBar: {
         width: 40,
@@ -446,62 +666,62 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         backgroundColor: "#555",
         alignSelf: "center",
-        marginBottom: 16
+        marginBottom: 16,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         gap: 10,
-        paddingBottom: 14
+        paddingBottom: 14,
     },
     headerText: {
         color: "#e0e0e0",
         fontSize: 16,
         fontWeight: "600",
-        flex: 1
+        flex: 1,
     },
     divider: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: "#333",
-        marginBottom: 8
+        marginBottom: 8,
     },
     option: {
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: 14,
-        gap: 14
+        gap: 14,
     },
     iconCircle: {
         width: 38,
         height: 38,
         borderRadius: 19,
         justifyContent: "center",
-        alignItems: "center"
+        alignItems: "center",
     },
     deleteIconBg: {
-        backgroundColor: "rgba(255, 59, 92, 0.12)"
+        backgroundColor: "rgba(255, 59, 92, 0.12)",
     },
     optionText: {
         color: "#e0e0e0",
         fontSize: 16,
         fontWeight: "500",
-        flex: 1
+        flex: 1,
     },
     deleteText: {
-        color: "#ff3b5c"
+        color: "#ff3b5c",
     },
     cancelBtn: {
         marginTop: 12,
         backgroundColor: "#2a2a2a",
         borderRadius: 14,
         paddingVertical: 14,
-        alignItems: "center"
+        alignItems: "center",
     },
     cancelText: {
         color: "#22f97e",
         fontSize: 16,
-        fontWeight: "bold"
-    }
+        fontWeight: "bold",
+    },
 });
 
 export default PopUpOptions;
