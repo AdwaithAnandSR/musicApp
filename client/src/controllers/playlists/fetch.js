@@ -52,13 +52,17 @@ export const getPlaylistSongs = async ({
     }
 };
 
-export const fetchArtists = async ({ pageParam = 1 }) => {
+export const fetchArtists = async ({ pageParam = 1, search = "" }) => {
     try {
+        const params = {
+            page: pageParam,
+            limit: 20
+        };
+        if (search && search.trim()) {
+            params.search = search.trim();
+        }
         const res = await axios.get(`/playlist/artists`, {
-            params: {
-                page: pageParam,
-                limit: 20
-            }
+            params
         });
         return res.data ?? { playlists: [], nextPage: null };
     } catch (err) {

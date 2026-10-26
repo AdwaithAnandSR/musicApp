@@ -10,7 +10,7 @@ const Layout = () => {
 
     return (
         <View style={{ flex: 1, backgroundColor: "black" }}>
-            <NativeTabs backgroundColor="black">
+            <NativeTabs minimizeBehavior="onScrollDown" backgroundColor="black">
                 <NativeTabs.Trigger name="Home">
                     <NativeTabs.Trigger.Icon md="music_note" sf="music.note" />
                 </NativeTabs.Trigger>
