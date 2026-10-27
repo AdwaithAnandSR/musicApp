@@ -2,9 +2,16 @@ import { useRef, useEffect, useState } from "react";
 import { StyleSheet, Text, View, Animated } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
-import { Host, LoadingIndicator as Loader } from '@expo/ui/jetpack-compose';
+import {
+    Host,
+    LoadingIndicator as Loader,
+    DockedSearchBar,
+    SearchBar,
+    Text as ComposeText
+} from "@expo/ui/jetpack-compose";
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 
 import DownloadOptionsModal from "@components/playlists/DownloadOptionsModal.jsx";
 import {
@@ -12,7 +19,6 @@ import {
     getDownloadedSongs
 } from "@services/downloads/downloadService.js";
 import Toast from "@services/Toast.js";
-
 
 import { useAppStatus, useDownloadStatus } from "@store/appState.store.js";
 import { usePlayer } from "@store/player";
@@ -22,7 +28,6 @@ import queryClient from "@services/queryClient";
 import ListItem from "@components/ListItem.jsx";
 import PopUpOptions from "@components/PopUpOptions.jsx";
 import Header from "@components/ListHeader.jsx";
-
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
@@ -34,6 +39,14 @@ const PlaylistSongs = () => {
     const flashListRef = useRef();
     const { playlistId, playlistName, artistName } = useLocalSearchParams();
     const computedPlaylistId = artistName ? `artist_${artistName}` : playlistId;
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const searchTimeout = useRef(null);
+
+    const hasUserScrolled = useRef(false);
+    const scrollOffsetY = useRef(0);
+    const onEndReachedCalledDuringMomentum = useRef(false);
 
     const [isRandom, setIsRandom] = useState(() => {
         const playerState = usePlayer.getState();
@@ -114,6 +127,87 @@ const PlaylistSongs = () => {
             )
     });
 
+    // Handle search query change with 300ms debounce
+    const handleSearchChange = (query) => {
+        const text = typeof query === "string" ? query : "";
+        setSearchQuery(text);
+        hasUserScrolled.current = false;
+        scrollOffsetY.current = 0;
+        onEndReachedCalledDuringMomentum.current = false;
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+        if (!text.trim()) {
+            setDebouncedSearch("");
+        } else {
+            searchTimeout.current = setTimeout(() => {
+                setDebouncedSearch(text.trim());
+            }, 300);
+        }
+    };
+
+    useEffect(() => {
+        hasUserScrolled.current = false;
+        scrollOffsetY.current = 0;
+        onEndReachedCalledDuringMomentum.current = false;
+    }, [debouncedSearch]);
+
+    useEffect(() => {
+        if (!isFetchingNextPage) {
+            onEndReachedCalledDuringMomentum.current = false;
+        }
+    }, [isFetchingNextPage]);
+
+    const cleanSearch = debouncedSearch.trim().toLowerCase();
+
+    // 1. First search among already loaded playlist songs
+    const localMatches = cleanSearch
+        ? songs.filter(song => {
+              const title = song.title?.toLowerCase() || "";
+              const artist = song.artist?.toLowerCase() || "";
+              return title.includes(cleanSearch) || artist.includes(cleanSearch);
+          })
+        : [];
+
+    // 2. Only if not found among loaded songs (and search query is not empty), make server request
+    const isSearchingServer = Boolean(cleanSearch && localMatches.length === 0);
+
+    const {
+        data: serverSearchResults = [],
+        isLoading: isServerSearchLoading
+    } = useQuery({
+        queryKey: ["playlist_song_search", computedPlaylistId, cleanSearch],
+        queryFn: async ({ signal }) => {
+            const data = await getPlaylistSongs({
+                limit: 50,
+                playlistId,
+                artistName,
+                search: cleanSearch,
+                signal
+            });
+            return (
+                data?.musics?.map(({ _id, cover, ...rest }) => ({
+                    id: _id,
+                    _id,
+                    artwork: cover,
+                    cover,
+                    ...rest
+                })) || []
+            );
+        },
+        enabled: isSearchingServer
+    });
+
+    // Determine songs to display
+    let displayedSongs = songs;
+    if (cleanSearch) {
+        if (localMatches.length > 0) {
+            displayedSongs = localMatches;
+        } else if (serverSearchResults && serverSearchResults.length > 0) {
+            displayedSongs = serverSearchResults;
+        } else {
+            displayedSongs = [];
+        }
+    }
+
     const handleToggleRandom = () => {
         try {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -174,7 +268,6 @@ const PlaylistSongs = () => {
         setSeed(newSeed);
         setIsRandom(true);
 
-        // Fallback: If network failed or returned empty list, fall back to current visible songs list
         if (!targetTracks.length && songs && songs.length > 0) {
             targetTracks = [...songs];
             for (let i = targetTracks.length - 1; i > 0; i--) {
@@ -195,6 +288,9 @@ const PlaylistSongs = () => {
     };
 
     const handleRefresh = () => {
+        hasUserScrolled.current = false;
+        scrollOffsetY.current = 0;
+        onEndReachedCalledDuringMomentum.current = false;
         if (isRandom) {
             setSeed(Math.random());
         } else {
@@ -279,7 +375,7 @@ const PlaylistSongs = () => {
 
         const { currentTrackId, currentPlaylistId } = usePlayer.getState();
         if (currentPlaylistId === computedPlaylistId && currentTrackId) {
-            const index = songs.findIndex(s => (s.id || s._id) === currentTrackId);
+            const index = displayedSongs.findIndex(s => (s.id || s._id) === currentTrackId);
             if (index !== -1) {
                 flashListRef.current?.scrollToIndex({
                     index,
@@ -311,36 +407,27 @@ const PlaylistSongs = () => {
                 );
             });
 
-            const songsToDownload = pendingSongs.slice(0, numSongs);
-
-            if (songsToDownload.length === 0) {
-                Toast.show(
-                    "All selected songs are already downloaded",
-                    "success"
-                );
+            if (pendingSongs.length === 0) {
+                Toast.show("All songs already downloaded", "info");
                 return;
             }
 
-            Toast.show(
-                `Downloading ${songsToDownload.length} songs...`,
-                "pending"
-            );
-
             const playlistToSave = {
-                id: computedPlaylistId,
+                _id: computedPlaylistId,
                 name: playlistName,
-                cover:
-                    currentSelectedPlaylist?.cover ||
-                    cachedPlaylist?.cover ||
-                    null
+                cover: currentSelectedPlaylist?.cover || null,
+                desc: description,
+                artistName
             };
+
+            const songsToDownload = pendingSongs.slice(0, numSongs);
 
             await downloadPlaylistSongs(
                 playlistToSave,
                 songsToDownload,
                 concurrency,
                 (current, total, progress) => {
-                    // we could show a progress toast here
+                    // progress tracking
                 },
                 downloadVideo
             );
@@ -350,11 +437,47 @@ const PlaylistSongs = () => {
         }
     };
 
+    const handleScrollBeginDrag = () => {
+        hasUserScrolled.current = true;
+        onEndReachedCalledDuringMomentum.current = false;
+    };
+
+    const handleMomentumScrollBegin = () => {
+        onEndReachedCalledDuringMomentum.current = false;
+    };
+
+    const handleEndReached = () => {
+        // Only load next page when:
+        // 1. Not currently searching (searching shows search results)
+        // 2. User has actively scrolled
+        // 3. Scroll offset is past the top
+        // 4. Not called during current momentum gesture
+        // 5. Next page exists and not currently fetching
+        // 6. List has more than 1 item
+        if (
+            cleanSearch ||
+            !hasUserScrolled.current ||
+            scrollOffsetY.current <= 20 ||
+            onEndReachedCalledDuringMomentum.current ||
+            !hasNextPage ||
+            isFetchingNextPage ||
+            isLoading ||
+            isFetching ||
+            displayedSongs.length <= 1
+        ) {
+            return;
+        }
+
+        onEndReachedCalledDuringMomentum.current = true;
+        fetchNextPage();
+    };
+
     return (
         <View style={styles.container}>
             <Header
                 title={playlistName}
                 HEADER_HEIGHT={HEADER_HEIGHT}
+                total={displayedSongs.length}
                 scrollY={scrollY}
                 scrollToMiddle={scrollToMiddle}
                 ID={computedPlaylistId}
@@ -368,68 +491,100 @@ const PlaylistSongs = () => {
 
             <AnimatedFlashList
                 ref={flashListRef}
-                data={songs}
+                data={displayedSongs}
                 renderItem={({ item }) => (
                     <ListItem
                         ID={computedPlaylistId}
                         item={item}
+                        text={debouncedSearch}
                         isRandomPlaylist={isRandom}
                         randomSeed={seed}
                     />
                 )}
                 ItemSeparatorComponent={ItemSeparator}
                 ListHeaderComponent={
-                    isRecentlyAdded && songs.length > 0 ? (
-                        <View style={styles.headerContainer}>
-                            <Text style={styles.headerText}>
-                                {getHeaderLabel(songs[0].createdAt)}
-                            </Text>
+                    <View>
+                        <View style={styles.searchContainer}>
+                            <Host
+                                colorScheme="dark"
+                                matchContents={{ vertical: true }}
+                                style={styles.searchHost}
+                            >
+                                <DockedSearchBar
+                                    onQueryChange={handleSearchChange}
+                                    modifiers={[fillMaxWidth()]}
+                                >
+                                    <DockedSearchBar.Placeholder>
+                                        <ComposeText color="#8e8e93">
+                                            Search songs in playlist...
+                                        </ComposeText>
+                                    </DockedSearchBar.Placeholder>
+                                </DockedSearchBar>
+                            </Host>
                         </View>
-                    ) : null
+
+                        {isRecentlyAdded && displayedSongs.length > 0 && (
+                            <View style={styles.headerContainer}>
+                                <Text style={styles.headerText}>
+                                    {getHeaderLabel(displayedSongs[0].createdAt)}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
                 }
                 showsVerticalScrollIndicator={false}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={0.2}
                 keyExtractor={item => item.id || item._id}
-                onEndReached={() => {
-                    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-                }}
+                onEndReached={handleEndReached}
+                onScrollBeginDrag={handleScrollBeginDrag}
+                onMomentumScrollBegin={handleMomentumScrollBegin}
                 ListFooterComponent={
-                    isFetchingNextPage ? (
-                        <Host matchContents style={{ alignSelf: "center" }}>
+                    isFetchingNextPage && displayedSongs.length > 1 ? (
+                        <Host matchContents style={{ alignSelf: "center", marginVertical: 10 }}>
                             <Loader />
                         </Host>
-                    ) : songs.length > 8 ? (
+                    ) : !cleanSearch && songs.length > 8 ? (
                         <Text
                             style={styles.loader}
                         >{`• ${displayFooterText} •`}</Text>
                     ) : null
                 }
                 ListEmptyComponent={
-                    isLoading ? (
-                        <Host matchContents style={{ alignSelf: "center" }}>
+                    isLoading || (isSearchingServer && isServerSearchLoading) ? (
+                        <Host matchContents style={{ alignSelf: "center", marginTop: 20 }}>
                             <Loader />
                         </Host>
                     ) : (
-                        <Text style={styles.loader}>No songs found.</Text>
+                        <Text style={styles.loader}>
+                            {cleanSearch
+                                ? `No songs found for "${debouncedSearch}".`
+                                : "No songs found."}
+                        </Text>
                     )
                 }
                 contentContainerStyle={{
                     paddingTop: HEADER_HEIGHT + 10,
-                    paddingBottom: 5
+                    paddingBottom: 20
                 }}
                 onScroll={Animated.event(
                     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                     {
                         useNativeDriver: true,
-                        listener: () => {
+                        listener: (event) => {
                             if (useAppStatus.getState().popUpOption.y !== -1) {
                                 useAppStatus
                                     .getState()
                                     .setPopUpOption(-1, null, null);
                             }
+                            const y = event?.nativeEvent?.contentOffset?.y ?? 0;
+                            scrollOffsetY.current = y;
+                            if (y > 20) {
+                                hasUserScrolled.current = true;
+                            }
                         }
                     }
                 )}
+                scrollEventThrottle={16}
                 refreshing={isFetching && !isFetchingNextPage && !isLoading}
                 onRefresh={handleRefresh}
             />
@@ -447,6 +602,14 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: "black",
         height: "100%"
+    },
+    searchContainer: {
+        width: "100%",
+        paddingHorizontal: 16,
+        paddingBottom: 10
+    },
+    searchHost: {
+        width: "100%"
     },
     headerContainer: {
         paddingHorizontal: 20,

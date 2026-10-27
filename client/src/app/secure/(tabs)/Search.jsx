@@ -3,14 +3,20 @@ import {
     View,
     Text,
     StyleSheet,
-    TextInput,
     Dimensions,
     TouchableOpacity,
     Alert
 } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Host, LoadingIndicator as Loader } from '@expo/ui/jetpack-compose';
+import {
+    Host,
+    LoadingIndicator as Loader,
+    DockedSearchBar,
+    SearchBar,
+    Text as ComposeText
+} from "@expo/ui/jetpack-compose";
+import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 
 import ListItem from "@components/ListItem.jsx";
 import PopUpOptions from "@components/PopUpOptions.jsx";
@@ -30,6 +36,9 @@ const Search = () => {
     const [debouncedText, setDebouncedText] = useState("");
     const typingTimeout = useRef(null);
 
+    const hasUserScrolled = useRef(false);
+    const onEndReachedCalledDuringMomentum = useRef(false);
+
     const selectedSongsCount = useMultiSelect(state => state.selectedSongs.length);
     const resetMultiSelect = useMultiSelect(state => state.reset);
     const isAdmin = useAppStatus(state => state.user?.role === "admin");
@@ -39,7 +48,8 @@ const Search = () => {
         isFetchingNextPage,
         fetchNextPage,
         hasNextPage,
-        isLoading
+        isLoading,
+        isFetching
     } = useInfiniteQuery({
         queryKey: [`SEARCH-${debouncedText}`],
         queryFn: ({ pageParam, signal }) =>
@@ -50,7 +60,12 @@ const Search = () => {
                 signal
             }),
         initialPageParam: 1,
-        getNextPageParam: lastPage => lastPage.nextPage ?? undefined,
+        getNextPageParam: lastPage => {
+            if (!lastPage?.musics || lastPage.musics.length < LIMIT) {
+                return undefined;
+            }
+            return lastPage.nextPage ?? undefined;
+        },
         select: data =>
             data.pages.flatMap(
                 page =>
@@ -94,14 +109,53 @@ const Search = () => {
         };
     }, []);
 
+    useEffect(() => {
+        hasUserScrolled.current = false;
+        onEndReachedCalledDuringMomentum.current = false;
+    }, [debouncedText]);
+
+    useEffect(() => {
+        if (!isFetchingNextPage) {
+            onEndReachedCalledDuringMomentum.current = false;
+        }
+    }, [isFetchingNextPage]);
+
     const handleChangeText = txt => {
-        setText(txt);
+        const val = typeof txt === "string" ? txt : "";
+        setText(val);
+        hasUserScrolled.current = false;
+        onEndReachedCalledDuringMomentum.current = false;
         if (typingTimeout.current) clearTimeout(typingTimeout.current);
-        typingTimeout.current = setTimeout(() => setDebouncedText(txt), 500);
+        if (!val.trim()) {
+            setDebouncedText("");
+        } else {
+            typingTimeout.current = setTimeout(() => setDebouncedText(val.trim()), 400);
+        }
+    };
+
+    const handleScrollBeginDrag = () => {
+        hasUserScrolled.current = true;
+        onEndReachedCalledDuringMomentum.current = false;
+    };
+
+    const handleMomentumScrollBegin = () => {
+        onEndReachedCalledDuringMomentum.current = false;
     };
 
     const handleLoadMore = () => {
-        if (hasNextPage && !isFetchingNextPage) fetchNextPage();
+        if (
+            !hasUserScrolled.current ||
+            onEndReachedCalledDuringMomentum.current ||
+            !hasNextPage ||
+            isFetchingNextPage ||
+            isLoading ||
+            isFetching ||
+            songs.length <= 1
+        ) {
+            return;
+        }
+        onEndReachedCalledDuringMomentum.current = true;
+        fetchNextPage();
     };
 
     const handleBatchDelete = async () => {
@@ -144,15 +198,24 @@ const Search = () => {
 
     return (
         <View style={styles.container}>
-            <TextInput
-                style={styles.searchInput}
-                placeholder="Search Song"
-                placeholderTextColor="white"
-                value={text}
-                returnKeyType="search"
-                onSubmitEditing={() => setDebouncedText(text)}
-                onChangeText={handleChangeText}
-            />
+            <View style={styles.searchContainer}>
+                <Host
+                    colorScheme="dark"
+                    matchContents={{ vertical: true }}
+                    style={styles.searchHost}
+                >
+                    <DockedSearchBar
+                        onQueryChange={handleChangeText}
+                        modifiers={[fillMaxWidth()]}
+                    >
+                        <DockedSearchBar.Placeholder>
+                            <ComposeText color="#8e8e93">
+                                Search songs...
+                            </ComposeText>
+                        </DockedSearchBar.Placeholder>
+                    </DockedSearchBar>
+                </Host>
+            </View>
 
             {selectedSongsCount > 0 && (
                 <View style={styles.actionRow}>
@@ -190,19 +253,21 @@ const Search = () => {
                     />
                 )}
                 keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingTop: 10 }}
+                contentContainerStyle={{ paddingTop: 10, paddingBottom: 20 }}
                 onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={0.2}
+                onScrollBeginDrag={handleScrollBeginDrag}
+                onMomentumScrollBegin={handleMomentumScrollBegin}
                 ListFooterComponent={
-                    isFetchingNextPage && (
-                        <Host matchContents style={{ alignSelf: "center" }}>
+                    isFetchingNextPage && songs.length > 1 ? (
+                        <Host matchContents style={{ alignSelf: "center", marginVertical: 10 }}>
                             <Loader />
                         </Host>
-                    )
+                    ) : null
                 }
                 ListEmptyComponent={
                     isLoading ? (
-                        <Host matchContents style={{ alignSelf: "center" }}>
+                        <Host matchContents style={{ alignSelf: "center", marginTop: 20 }}>
                             <Loader />
                         </Host>
                     ) : debouncedText.length >= 3 ? (
@@ -222,17 +287,13 @@ const styles = StyleSheet.create({
         paddingTop: 30,
         backgroundColor: "black"
     },
-    searchInput: {
-        width: vw * 0.9,
-        height: vh * 0.05,
-        color: "white",
-        fontWeight: "900",
-        backgroundColor: "rgb(66, 66, 66)",
-        borderRadius: vw * 0.04,
-        fontSize: 17,
-        paddingHorizontal: vw * 0.03,
-        marginHorizontal: "auto",
-        marginTop: vh * 0.01
+    searchContainer: {
+        width: "100%",
+        paddingHorizontal: 16,
+        paddingBottom: 6
+    },
+    searchHost: {
+        width: "100%"
     },
     actionRow: {
         flexDirection: "row",
