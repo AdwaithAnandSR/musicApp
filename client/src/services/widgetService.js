@@ -1,8 +1,10 @@
+'use no memo';
+import React from "react";
 import { Platform } from "react-native";
-import { File, Directory } from "expo-file-system";
-import { widgetsDirectory, addUserInteractionListener } from "expo-widgets";
+import { File, Directory, Paths } from "expo-file-system";
+import { requestWidgetUpdate } from "react-native-android-widget";
 import * as Linking from "expo-linking";
-import { musicWidget } from "@/widgets/MusicWidget";
+import { MusicWidget } from "@/widgets/MusicWidget";
 import { usePlayer } from "@store/player";
 import Ionicons from "@react-native-vector-icons/ionicons";
 import MaterialIcons from "@react-native-vector-icons/material-icons";
@@ -131,30 +133,35 @@ function getControlIconProps(icons) {
     };
 }
 
-/**
- * Normalizes widgetsDirectory to a clean file:/// URI without double slashes or trailing slashes.
- */
 function getWidgetsDirectoryUri() {
-    if (!widgetsDirectory) return "";
-    const rawPath = widgetsDirectory
-        .replace(/^file:\/*/, "/")
-        .replace(/\/+$/, "");
-    return `file://${rawPath}`;
+    try {
+        const dir = new Directory(Paths.cache, "widget_cache");
+        if (!dir.exists) {
+            dir.create({ idempotent: true, intermediates: true });
+        }
+        return dir.uri;
+    } catch (e) {
+        return "";
+    }
 }
 
-async function resolveIconUri(dir, key, getImageSourceFn) {
-    if (dir) {
-        const cachedFile = new File(dir, `widget_icon_${key}.png`);
-        if (cachedFile.exists) {
-            return cachedFile.uri;
-        }
+async function resolveIconUri(dirUri, key, getImageSourceFn) {
+    if (dirUri) {
+        try {
+            const dir = new Directory(dirUri);
+            const cachedFile = new File(dir, `widget_icon_${key}.png`);
+            if (cachedFile.exists) {
+                return cachedFile.uri;
+            }
+        } catch (_) {}
     }
 
     const source = await getImageSourceFn();
     if (!source?.uri) return "";
 
-    if (dir) {
+    if (dirUri) {
         try {
+            const dir = new Directory(dirUri);
             const sourceFile = new File(source.uri);
             const targetFile = new File(dir, `widget_icon_${key}.png`);
             if (sourceFile.exists) {
@@ -180,44 +187,37 @@ async function getWidgetIconUris() {
     iconUrisPromise = (async () => {
         try {
             const dirUri = getWidgetsDirectoryUri();
-            let dir = null;
-            if (dirUri) {
-                dir = new Directory(dirUri);
-                if (!dir.exists) {
-                    dir.create({ idempotent: true, intermediates: true });
-                }
-            }
 
             const [play, pause, next, prev, fav, albums, download, random, timer, close] =
                 await Promise.all([
-                    resolveIconUri(dir, "play", () =>
-                        Ionicons.getImageSource("play", 32, "#FFFFFF")
+                    resolveIconUri(dirUri, "play", () =>
+                        Ionicons.getImageSource("play", 32, "#18181B")
                     ),
-                    resolveIconUri(dir, "pause", () =>
-                        Ionicons.getImageSource("pause", 32, "#FFFFFF")
+                    resolveIconUri(dirUri, "pause", () =>
+                        Ionicons.getImageSource("pause", 32, "#18181B")
                     ),
-                    resolveIconUri(dir, "next", () =>
+                    resolveIconUri(dirUri, "next", () =>
                         MaterialIcons.getImageSource("skip-next", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "prev", () =>
+                    resolveIconUri(dirUri, "prev", () =>
                         MaterialIcons.getImageSource("skip-previous", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "fav", () =>
+                    resolveIconUri(dirUri, "fav", () =>
                         MaterialIcons.getImageSource("favorite", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "albums", () =>
+                    resolveIconUri(dirUri, "albums", () =>
                         MaterialIcons.getImageSource("album", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "download", () =>
+                    resolveIconUri(dirUri, "download", () =>
                         MaterialIcons.getImageSource("download", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "random", () =>
+                    resolveIconUri(dirUri, "random", () =>
                         MaterialIcons.getImageSource("shuffle", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "timer", () =>
+                    resolveIconUri(dirUri, "timer", () =>
                         MaterialIcons.getImageSource("timer", 28, "#FFFFFF")
                     ),
-                    resolveIconUri(dir, "close", () =>
+                    resolveIconUri(dirUri, "close", () =>
                         Ionicons.getImageSource("close", 24, "#FFFFFF")
                     ),
                 ]);
@@ -237,7 +237,6 @@ async function getWidgetIconUris() {
             return iconUris;
         } catch (e) {
             console.warn("Failed to generate widget icon images:", e);
-            // Don't cache the failure permanently; allow a retry next time.
             return { ...EMPTY_ICONS };
         } finally {
             iconUrisPromise = null;
@@ -248,16 +247,15 @@ async function getWidgetIconUris() {
 }
 
 /**
- * Downloads track artwork to widgetsDirectory if remote, or copies local URI.
- * Only returns a file URI if the file is verified to exist on disk.
+ * Downloads track artwork to cache directory if remote, or copies local URI.
  */
 async function resolveWidgetArtwork(rawArtwork) {
-    if (!rawArtwork || Platform.OS === "web" || !widgetsDirectory) {
+    if (!rawArtwork || Platform.OS === "web") {
         return "";
     }
 
     const dirUri = getWidgetsDirectoryUri();
-    if (!dirUri) return "";
+    if (!dirUri) return rawArtwork;
 
     try {
         const dir = new Directory(dirUri);
@@ -277,7 +275,7 @@ async function resolveWidgetArtwork(rawArtwork) {
         // Local file: copy into widgets directory
         if (rawArtwork.startsWith("file://")) {
             const sourceFile = new File(rawArtwork);
-            if (!sourceFile.exists) return "";
+            if (!sourceFile.exists) return rawArtwork;
             if (sourceFile.uri === targetFile.uri) {
                 lastUpdatedArtworkSource = rawArtwork;
                 cachedArtworkFileUri = targetFile.uri;
@@ -297,10 +295,10 @@ async function resolveWidgetArtwork(rawArtwork) {
             return targetFile.uri;
         }
 
-        return "";
+        return rawArtwork;
     } catch (error) {
         console.warn("Failed to prepare widget artwork:", error);
-        return "";
+        return rawArtwork;
     }
 }
 
@@ -337,108 +335,128 @@ function getContrastingActiveColor(track, cardBg, isDark = true) {
 }
 
 /**
+ * Builds the complete props object needed to render the MusicWidget.
+ */
+export async function getCurrentWidgetProps() {
+    // If lastKnownTrack in memory is null, attempt to read persisted track from storage
+    if (!lastKnownTrack) {
+        try {
+            const saved = storage.getString("widget_last_track");
+            if (saved) {
+                lastKnownTrack = JSON.parse(saved);
+            }
+            lastKnownIsPlaying = storage.getBoolean("widget_last_playing") ?? false;
+        } catch (_) {}
+    }
+
+    const icons = await getWidgetIconUris();
+    const track = lastKnownTrack;
+    const isPlaying = lastKnownIsPlaying;
+
+    if (!track) {
+        const songsData = getSongsSnapshotData(null);
+        const timerData = getTimerSnapshotData();
+        return {
+            title: "No track playing",
+            artist: "Tap to open Music",
+            isPlaying: false,
+            artworkUri: "",
+            playIconUri: icons.play || "",
+            widgetView: widgetViewMode,
+            downloadedPlaylists: currentDownloadedPlaylists,
+            isRandomOn: isWidgetRandomOn,
+            randomActiveColor: "#38BDF8",
+            ...songsData,
+            ...timerData,
+            ...getControlIconProps(icons),
+        };
+    }
+
+    const title = track.title || "Unknown title";
+    const artist =
+        track.artist?.split?.(",")?.[0] || track.artist || "Unknown artist";
+    const playIconUri = isPlaying ? icons.pause || "" : icons.play || "";
+    const controlIcons = getControlIconProps(icons);
+    const rawArtwork = track.cover || track.artwork || null;
+    const trackBg =
+        track.colors?.darkVibrant ||
+        track.colors?.dominant ||
+        track.colors?.average;
+    const randomActiveColor = getContrastingActiveColor(track, trackBg, true);
+    const currentPlayingId = track?._id || track?.id || null;
+    const songsData = getSongsSnapshotData(currentPlayingId);
+    const timerData = getTimerSnapshotData();
+
+    const artworkUri =
+        rawArtwork && rawArtwork === lastUpdatedArtworkSource && cachedArtworkFileUri
+            ? cachedArtworkFileUri
+            : rawArtwork || "";
+
+    return {
+        title,
+        artist,
+        isPlaying: Boolean(isPlaying),
+        artworkUri,
+        playIconUri,
+        trackBg,
+        widgetView: widgetViewMode,
+        downloadedPlaylists: currentDownloadedPlaylists,
+        isRandomOn: isWidgetRandomOn,
+        randomActiveColor,
+        ...songsData,
+        ...timerData,
+        ...controlIcons,
+    };
+}
+
+/**
  * Updates the home screen widget snapshot with current playback information.
- * Uses optimistic updates so track details and controls change instantly
- * without waiting for remote album art to download.
  */
 export async function updateMusicWidgetSnapshot(track, isPlaying = false) {
     if (Platform.OS === "web") return;
 
     try {
-        lastKnownTrack = track;
-        lastKnownIsPlaying = Boolean(isPlaying);
-
-        const icons = await getWidgetIconUris();
-
-        if (!track) {
-            lastUpdatedArtworkSource = null;
-            cachedArtworkFileUri = "";
-            latestArtworkRequest = null;
-            const songsData = getSongsSnapshotData(null);
-            const timerData = getTimerSnapshotData();
-            musicWidget.updateSnapshot({
-                title: "No track playing",
-                artist: "Tap to open Music",
-                isPlaying: false,
-                artworkUri: "",
-                playIconUri: icons.play || "",
-                widgetView: widgetViewMode,
-                downloadedPlaylists: currentDownloadedPlaylists,
-                isRandomOn: isWidgetRandomOn,
-                randomActiveColor: "#38BDF8",
-                ...songsData,
-                ...timerData,
-                ...getControlIconProps(icons),
-            });
-            return;
+        if (track !== undefined) {
+            lastKnownTrack = track;
+            try {
+                if (track) {
+                    storage.set("widget_last_track", JSON.stringify(track));
+                } else {
+                    storage.delete("widget_last_track");
+                }
+            } catch (_) {}
         }
 
-        const title = track.title || "Unknown title";
-        const artist =
-            track.artist?.split?.(",")?.[0] || track.artist || "Unknown artist";
-        const playIconUri = isPlaying ? icons.pause || "" : icons.play || "";
-        const controlIcons = getControlIconProps(icons);
-        const rawArtwork = track.cover || track.artwork || null;
-        const trackBg =
-            track.colors?.darkVibrant ||
-            track.colors?.dominant ||
-            track.colors?.average;
-        const randomActiveColor = getContrastingActiveColor(track, trackBg, true);
-        const currentPlayingId = track?._id || track?.id || null;
-        const songsData = getSongsSnapshotData(currentPlayingId);
+        if (isPlaying !== undefined) {
+            lastKnownIsPlaying = Boolean(isPlaying);
+            try {
+                storage.set("widget_last_playing", lastKnownIsPlaying);
+            } catch (_) {}
+        }
 
-        latestArtworkRequest = rawArtwork;
+        const widgetProps = await getCurrentWidgetProps();
 
-        // 1. Fast path: update text and controls immediately.
-        const immediateArtwork =
-            rawArtwork && rawArtwork === lastUpdatedArtworkSource
-                ? cachedArtworkFileUri
-                : "";
-
-        const timerData = getTimerSnapshotData();
-
-        musicWidget.updateSnapshot({
-            title,
-            artist,
-            isPlaying: Boolean(isPlaying),
-            artworkUri: immediateArtwork,
-            playIconUri,
-            trackBg,
-            widgetView: widgetViewMode,
-            downloadedPlaylists: currentDownloadedPlaylists,
-            isRandomOn: isWidgetRandomOn,
-            randomActiveColor,
-            ...songsData,
-            ...timerData,
-            ...controlIcons,
+        // 1. Fast path: update widget immediately
+        await requestWidgetUpdate({
+            widgetName: "Music",
+            renderWidget: () => <MusicWidget {...widgetProps} />,
         });
 
         // 2. Background artwork resolution (skipped if already cached).
+        const rawArtwork = track ? (track.cover || track.artwork || null) : null;
+        latestArtworkRequest = rawArtwork;
+
         if (rawArtwork && rawArtwork !== lastUpdatedArtworkSource) {
             resolveWidgetArtwork(rawArtwork)
-                .then((artworkUri) => {
-                    // Ignore stale results if the track changed meanwhile.
+                .then(async (artworkUri) => {
                     if (!artworkUri || latestArtworkRequest !== rawArtwork) {
                         return;
                     }
-                    const freshTrack = lastKnownTrack;
-                    const freshPlayingId = freshTrack?._id || freshTrack?.id || null;
-                    const freshSongsData = getSongsSnapshotData(freshPlayingId);
-                    const freshTimerData = getTimerSnapshotData();
-                    musicWidget.updateSnapshot({
-                        title,
-                        artist,
-                        isPlaying: Boolean(isPlaying),
-                        artworkUri,
-                        playIconUri,
-                        trackBg,
-                        widgetView: widgetViewMode,
-                        downloadedPlaylists: currentDownloadedPlaylists,
-                        isRandomOn: isWidgetRandomOn,
-                        randomActiveColor,
-                        ...freshSongsData,
-                        ...freshTimerData,
-                        ...controlIcons,
+                    const freshProps = await getCurrentWidgetProps();
+                    freshProps.artworkUri = artworkUri;
+                    await requestWidgetUpdate({
+                        widgetName: "Music",
+                        renderWidget: () => <MusicWidget {...freshProps} />,
                     });
                 })
                 .catch((err) => {
@@ -466,7 +484,6 @@ async function resumeLastPlaybackSession() {
         const player = usePlayer.getState();
 
         // ── CASE 1: Random playlist ────────────────────────────────
-        // Fetch another random order of the same playlist and play immediately
         if (isRandom) {
             const newSeed = Math.random();
             if (isLocal || String(playlistId).startsWith("local-")) {
@@ -518,7 +535,6 @@ async function resumeLastPlaybackSession() {
         }
 
         // ── CASE 2: Sequential (non-random) playlist ───────────────
-        // Play the next song on the previous playlist
         if (isLocal || String(playlistId).startsWith("local-")) {
             try {
                 const actualId = String(playlistId).replace(/^local-/, "");
@@ -600,290 +616,310 @@ async function resumeLastPlaybackSession() {
     Linking.openURL("music://").catch(() => {});
 }
 
-/**
- * Listens for widget button taps (play/pause, next, prev) and controls playback.
- */
-export function initWidgetInteractionListener() {
-    if (Platform.OS === "web") return { remove: () => {} };
-
+async function selectPlaylistById(playlistId) {
     try {
-        return addUserInteractionListener(async (event) => {
-            if (!event || event.source !== "MusicWidget") return;
+        const { getDownloadedSongs } = require("./downloads/downloadService.js");
+        const rawSongs = await getDownloadedSongs(playlistId);
+        const found = currentDownloadedPlaylists.find((p) => p.id === playlistId);
+        selectedPlaylist = found || { id: playlistId, name: "Playlist" };
 
+        let songsToUse = rawSongs ? [...rawSongs] : [];
+        if (isWidgetRandomOn && songsToUse.length > 1) {
+            for (let i = songsToUse.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [songsToUse[i], songsToUse[j]] = [songsToUse[j], songsToUse[i]];
+            }
+        }
+
+        allLoadedSongs = songsToUse;
+        displayedSongsCount = 20;
+        widgetViewMode = "songs";
+        await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+    } catch (e) {
+        console.warn("Failed to load playlist songs for widget:", e);
+    }
+}
+
+function playSongById(songId) {
+    if (selectedPlaylist && allLoadedSongs.length > 0) {
+        try {
+            const isLocal = selectedPlaylist.id !== "FAVOURITES_PLAYLIST_ID";
+            const randomSeed = isWidgetRandomOn ? Math.random() : null;
             const player = usePlayer.getState();
-            switch (event.target) {
-                case "play_pause":
-                    if (!player.player && player.queue?.length > 0) {
-                        player.playByIndex(0);
-                    } else if (player.player) {
-                        player.playPause();
-                    } else {
-                        await resumeLastPlaybackSession();
-                    }
-                    break;
-                case "next":
-                    player.next();
-                    break;
-                case "prev":
-                    player.prev();
-                    break;
-                case "open_app":
-                    Linking.openURL("music://").catch((err) => {
-                        console.warn("Failed to open app from widget:", err);
+            player.changePlaylistAndPlay({
+                playlistId: isLocal ? `local-${selectedPlaylist.id}` : selectedPlaylist.id,
+                trackId: songId,
+                tracksOverride: allLoadedSongs,
+                isLocal: isLocal,
+                isLocalPlaylist: isLocal,
+                isRandomPlaylist: isWidgetRandomOn,
+                randomSeed: randomSeed,
+            });
+        } catch (e) {
+            console.warn("Failed to play song from widget:", e);
+        }
+    }
+}
+
+/**
+ * Handles actions emitted from widget clicks.
+ */
+export async function handleWidgetAction(target, data) {
+    if (!target) return;
+    const normalizedTarget = String(target).toLowerCase();
+    const player = usePlayer.getState();
+
+    switch (normalizedTarget) {
+        case "play_pause":
+            if (!player.player && player.queue?.length > 0) {
+                player.playByIndex(0);
+            } else if (player.player) {
+                player.playPause();
+            } else {
+                await resumeLastPlaybackSession();
+            }
+            break;
+        case "next":
+            player.next();
+            break;
+        case "prev":
+            player.prev();
+            break;
+        case "open_app":
+            Linking.openURL("music://").catch((err) => {
+                console.warn("Failed to open app from widget:", err);
+            });
+            break;
+        case "fav":
+            try {
+                selectedPlaylist = { id: "FAVOURITES_PLAYLIST_ID", name: "Favourites" };
+                widgetViewMode = "songs";
+                allLoadedSongs = [];
+                displayedSongsCount = 20;
+                favNextCursor = null;
+                isInitialLoadingSongs = true;
+
+                await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+
+                const randomSeed = isWidgetRandomOn ? Math.random() : null;
+                let songs = [];
+                let nextCursor = null;
+
+                try {
+                    const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+                    const res = await getPlaylistSongs({
+                        playlistId: "FAVOURITES_PLAYLIST_ID",
+                        limit: 20,
+                        random: isWidgetRandomOn,
+                        seed: randomSeed,
                     });
-                    break;
-                case "fav":
+                    songs = res?.musics || [];
+                    nextCursor = res?.nextCursor || null;
+                } catch (netErr) {
+                    console.warn("Widget Favourites remote fetch failed, checking local:", netErr);
                     try {
-                        selectedPlaylist = { id: "FAVOURITES_PLAYLIST_ID", name: "Favourites" };
-                        widgetViewMode = "songs";
-                        allLoadedSongs = [];
-                        displayedSongsCount = 20;
-                        favNextCursor = null;
-                        isInitialLoadingSongs = true;
-
-                        // Immediately switch widget to songs view displaying the loading indicator
-                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-
-                        const randomSeed = isWidgetRandomOn ? Math.random() : null;
-                        let songs = [];
-                        let nextCursor = null;
-
-                        try {
-                            const { getPlaylistSongs } = require("@controllers/playlists/fetch");
-                            const res = await getPlaylistSongs({
-                                playlistId: "FAVOURITES_PLAYLIST_ID",
-                                limit: 20,
-                                random: isWidgetRandomOn,
-                                seed: randomSeed,
-                            });
-                            songs = res?.musics || [];
-                            nextCursor = res?.nextCursor || null;
-                        } catch (netErr) {
-                            console.warn("Widget Favourites remote fetch failed, checking local:", netErr);
-                            try {
-                                const { getMeta } = require("./downloads/downloadService.js");
-                                const meta = await getMeta();
-                                const allLocalSongs = Object.values(meta?.songs || {}).flat();
-                                const favIds = new Set();
-                                songs = allLocalSongs.filter((s) => {
-                                    const id = s.id || s._id;
-                                    if (s.isFav && !favIds.has(id)) {
-                                        favIds.add(id);
-                                        return true;
-                                    }
-                                    return false;
-                                });
-                                if (isWidgetRandomOn && songs.length > 1) {
-                                    for (let i = songs.length - 1; i > 0; i--) {
-                                        const j = Math.floor(Math.random() * (i + 1));
-                                        [songs[i], songs[j]] = [songs[j], songs[i]];
-                                    }
-                                }
-                            } catch (_) {}
-                        }
-
-                        allLoadedSongs = songs;
-                        favNextCursor = nextCursor;
-                    } catch (e) {
-                        console.warn("Failed to load favourites for widget:", e);
-                    } finally {
-                        isInitialLoadingSongs = false;
-                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    }
-                    break;
-                case "download":
-                    try {
-                        const { getDownloadedPlaylists } = require("./downloads/downloadService.js");
-                        const rawPlaylists = await getDownloadedPlaylists();
-                        currentDownloadedPlaylists = (rawPlaylists || []).map((p) => ({
-                            id: String(p.id || p._id),
-                            name: p.name || "Untitled Playlist",
-                        }));
-                        widgetViewMode = "playlists";
-                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    } catch (e) {
-                        console.warn("Failed to load downloaded playlists for widget:", e);
-                    }
-                    break;
-                case "exit_to_controls":
-                    widgetViewMode = "controls";
-                    selectedPlaylist = null;
-                    allLoadedSongs = [];
-                    displayedSongsCount = 20;
-                    favNextCursor = null;
-                    isInitialLoadingSongs = false;
-                    isLoadingMoreSongs = false;
-                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    break;
-                case "back_to_playlists":
-                    if (selectedPlaylist?.id === "FAVOURITES_PLAYLIST_ID") {
-                        widgetViewMode = "controls";
-                    } else {
-                        widgetViewMode = "playlists";
-                    }
-                    selectedPlaylist = null;
-                    allLoadedSongs = [];
-                    displayedSongsCount = 20;
-                    favNextCursor = null;
-                    isInitialLoadingSongs = false;
-                    isLoadingMoreSongs = false;
-                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    break;
-                case "load_more_songs":
-                    if (selectedPlaylist?.id === "FAVOURITES_PLAYLIST_ID" && favNextCursor) {
-                        isLoadingMoreSongs = true;
-                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                        try {
-                            const { getPlaylistSongs } = require("@controllers/playlists/fetch");
-                            const res = await getPlaylistSongs({
-                                playlistId: "FAVOURITES_PLAYLIST_ID",
-                                limit: 20,
-                                pageParam: favNextCursor,
-                                random: isWidgetRandomOn,
-                                seed: isWidgetRandomOn ? Math.random() : null,
-                            });
-                            if (res?.musics?.length > 0) {
-                                allLoadedSongs = [...allLoadedSongs, ...res.musics];
-                                favNextCursor = res?.nextCursor || null;
-                                displayedSongsCount = allLoadedSongs.length;
-                            } else {
-                                favNextCursor = null;
+                        const { getMeta } = require("./downloads/downloadService.js");
+                        const meta = await getMeta();
+                        const allLocalSongs = Object.values(meta?.songs || {}).flat();
+                        const favIds = new Set();
+                        songs = allLocalSongs.filter((s) => {
+                            const id = s.id || s._id;
+                            if (s.isFav && !favIds.has(id)) {
+                                favIds.add(id);
+                                return true;
                             }
-                        } catch (e) {
-                            console.warn("Failed to load more favourites for widget:", e);
-                        } finally {
-                            isLoadingMoreSongs = false;
-                            updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                            return false;
+                        });
+                        if (isWidgetRandomOn && songs.length > 1) {
+                            for (let i = songs.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [songs[i], songs[j]] = [songs[j], songs[i]];
+                            }
                         }
-                    } else if (displayedSongsCount < allLoadedSongs.length) {
-                        displayedSongsCount = Math.min(displayedSongsCount + 20, allLoadedSongs.length);
-                        updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    }
-                    break;
-                case "random":
-                    isWidgetRandomOn = !isWidgetRandomOn;
-                    try {
-                        storage.set("widget_random_on", isWidgetRandomOn);
                     } catch (_) {}
-                    // If viewing songs, reshuffle or re-order them
-                    if (widgetViewMode === "songs" && allLoadedSongs.length > 0 && selectedPlaylist) {
-                        if (selectedPlaylist.id === "FAVOURITES_PLAYLIST_ID") {
-                            isInitialLoadingSongs = true;
-                            updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                            try {
-                                const randomSeed = isWidgetRandomOn ? Math.random() : null;
-                                const { getPlaylistSongs } = require("@controllers/playlists/fetch");
-                                const res = await getPlaylistSongs({
-                                    playlistId: "FAVOURITES_PLAYLIST_ID",
-                                    limit: 20,
-                                    random: isWidgetRandomOn,
-                                    seed: randomSeed,
-                                });
-                                allLoadedSongs = res?.musics || [];
-                                favNextCursor = res?.nextCursor || null;
-                                displayedSongsCount = 20;
-                            } catch (_) {
-                                if (isWidgetRandomOn && allLoadedSongs.length > 1) {
-                                    for (let i = allLoadedSongs.length - 1; i > 0; i--) {
-                                        const j = Math.floor(Math.random() * (i + 1));
-                                        [allLoadedSongs[i], allLoadedSongs[j]] = [allLoadedSongs[j], allLoadedSongs[i]];
-                                    }
-                                }
-                            } finally {
-                                isInitialLoadingSongs = false;
-                                updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                            }
-                            return;
-                        } else if (isWidgetRandomOn) {
+                }
+
+                allLoadedSongs = songs;
+                favNextCursor = nextCursor;
+            } catch (e) {
+                console.warn("Failed to load favourites for widget:", e);
+            } finally {
+                isInitialLoadingSongs = false;
+                await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            }
+            break;
+        case "download":
+            try {
+                const { getDownloadedPlaylists } = require("./downloads/downloadService.js");
+                const rawPlaylists = await getDownloadedPlaylists();
+                currentDownloadedPlaylists = (rawPlaylists || []).map((p) => ({
+                    id: String(p.id || p._id),
+                    name: p.name || "Untitled Playlist",
+                }));
+                widgetViewMode = "playlists";
+                await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            } catch (e) {
+                console.warn("Failed to load downloaded playlists for widget:", e);
+            }
+            break;
+        case "exit_to_controls":
+            widgetViewMode = "controls";
+            selectedPlaylist = null;
+            allLoadedSongs = [];
+            displayedSongsCount = 20;
+            favNextCursor = null;
+            isInitialLoadingSongs = false;
+            isLoadingMoreSongs = false;
+            await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            break;
+        case "back_to_playlists":
+            if (selectedPlaylist?.id === "FAVOURITES_PLAYLIST_ID") {
+                widgetViewMode = "controls";
+            } else {
+                widgetViewMode = "playlists";
+            }
+            selectedPlaylist = null;
+            allLoadedSongs = [];
+            displayedSongsCount = 20;
+            favNextCursor = null;
+            isInitialLoadingSongs = false;
+            isLoadingMoreSongs = false;
+            await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            break;
+        case "load_more_songs":
+            if (selectedPlaylist?.id === "FAVOURITES_PLAYLIST_ID" && favNextCursor) {
+                isLoadingMoreSongs = true;
+                await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                try {
+                    const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+                    const res = await getPlaylistSongs({
+                        playlistId: "FAVOURITES_PLAYLIST_ID",
+                        limit: 20,
+                        pageParam: favNextCursor,
+                        random: isWidgetRandomOn,
+                        seed: isWidgetRandomOn ? Math.random() : null,
+                    });
+                    if (res?.musics?.length > 0) {
+                        allLoadedSongs = [...allLoadedSongs, ...res.musics];
+                        favNextCursor = res?.nextCursor || null;
+                        displayedSongsCount = allLoadedSongs.length;
+                    } else {
+                        favNextCursor = null;
+                    }
+                } catch (e) {
+                    console.warn("Failed to load more favourites for widget:", e);
+                } finally {
+                    isLoadingMoreSongs = false;
+                    await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                }
+            } else if (displayedSongsCount < allLoadedSongs.length) {
+                displayedSongsCount = Math.min(displayedSongsCount + 20, allLoadedSongs.length);
+                await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            }
+            break;
+        case "random":
+            isWidgetRandomOn = !isWidgetRandomOn;
+            try {
+                storage.set("widget_random_on", isWidgetRandomOn);
+            } catch (_) {}
+            if (widgetViewMode === "songs" && allLoadedSongs.length > 0 && selectedPlaylist) {
+                if (selectedPlaylist.id === "FAVOURITES_PLAYLIST_ID") {
+                    isInitialLoadingSongs = true;
+                    await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+                    try {
+                        const randomSeed = isWidgetRandomOn ? Math.random() : null;
+                        const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+                        const res = await getPlaylistSongs({
+                            playlistId: "FAVOURITES_PLAYLIST_ID",
+                            limit: 20,
+                            random: isWidgetRandomOn,
+                            seed: randomSeed,
+                        });
+                        allLoadedSongs = res?.musics || [];
+                        favNextCursor = res?.nextCursor || null;
+                        displayedSongsCount = 20;
+                    } catch (_) {
+                        if (isWidgetRandomOn && allLoadedSongs.length > 1) {
                             for (let i = allLoadedSongs.length - 1; i > 0; i--) {
                                 const j = Math.floor(Math.random() * (i + 1));
                                 [allLoadedSongs[i], allLoadedSongs[j]] = [allLoadedSongs[j], allLoadedSongs[i]];
                             }
-                        } else {
-                            try {
-                                const { getDownloadedSongs } = require("./downloads/downloadService.js");
-                                const raw = await getDownloadedSongs(selectedPlaylist.id);
-                                allLoadedSongs = raw || [];
-                            } catch (_) {}
                         }
+                    } finally {
+                        isInitialLoadingSongs = false;
+                        await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
                     }
-                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    break;
-                case "timer": {
-                    const currentTimer = player.timer;
-                    const isCurrentlyActive = currentTimer != null && currentTimer > Date.now();
-
-                    let currentIndex = storage.getNumber("widget_timer_index");
-                    if (currentIndex == null || currentIndex < 0 || !isCurrentlyActive) {
-                        currentIndex = -1;
+                    return;
+                } else if (isWidgetRandomOn) {
+                    for (let i = allLoadedSongs.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allLoadedSongs[i], allLoadedSongs[j]] = [allLoadedSongs[j], allLoadedSongs[i]];
                     }
-
-                    const nextIndex = (currentIndex + 1) % TIMER_OPTIONS.length;
-                    const selectedOption = TIMER_OPTIONS[nextIndex];
-
-                    if (selectedOption.ms === 0) {
-                        player.setTimer(null);
-                        storage.set("widget_timer_index", -1);
-                        storage.delete("widget_timer_label");
-                    } else {
-                        const targetTimestamp = Date.now() + selectedOption.ms;
-                        player.setTimer(targetTimestamp);
-                        storage.set("widget_timer_index", nextIndex);
-                        storage.set("widget_timer_label", selectedOption.label);
-                    }
-
-                    updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                    break;
+                } else {
+                    try {
+                        const { getDownloadedSongs } = require("./downloads/downloadService.js");
+                        const raw = await getDownloadedSongs(selectedPlaylist.id);
+                        allLoadedSongs = raw || [];
+                    } catch (_) {}
                 }
-                default:
-                    if (event.target && event.target.startsWith("select_playlist:")) {
-                        const playlistId = event.target.replace("select_playlist:", "");
-                        try {
-                            const { getDownloadedSongs } = require("./downloads/downloadService.js");
-                            const rawSongs = await getDownloadedSongs(playlistId);
-                            const found = currentDownloadedPlaylists.find((p) => p.id === playlistId);
-                            selectedPlaylist = found || { id: playlistId, name: "Playlist" };
-
-                            let songsToUse = rawSongs ? [...rawSongs] : [];
-                            if (isWidgetRandomOn && songsToUse.length > 1) {
-                                for (let i = songsToUse.length - 1; i > 0; i--) {
-                                    const j = Math.floor(Math.random() * (i + 1));
-                                    [songsToUse[i], songsToUse[j]] = [songsToUse[j], songsToUse[i]];
-                                }
-                            }
-
-                            allLoadedSongs = songsToUse;
-                            displayedSongsCount = 20;
-                            widgetViewMode = "songs";
-                            updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
-                        } catch (e) {
-                            console.warn("Failed to load playlist songs for widget:", e);
-                        }
-                    } else if (event.target && event.target.startsWith("play_song:")) {
-                        const songId = event.target.replace("play_song:", "");
-                        if (selectedPlaylist && allLoadedSongs.length > 0) {
-                            try {
-                                const isLocal = selectedPlaylist.id !== "FAVOURITES_PLAYLIST_ID";
-                                const randomSeed = isWidgetRandomOn ? Math.random() : null;
-                                player.changePlaylistAndPlay({
-                                    playlistId: isLocal ? `local-${selectedPlaylist.id}` : selectedPlaylist.id,
-                                    trackId: songId,
-                                    tracksOverride: allLoadedSongs,
-                                    isLocal: isLocal,
-                                    isLocalPlaylist: isLocal,
-                                    isRandomPlaylist: isWidgetRandomOn,
-                                    randomSeed: randomSeed,
-                                });
-                            } catch (e) {
-                                console.warn("Failed to play song from widget:", e);
-                            }
-                        }
-                    }
-                    break;
             }
-        });
-    } catch (err) {
-        console.warn("Error registering widget interaction listener:", err);
-        return { remove: () => {} };
+            await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            break;
+        case "timer": {
+            const currentTimer = player.timer;
+            const isCurrentlyActive = currentTimer != null && currentTimer > Date.now();
+
+            let currentIndex = storage.getNumber("widget_timer_index");
+            if (currentIndex == null || currentIndex < 0 || !isCurrentlyActive) {
+                currentIndex = -1;
+            }
+
+            const nextIndex = (currentIndex + 1) % TIMER_OPTIONS.length;
+            const selectedOption = TIMER_OPTIONS[nextIndex];
+
+            if (selectedOption.ms === 0) {
+                player.setTimer(null);
+                storage.set("widget_timer_index", -1);
+                storage.delete("widget_timer_label");
+            } else {
+                const targetTimestamp = Date.now() + selectedOption.ms;
+                player.setTimer(targetTimestamp);
+                storage.set("widget_timer_index", nextIndex);
+                storage.set("widget_timer_label", selectedOption.label);
+            }
+
+            await updateMusicWidgetSnapshot(lastKnownTrack, lastKnownIsPlaying);
+            break;
+        }
+        case "select_playlist": {
+            const playlistId = data?.playlistId;
+            if (playlistId) {
+                await selectPlaylistById(playlistId);
+            }
+            break;
+        }
+        case "play_song": {
+            const songId = data?.songId;
+            if (songId) {
+                playSongById(songId);
+            }
+            break;
+        }
+        default:
+            if (target && target.startsWith("select_playlist:")) {
+                const playlistId = target.replace("select_playlist:", "");
+                await selectPlaylistById(playlistId);
+            } else if (target && target.startsWith("play_song:")) {
+                const songId = target.replace("play_song:", "");
+                playSongById(songId);
+            }
+            break;
     }
+}
+
+/**
+ * Kept for backwards compatibility with app layout.
+ */
+export function initWidgetInteractionListener() {
+    return { remove: () => {} };
 }

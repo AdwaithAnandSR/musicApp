@@ -1,36 +1,11 @@
-import React from "react";
+'use no memo';
+import React from 'react';
 import {
-    Box,
-    Row,
-    Column,
-    LazyColumn,
-    Text,
-    Image,
-    Button,
-    TextButton,
-    Spacer,
-    LoadingIndicator,
-} from "@expo/ui/jetpack-compose";
-import {
-    fillMaxSize,
-    fillMaxHeight,
-    height,
-    width,
-    size,
-    weight,
-    paddingAll,
-    cornerRadius,
-    background,
-    fillMaxWidth,
-    blur,
-} from "@expo/ui/jetpack-compose/modifiers";
-import { createWidget, type WidgetEnvironment } from "expo-widgets";
-
-declare module "@expo/ui/jetpack-compose" {
-    interface ButtonProps {
-        target?: string;
-    }
-}
+    FlexWidget,
+    TextWidget,
+    ImageWidget,
+    ListWidget,
+} from 'react-native-android-widget';
 
 export interface MusicWidgetProps {
     title?: string;
@@ -64,12 +39,24 @@ export interface MusicWidgetProps {
     isLoadingInitial?: boolean;
 }
 
-export function MusicWidgetLayout(
-    props: MusicWidgetProps,
-    environment: WidgetEnvironment,
-) {
-    "widget";
+function normalizeColor(color?: string, fallback = "#FFFFFF"): `#${string}` {
+    if (!color) return fallback as `#${string}`;
+    if (color.startsWith('#') || color.startsWith('rgba')) return color as `#${string}`;
+    return `#${color}` as `#${string}`;
+}
 
+function getAlphaColor(color: string, alphaHex = "33"): `#${string}` {
+    const clean = color.replace('#', '');
+    if (clean.length === 6) {
+        return `#${clean}${alphaHex}` as `#${string}`;
+    }
+    if (clean.length === 8) {
+        return `#${clean.substring(0, 6)}${alphaHex}` as `#${string}`;
+    }
+    return `#38BDF8${alphaHex}` as `#${string}`;
+}
+
+export function MusicWidget(props: MusicWidgetProps) {
     const {
         title = "No track playing",
         artist = "Tap to open Music",
@@ -98,507 +85,575 @@ export function MusicWidgetLayout(
         isLoadingInitial = false,
     } = props;
 
-    const isDark = environment?.colorScheme !== "light";
-    const cardBg = trackBg ? trackBg : isDark ? "#000000" : "#F4F4F5";
-    const buttonBg = isDark ? "#242428c5" : "#E4E4E7";
-    const playButtonBg = isDark ? "#FFFFFF" : "#18181B";
-    const playIconTint = isDark ? "#18181B" : "#FFFFFF";
-    const titleColor = isDark ? "#FFFFFF" : "#09090B";
-    const artistColor = isDark ? "#A1A1AA" : "#71717A";
-    const artworkPlaceholderBg = isDark ? "#1F1F23" : "#E4E4E7";
+    const cardBg = trackBg ? normalizeColor(trackBg, "#121214") : "#121214";
+    const buttonBg = "#242428";
+    const playButtonBg = "#FFFFFF";
+    const titleColor = "#FFFFFF";
+    const artistColor = "#A1A1AA";
+    const artworkPlaceholderBg = "#1F1F23";
+    const activeAccent = normalizeColor(randomActiveColor, "#38BDF8");
+    const activeAccentBg = getAlphaColor(activeAccent, "33");
 
     return (
-        <Box
-            modifiers={[
-                fillMaxSize(),
-                paddingAll(10),
-                cornerRadius(20),
-                background(cardBg),
-            ]}
+        <FlexWidget
+            style={{
+                height: 'match_parent',
+                width: 'match_parent',
+                flexDirection: 'row',
+                alignItems: 'center',
+                padding: 10,
+                borderRadius: 20,
+                backgroundColor: cardBg,
+            }}
         >
-            <Row verticalAlignment="center" modifiers={[fillMaxSize()]}>
-                {/* Left Section: Track Info and Playback Controls */}
-                <Column
-                    verticalArrangement="center"
-                    horizontalArrangement="center"
-                    modifiers={[fillMaxHeight()]}
+            {/* Left Section: Track Info and Playback Controls */}
+            <FlexWidget
+                style={{
+                    flex: 1,
+                    height: 'match_parent',
+                    justifyContent: 'center',
+                }}
+            >
+                {/* Track Info Row */}
+                <FlexWidget
+                    style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        width: 'match_parent',
+                    }}
                 >
-                    {/* Track Info Row */}
-                    <Row verticalAlignment="center" modifiers={[]}>
-                        <Button
-                            target="open_app"
-                            modifiers={[
-                                size(46, 46),
-                                cornerRadius(10),
-                                background(artworkPlaceholderBg),
-                            ]}
-                        >
-                            {artworkUri ? (
-                                <Image
-                                    source={{ uri: artworkUri }}
-                                    contentScale="crop"
-                                    modifiers={[size(46, 46), cornerRadius(10)]}
-                                />
-                            ) : albumsIconUri ? (
-                                <Image
-                                    source={{ uri: albumsIconUri }}
-                                    contentScale="fit"
-                                    modifiers={[size(24, 24)]}
-                                    alpha={0.4}
-                                />
-                            ) : (
-                                <Text
-                                    color={artistColor}
-                                    style={{ fontSize: 18 }}
-                                >
-                                    ♫
-                                </Text>
-                            )}
-                        </Button>
-
-                        <Spacer modifiers={[width(10)]} />
-
-                        <Button target="open_app" modifiers={[width(135)]}>
-                            <Column
-                                verticalArrangement="center"
-                                modifiers={[width(135)]}
-                            >
-                                <Text
-                                    color={titleColor}
-                                    maxLines={1}
-                                    style={{ fontSize: 13, fontWeight: "bold" }}
-                                >
-                                    {title}
-                                </Text>
-                                <Spacer modifiers={[height(2)]} />
-                                <Text
-                                    color={artistColor}
-                                    maxLines={1}
-                                    style={{ fontSize: 11 }}
-                                >
-                                    {artist}
-                                </Text>
-                            </Column>
-                        </Button>
-                    </Row>
-
-                    <Spacer modifiers={[height(20)]} />
-
-                    {/* Playback Controls Row */}
-
-                    <Row verticalAlignment="center">
-                        <Button
-                            target="prev"
-                            modifiers={[size(34, 34), cornerRadius(17)]}
-                        >
-                            <Image
-                                source={{ uri: prevIconUri }}
-                                contentScale="fit"
-                                modifiers={[size(28, 28)]}
+                    {/* Artwork / Icon Button */}
+                    <FlexWidget
+                        clickAction="OPEN_APP"
+                        style={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 10,
+                            backgroundColor: artworkPlaceholderBg,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                        }}
+                    >
+                        {artworkUri ? (
+                            <ImageWidget
+                                image={artworkUri as any}
+                                imageWidth={44}
+                                imageHeight={44}
+                                radius={10}
+                                resizeMode="cover"
                             />
-                        </Button>
-
-                        <Spacer modifiers={[width(15)]} />
-
-                        <Button
-                            target="play_pause"
-                            modifiers={[
-                                size(42, 42),
-                                cornerRadius(25),
-                                background(playButtonBg),
-                            ]}
-                        >
-                            <Image
-                                source={{ uri: playIconUri }}
-                                contentScale="fit"
-                                modifiers={[size(30, 30)]}
-                                tint={playIconTint}
+                        ) : albumsIconUri ? (
+                            <ImageWidget
+                                image={albumsIconUri as any}
+                                imageWidth={24}
+                                imageHeight={24}
+                                resizeMode="contain"
                             />
-                        </Button>
-
-                        <Spacer modifiers={[width(15)]} />
-
-                        <Button
-                            target="next"
-                            modifiers={[size(34, 34), cornerRadius(17)]}
-                        >
-                            <Image
-                                source={{ uri: nextIconUri }}
-                                contentScale="fit"
-                                modifiers={[size(28, 28)]}
+                        ) : (
+                            <TextWidget
+                                text="♫"
+                                style={{
+                                    fontSize: 18,
+                                    color: artistColor,
+                                }}
                             />
-                        </Button>
-                    </Row>
-                </Column>
+                        )}
+                    </FlexWidget>
 
-                <Spacer modifiers={[width(8)]} />
+                    {/* Title and Artist Column */}
+                    <FlexWidget
+                        clickAction="OPEN_APP"
+                        style={{
+                            flex: 1,
+                            marginLeft: 10,
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <TextWidget
+                            text={title}
+                            maxLines={1}
+                            truncate="END"
+                            style={{
+                                fontSize: 13,
+                                fontWeight: 'bold',
+                                color: titleColor,
+                            }}
+                        />
+                        <TextWidget
+                            text={artist}
+                            maxLines={1}
+                            truncate="END"
+                            style={{
+                                fontSize: 11,
+                                color: artistColor,
+                                marginTop: 2,
+                            }}
+                        />
+                    </FlexWidget>
+                </FlexWidget>
 
-                {/* Right Section: Quick Actions, Downloaded Playlists, or Songs */}
+                {/* Playback Controls Row */}
+                <FlexWidget
+                    style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        marginTop: 14,
+                    }}
+                >
+                    {/* Prev Button */}
+                    <FlexWidget
+                        clickAction="PREV"
+                        style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 17,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
+                        {prevIconUri ? (
+                            <ImageWidget
+                                image={prevIconUri as any}
+                                imageWidth={26}
+                                imageHeight={26}
+                                resizeMode="contain"
+                            />
+                        ) : (
+                            <TextWidget
+                                text="⏮"
+                                style={{ fontSize: 16, color: titleColor }}
+                            />
+                        )}
+                    </FlexWidget>
+
+                    {/* Play/Pause Button */}
+                    <FlexWidget
+                        clickAction="PLAY_PAUSE"
+                        style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: 21,
+                            backgroundColor: playButtonBg,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            marginHorizontal: 12,
+                        }}
+                    >
+                        {playIconUri ? (
+                            <ImageWidget
+                                image={playIconUri as any}
+                                imageWidth={28}
+                                imageHeight={28}
+                                resizeMode="contain"
+                            />
+                        ) : (
+                            <TextWidget
+                                text={isPlaying ? "⏸" : "▶"}
+                                style={{ fontSize: 18, color: '#18181B' }}
+                            />
+                        )}
+                    </FlexWidget>
+
+                    {/* Next Button */}
+                    <FlexWidget
+                        clickAction="NEXT"
+                        style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 17,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
+                        {nextIconUri ? (
+                            <ImageWidget
+                                image={nextIconUri as any}
+                                imageWidth={26}
+                                imageHeight={26}
+                                resizeMode="contain"
+                            />
+                        ) : (
+                            <TextWidget
+                                text="⏭"
+                                style={{ fontSize: 16, color: titleColor }}
+                            />
+                        )}
+                    </FlexWidget>
+                </FlexWidget>
+            </FlexWidget>
+
+            {/* Right Section: Controls, Playlists, or Songs */}
+            <FlexWidget
+                style={{
+                    width: 110,
+                    height: 'match_parent',
+                    marginLeft: 8,
+                    justifyContent: 'center',
+                }}
+            >
                 {widgetView === "songs" ? (
-                    <Column
-                        verticalArrangement="top"
-                        modifiers={[fillMaxHeight(), width(115)]}
-                    >
-                        {/* Header Row: Back + Title + Exit */}
-                        <Row
-                            verticalAlignment="center"
-                            horizontalArrangement="spaceBetween"
-                            modifiers={[fillMaxWidth()]}
+                    <FlexWidget style={{ width: 'match_parent', height: 'match_parent' }}>
+                        {/* Header: Back + Playlist Title */}
+                        <FlexWidget
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                width: 'match_parent',
+                                marginBottom: 4,
+                            }}
                         >
-                            <Row
-                                verticalAlignment="center"
-                                modifiers={[width(88)]}
+                            <FlexWidget
+                                clickAction="BACK_TO_PLAYLISTS"
+                                style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: buttonBg,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 4,
+                                }}
                             >
-                                <TextButton
-                                    target="back_to_playlists"
-                                    modifiers={[
-                                        size(20, 20),
-                                        cornerRadius(10),
-                                        background(buttonBg),
-                                    ]}
-                                >
-                                    <Text
-                                        color={titleColor}
-                                        style={{
-                                            fontSize: 11,
-                                            fontWeight: "bold",
-                                        }}
-                                    >
-                                        ←
-                                    </Text>
-                                </TextButton>
-                                <Spacer modifiers={[width(4)]} />
-                                <Text
-                                    color={titleColor}
+                                <TextWidget
+                                    text="←"
+                                    style={{
+                                        fontSize: 11,
+                                        fontWeight: 'bold',
+                                        color: titleColor,
+                                    }}
+                                />
+                            </FlexWidget>
+                            <FlexWidget style={{ flex: 1 }}>
+                                <TextWidget
+                                    text={selectedPlaylistName}
                                     maxLines={1}
-                                    style={{ fontSize: 10, fontWeight: "bold" }}
-                                >
-                                    {selectedPlaylistName}
-                                </Text>
-                            </Row>
-                        </Row>
+                                    truncate="END"
+                                    style={{
+                                        fontSize: 10,
+                                        fontWeight: 'bold',
+                                        color: titleColor,
+                                    }}
+                                />
+                            </FlexWidget>
+                        </FlexWidget>
 
-                        <Spacer modifiers={[height(4)]} />
-
+                        {/* Content: Initial loading, empty state, or list */}
                         {isLoadingInitial ? (
-                            <Column
-                                verticalArrangement="center"
-                                horizontalArrangement="center"
-                                modifiers={[fillMaxSize()]}
+                            <FlexWidget
+                                style={{
+                                    flex: 1,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
                             >
-                                <LoadingIndicator
-                                    color={randomActiveColor}
-                                    modifiers={[size(28, 28)]}
+                                <TextWidget
+                                    text="Loading..."
+                                    style={{ fontSize: 10, color: activeAccent }}
                                 />
-                            </Column>
+                            </FlexWidget>
                         ) : downloadedSongs.length === 0 ? (
-                            <Column
-                                verticalArrangement="center"
-                                horizontalArrangement="center"
-                                modifiers={[fillMaxSize()]}
+                            <FlexWidget
+                                style={{
+                                    flex: 1,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
                             >
-                                <Text
-                                    color={artistColor}
-                                    style={{ fontSize: 10 }}
-                                >
-                                    No songs
-                                </Text>
-                            </Column>
+                                <TextWidget
+                                    text="No songs"
+                                    style={{ fontSize: 10, color: artistColor }}
+                                />
+                            </FlexWidget>
                         ) : (
-                            <LazyColumn modifiers={[fillMaxSize()]}>
-                                {downloadedSongs.map((s) => (
-                                    <Button
-                                        key={s.id}
-                                        target={`play_song:${s.id}`}
-                                        modifiers={[
-                                            fillMaxWidth(),
-                                            height(30),
-                                            cornerRadius(8),
-                                            background(
-                                                s.isPlaying
-                                                    ? `${randomActiveColor}33`
-                                                    : "transparent",
-                                            ),
-                                            paddingAll(4),
-                                        ]}
-                                    >
-                                        <Row
-                                            verticalAlignment="center"
-                                            modifiers={[fillMaxWidth()]}
-                                        >
-                                            <Text
-                                                color={
-                                                    s.isPlaying
-                                                        ? randomActiveColor
-                                                        : titleColor
-                                                }
-                                                maxLines={1}
-                                                style={{
-                                                    fontSize: 10,
-                                                    fontWeight: s.isPlaying
-                                                        ? "bold"
-                                                        : "normal",
-                                                }}
-                                            >
-                                                {s.title}
-                                            </Text>
-                                        </Row>
-                                    </Button>
-                                ))}
-
-                                {hasMoreSongs && (
-                                    <Button
-                                        target="load_more_songs"
-                                        modifiers={[
-                                            fillMaxWidth(),
-                                            height(28),
-                                            cornerRadius(8),
-
-                                            paddingAll(4),
-                                        ]}
-                                    >
-                                        <Row
-                                            verticalAlignment="center"
-                                            horizontalArrangement="center"
-                                            modifiers={[fillMaxWidth()]}
-                                        >
-                                            {isLoadingMore ? (
-                                                <LoadingIndicator
-                                                    color={randomActiveColor}
-                                                    modifiers={[size(14, 14)]}
-                                                />
-                                            ) : (
-                                                <Text
-                                                    color={titleColor}
-                                                    style={{
-                                                        fontSize: 9,
-                                                        fontWeight: "bold",
-                                                    }}
-                                                >
-                                                    Load More ▾
-                                                </Text>
-                                            )}
-                                        </Row>
-                                    </Button>
-                                )}
-                            </LazyColumn>
-                        )}
-                    </Column>
-                ) : widgetView === "playlists" ? (
-                    <Column
-                        verticalArrangement="top"
-                        modifiers={[fillMaxHeight(), width(115)]}
-                    >
-                        {/* Header Row: Title + Exit Button */}
-                        <Row
-                            verticalAlignment="center"
-                            horizontalArrangement="spaceBetween"
-                            modifiers={[fillMaxWidth()]}
-                        >
-                            <Text
-                                color={titleColor}
-                                maxLines={1}
-                                style={{ fontSize: 11, fontWeight: "bold" }}
-                            >
-                                Playlists
-                            </Text>
-                            <TextButton
-                                target="exit_to_controls"
-                                modifiers={[
-                                    size(20, 20),
-                                    cornerRadius(10),
-                                    background(buttonBg),
-                                ]}
-                            >
-                                <Text
-                                    color={titleColor}
-                                    style={{ fontSize: 11, fontWeight: "bold" }}
-                                >
-                                    ✕
-                                </Text>
-                            </TextButton>
-                        </Row>
-
-                        <Spacer modifiers={[height(4)]} />
-
-                        {downloadedPlaylists.length === 0 ? (
-                            <Column
-                                verticalArrangement="center"
-                                horizontalArrangement="center"
-                                modifiers={[fillMaxSize()]}
-                            >
-                                <Text
-                                    color={artistColor}
-                                    style={{ fontSize: 10 }}
-                                >
-                                    No downloads
-                                </Text>
-                            </Column>
-                        ) : (
-                            <LazyColumn modifiers={[fillMaxSize()]}>
-                                {downloadedPlaylists.map((p) => (
-                                    <Button
-                                        key={p.id}
-                                        target={`select_playlist:${p.id}`}
-                                        modifiers={[
-                                            fillMaxWidth(),
-                                            height(32),
-                                            cornerRadius(8),
-                                            background(buttonBg),
-                                            paddingAll(4),
-                                        ]}
-                                    >
-                                        <Text
-                                            color={titleColor}
-                                            maxLines={1}
-                                            style={{ fontSize: 10 }}
-                                        >
-                                            {p.name}
-                                        </Text>
-                                    </Button>
-                                ))}
-                            </LazyColumn>
-                        )}
-                    </Column>
-                ) : (
-                    <Column
-                        verticalArrangement="center"
-                        modifiers={[fillMaxHeight()]}
-                    >
-                        <Row verticalAlignment="center">
-                            <TextButton
-                                target="download"
-                                modifiers={[
-                                    size(50, 50),
-                                    cornerRadius(15),
-                                    blur(50),
-                                ]}
-                            >
-                                <Image
-                                    source={{ uri: downloadIconUri }}
-                                    contentScale="fit"
-                                    modifiers={[size(35, 35)]}
-                                />
-                            </TextButton>
-
-                            <Spacer modifiers={[width(10)]} />
-
-                            <TextButton
-                                target="fav"
-                                modifiers={[size(50, 50), cornerRadius(15)]}
-                            >
-                                <Image
-                                    source={{ uri: favIconUri }}
-                                    contentScale="fit"
-                                    modifiers={[size(35, 35)]}
-                                />
-                            </TextButton>
-                        </Row>
-
-                        <Spacer modifiers={[height(20)]} />
-
-                        <Row verticalAlignment="center">
-                            <TextButton
-                                target="random"
-                                modifiers={[
-                                    size(50, 50),
-                                    cornerRadius(15),
-                                    background(
-                                        isRandomOn
-                                            ? `${randomActiveColor}33`
-                                            : "transparent",
-                                    ),
-                                ]}
-                            >
-                                <Image
-                                    source={{ uri: randomIconUri }}
-                                    contentScale="fit"
-                                    modifiers={[size(35, 35)]}
-                                    tint={
-                                        isRandomOn
-                                            ? randomActiveColor
-                                            : "#FFFFFF"
-                                    }
-                                />
-                            </TextButton>
-
-                            <Spacer modifiers={[width(10)]} />
-
-                            <TextButton
-                                target="timer"
-                                modifiers={[
-                                    size(50, 50),
-                                    cornerRadius(15),
-                                    background(
-                                        isTimerOn
-                                            ? `${randomActiveColor}33`
-                                            : "transparent",
-                                    ),
-                                ]}
-                            >
-                                <Column
-                                    verticalArrangement="center"
-                                    horizontalArrangement="center"
-                                >
-                                    {isTimerOn && timerLabel ? (
-                                        <Text
-                                            color={randomActiveColor}
+                            <FlexWidget style={{ flex: 1, width: 'match_parent' }}>
+                                <ListWidget style={{ height: 'match_parent', width: 'match_parent' }}>
+                                    {downloadedSongs.map((s) => (
+                                        <FlexWidget
+                                            key={s.id}
+                                            clickAction="PLAY_SONG"
+                                            clickActionData={{ songId: s.id }}
                                             style={{
-                                                fontSize: 9,
-                                                fontWeight: "bold",
+                                                width: 'match_parent',
+                                                height: 26,
+                                                borderRadius: 6,
+                                                backgroundColor: s.isPlaying ? activeAccentBg : '#00000000',
+                                                justifyContent: 'center',
+                                                paddingHorizontal: 4,
+                                                marginBottom: 2,
                                             }}
                                         >
-                                            {timerLabel}
-                                        </Text>
-                                    ) : null}
-                                    <Image
-                                        source={{ uri: timerIconsUri }}
-                                        contentScale="fit"
-                                        modifiers={[
-                                            size(
-                                                isTimerOn ? 22 : 35,
-                                                isTimerOn ? 22 : 35,
-                                            ),
-                                        ]}
-                                        tint={
-                                            isTimerOn
-                                                ? randomActiveColor
-                                                : "#FFFFFF"
-                                        }
+                                            <TextWidget
+                                                text={s.title}
+                                                maxLines={1}
+                                                truncate="END"
+                                                style={{
+                                                    fontSize: 10,
+                                                    fontWeight: s.isPlaying ? 'bold' : 'normal',
+                                                    color: s.isPlaying ? activeAccent : titleColor,
+                                                }}
+                                            />
+                                        </FlexWidget>
+                                    ))}
+                                    {hasMoreSongs && (
+                                        <FlexWidget
+                                            clickAction="LOAD_MORE_SONGS"
+                                            style={{
+                                                width: 'match_parent',
+                                                height: 24,
+                                                borderRadius: 6,
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                marginTop: 2,
+                                            }}
+                                        >
+                                            <TextWidget
+                                                text={isLoadingMore ? "Loading..." : "Load More ▾"}
+                                                style={{
+                                                    fontSize: 9,
+                                                    fontWeight: 'bold',
+                                                    color: titleColor,
+                                                }}
+                                            />
+                                        </FlexWidget>
+                                    )}
+                                </ListWidget>
+                            </FlexWidget>
+                        )}
+                    </FlexWidget>
+                ) : widgetView === "playlists" ? (
+                    <FlexWidget style={{ width: 'match_parent', height: 'match_parent' }}>
+                        {/* Header: Title + Exit Button */}
+                        <FlexWidget
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                width: 'match_parent',
+                                marginBottom: 4,
+                            }}
+                        >
+                            <TextWidget
+                                text="Playlists"
+                                maxLines={1}
+                                style={{
+                                    fontSize: 11,
+                                    fontWeight: 'bold',
+                                    color: titleColor,
+                                }}
+                            />
+                            <FlexWidget
+                                clickAction="EXIT_TO_CONTROLS"
+                                style={{
+                                    width: 20,
+                                    height: 20,
+                                    borderRadius: 10,
+                                    backgroundColor: buttonBg,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <TextWidget
+                                    text="✕"
+                                    style={{
+                                        fontSize: 10,
+                                        fontWeight: 'bold',
+                                        color: titleColor,
+                                    }}
+                                />
+                            </FlexWidget>
+                        </FlexWidget>
+
+                        {/* Content: Empty state or playlists list */}
+                        {downloadedPlaylists.length === 0 ? (
+                            <FlexWidget
+                                style={{
+                                    flex: 1,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                <TextWidget
+                                    text="No downloads"
+                                    style={{ fontSize: 10, color: artistColor }}
+                                />
+                            </FlexWidget>
+                        ) : (
+                            <FlexWidget style={{ flex: 1, width: 'match_parent' }}>
+                                <ListWidget style={{ height: 'match_parent', width: 'match_parent' }}>
+                                    {downloadedPlaylists.map((p) => (
+                                        <FlexWidget
+                                            key={p.id}
+                                            clickAction="SELECT_PLAYLIST"
+                                            clickActionData={{ playlistId: p.id }}
+                                            style={{
+                                                width: 'match_parent',
+                                                height: 28,
+                                                borderRadius: 6,
+                                                backgroundColor: buttonBg,
+                                                justifyContent: 'center',
+                                                paddingHorizontal: 6,
+                                                marginBottom: 3,
+                                            }}
+                                        >
+                                            <TextWidget
+                                                text={p.name}
+                                                maxLines={1}
+                                                truncate="END"
+                                                style={{
+                                                    fontSize: 10,
+                                                    color: titleColor,
+                                                }}
+                                            />
+                                        </FlexWidget>
+                                    ))}
+                                </ListWidget>
+                            </FlexWidget>
+                        )}
+                    </FlexWidget>
+                ) : (
+                    /* Default View: 2x2 Quick Actions (Download, Fav, Random, Timer) */
+                    <FlexWidget style={{ width: 'match_parent', justifyContent: 'center' }}>
+                        {/* Row 1: Download & Fav */}
+                        <FlexWidget style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <FlexWidget
+                                clickAction="DOWNLOAD"
+                                style={{
+                                    width: 48,
+                                    height: 46,
+                                    borderRadius: 12,
+                                    backgroundColor: buttonBg,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 8,
+                                }}
+                            >
+                                {downloadIconUri ? (
+                                    <ImageWidget
+                                        image={downloadIconUri as any}
+                                        imageWidth={28}
+                                        imageHeight={28}
+                                        resizeMode="contain"
                                     />
-                                </Column>
-                            </TextButton>
-                        </Row>
-                    </Column>
+                                ) : (
+                                    <TextWidget
+                                        text="⬇"
+                                        style={{ fontSize: 16, color: titleColor }}
+                                    />
+                                )}
+                            </FlexWidget>
+
+                            <FlexWidget
+                                clickAction="FAV"
+                                style={{
+                                    width: 48,
+                                    height: 46,
+                                    borderRadius: 12,
+                                    backgroundColor: buttonBg,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                {favIconUri ? (
+                                    <ImageWidget
+                                        image={favIconUri as any}
+                                        imageWidth={28}
+                                        imageHeight={28}
+                                        resizeMode="contain"
+                                    />
+                                ) : (
+                                    <TextWidget
+                                        text="♥"
+                                        style={{ fontSize: 16, color: titleColor }}
+                                    />
+                                )}
+                            </FlexWidget>
+                        </FlexWidget>
+
+                        {/* Row 2: Random & Timer */}
+                        <FlexWidget
+                            style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                marginTop: 8,
+                            }}
+                        >
+                            <FlexWidget
+                                clickAction="RANDOM"
+                                style={{
+                                    width: 48,
+                                    height: 46,
+                                    borderRadius: 12,
+                                    backgroundColor: isRandomOn ? activeAccentBg : buttonBg,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    marginRight: 8,
+                                }}
+                            >
+                                {randomIconUri ? (
+                                    <ImageWidget
+                                        image={randomIconUri as any}
+                                        imageWidth={28}
+                                        imageHeight={28}
+                                        resizeMode="contain"
+                                    />
+                                ) : (
+                                    <TextWidget
+                                        text="🔀"
+                                        style={{
+                                            fontSize: 16,
+                                            color: isRandomOn ? activeAccent : titleColor,
+                                        }}
+                                    />
+                                )}
+                            </FlexWidget>
+
+                            <FlexWidget
+                                clickAction="TIMER"
+                                style={{
+                                    width: 48,
+                                    height: 46,
+                                    borderRadius: 12,
+                                    backgroundColor: isTimerOn ? activeAccentBg : buttonBg,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}
+                            >
+                                {isTimerOn && timerLabel ? (
+                                    <TextWidget
+                                        text={timerLabel}
+                                        style={{
+                                            fontSize: 9,
+                                            fontWeight: 'bold',
+                                            color: activeAccent,
+                                            marginBottom: 1,
+                                        }}
+                                    />
+                                ) : null}
+                                {timerIconsUri ? (
+                                    <ImageWidget
+                                        image={timerIconsUri as any}
+                                        imageWidth={isTimerOn ? 20 : 28}
+                                        imageHeight={isTimerOn ? 20 : 28}
+                                        resizeMode="contain"
+                                    />
+                                ) : (
+                                    <TextWidget
+                                        text="⏱"
+                                        style={{
+                                            fontSize: 16,
+                                            color: isTimerOn ? activeAccent : titleColor,
+                                        }}
+                                    />
+                                )}
+                            </FlexWidget>
+                        </FlexWidget>
+                    </FlexWidget>
                 )}
-            </Row>
-        </Box>
+            </FlexWidget>
+        </FlexWidget>
     );
 }
 
-export const musicWidget = createWidget("MusicWidget", MusicWidgetLayout, {
-    title: "No track playing",
-    artist: "Tap to open Music",
-    isPlaying: false,
-    artworkUri: "",
-    trackBg: "",
-    playIconUri: "",
-    nextIconUri: "",
-    prevIconUri: "",
-    favIconUri: "",
-    albumsIconUri: "",
-    downloadIconUri: "",
-    randomIconUri: "",
-    timerIconsUri: "",
-    closeIconUri: "",
-    isRandomOn: false,
-    isTimerOn: false,
-    timerLabel: "",
-    randomActiveColor: "#38BDF8",
-    widgetView: "controls",
-    downloadedPlaylists: [],
-    selectedPlaylistName: "Songs",
-    downloadedSongs: [],
-    hasMoreSongs: false,
-    isLoadingMore: false,
-});
+// Backward-compatibility export alias
+export const MusicWidgetLayout = MusicWidget;

@@ -2,15 +2,21 @@ import Music from "../../models/musics.js";
 
 const getArtists = async (req, res) => {
     try {
-        const { page = 1, limit = 50 } = req.query;
+        const { page = 1, limit = 50, search = "" } = req.query;
         const skip = (Number(page) - 1) * Number(limit);
 
-        const artists = await Music.aggregate([
+        const matchInitial = {
+            artist: { $exists: true, $ne: "" }
+        };
+
+        if (search && search.trim()) {
+            matchInitial.artist = { $regex: search.trim(), $options: "i" };
+        }
+
+        const pipeline = [
             // 1. Match only songs that have an artist
             {
-                $match: {
-                    artist: { $exists: true, $ne: "" }
-                }
+                $match: matchInitial
             },
             // 2. Split comma-separated artists
             {
@@ -30,7 +36,18 @@ const getArtists = async (req, res) => {
                     lowerArtist: { $toLower: { $trim: { input: "$artistArray" } } },
                     cover: 1
                 }
-            },
+            }
+        ];
+
+        if (search && search.trim()) {
+            pipeline.push({
+                $match: {
+                    originalArtist: { $regex: search.trim(), $options: "i" }
+                }
+            });
+        }
+
+        pipeline.push(
             // 5. Group by lowercased artist name, get original casing, first cover, and count songs
             {
                 $group: {
@@ -66,7 +83,9 @@ const getArtists = async (req, res) => {
                     isArtistPlaylist: { $literal: true }
                 }
             }
-        ]);
+        );
+
+        const artists = await Music.aggregate(pipeline);
 
         return res.json({
             playlists: artists,

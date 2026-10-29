@@ -7,12 +7,16 @@ const MUSIC_SELECT_FIELDS = "_id title cover artist colors duration url videoUrl
 
 export const getSongs = async (req, res) => {
     try {
-        const { playlistId, cursor, limit = 50, random, seed, artistName } = req.query;
+        const { playlistId, cursor, limit = 50, random, seed, artistName, search } = req.query;
 
         const isRandom = random === "true";
         const isSpecialPlaylist = playlistId === "6a3e689cfba948ae55682fe3";
         const isFavPlaylist = playlistId === "FAVOURITES_PLAYLIST_ID";
         const isArtistPlaylist = Boolean(artistName);
+
+        const searchRegex = search && search.trim()
+            ? new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i")
+            : null;
 
         const parsedLimit = Number(limit);
         const playlistObjectId = (playlistId && playlistId !== "ARTISTS_PLAYLIST_ID" && playlistId !== "FAVOURITES_PLAYLIST_ID" && !isArtistPlaylist) ? new mongoose.Types.ObjectId(playlistId) : null;
@@ -30,6 +34,9 @@ export const getSongs = async (req, res) => {
             // Match exact artist name from comma-separated list, ignoring case
             const regex = new RegExp(`(^|,)\\s*${escapedName}\\s*(,|$)`, "i");
             const baseQuery = { artist: { $regex: regex } };
+            if (searchRegex) {
+                baseQuery.$or = [{ title: { $regex: searchRegex } }, { artist: { $regex: searchRegex } }];
+            }
 
             if (isRandom) {
                 const randomSeed = Number(seed);
@@ -77,6 +84,9 @@ export const getSongs = async (req, res) => {
         // =========================
         else if (isSpecialPlaylist) {
             let query = {};
+            if (searchRegex) {
+                query.$or = [{ title: { $regex: searchRegex } }, { artist: { $regex: searchRegex } }];
+            }
 
             if (cursor) query.createdAt = { $lt: new Date(Number(cursor)) };
 
@@ -90,6 +100,9 @@ export const getSongs = async (req, res) => {
         // =========================
         else if (isFavPlaylist) {
             const baseQuery = { isFav: true };
+            if (searchRegex) {
+                baseQuery.$or = [{ title: { $regex: searchRegex } }, { artist: { $regex: searchRegex } }];
+            }
 
             if (isRandom) {
                 const randomSeed = Number(seed);
@@ -182,23 +195,35 @@ export const getSongs = async (req, res) => {
         // 📜 NORMAL MODE
         // =========================
         else {
-            let query = { playlistId: playlistObjectId };
-            if (cursor) query.order = { $lt: Number(cursor) };
+            if (searchRegex) {
+                const playlistMappings = await PlaylistSong.find({ playlistId: playlistObjectId }).select("songId");
+                const songIds = playlistMappings.map(m => m.songId);
 
-            mappings = await PlaylistSong.find(query)
-                .sort({ order: -1 })
-                .limit(parsedLimit);
+                songs = await Music.find({
+                    _id: { $in: songIds },
+                    $or: [{ title: { $regex: searchRegex } }, { artist: { $regex: searchRegex } }]
+                })
+                    .select(MUSIC_SELECT_FIELDS)
+                    .limit(parsedLimit);
+            } else {
+                let query = { playlistId: playlistObjectId };
+                if (cursor) query.order = { $lt: Number(cursor) };
 
-            // Fetch songs from Music model
-            const songIds = mappings.map(m => m.songId);
+                mappings = await PlaylistSong.find(query)
+                    .sort({ order: -1 })
+                    .limit(parsedLimit);
 
-            const songsRaw = await Music.find({
-                _id: { $in: songIds }
-            }).select(MUSIC_SELECT_FIELDS);
+                // Fetch songs from Music model
+                const songIds = mappings.map(m => m.songId);
 
-            // preserve order
-            const map = new Map(songsRaw.map(s => [s._id.toString(), s]));
-            songs = songIds.map(id => map.get(id.toString())).filter(Boolean);
+                const songsRaw = await Music.find({
+                    _id: { $in: songIds }
+                }).select(MUSIC_SELECT_FIELDS);
+
+                // preserve order
+                const map = new Map(songsRaw.map(s => [s._id.toString(), s]));
+                songs = songIds.map(id => map.get(id.toString())).filter(Boolean);
+            }
         }
 
         // =========================
