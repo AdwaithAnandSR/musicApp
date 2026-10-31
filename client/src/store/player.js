@@ -5,19 +5,18 @@ import { getDownloadedSongs } from "@services/downloads/downloadService";
 import queryClient from "@services/queryClient";
 import { useDownloadStatus, useStatus } from "@store/appState.store.js";
 
-/**
- * Ensures background playback and lock screen audio mode are configured,
- * especially when initialized from an Android Headless JS widget task.
- */
+let isAudioModeConfigured = false;
 const ensureBackgroundAudioMode = async () => {
+  if (isAudioModeConfigured) return;
   try {
     await setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
       interruptionMode: "doNotMix",
     });
+    isAudioModeConfigured = true;
   } catch (err) {
-    console.log("Error setting audio mode:", err);
+    console.log("Error configuring background audio mode:", err);
   }
 };
 
@@ -333,10 +332,16 @@ export const usePlayer = create((set, get) => ({
   },
 
   playPause: () => {
-    const { player, isPlaying } = get();
+    const { player, isPlaying, currentTrack } = get();
     if (!player) return;
-    if (isPlaying) player.pause();
-    else player.play();
+    const nextPlaying = !isPlaying;
+    if (isPlaying) {
+      player.pause();
+    } else {
+      player.play();
+    }
+    set({ isPlaying: nextPlaying });
+    get().updateWidget(currentTrack, nextPlaying);
   },
 
   playByIndex: async (index) => {
@@ -763,7 +768,7 @@ export const usePlayer = create((set, get) => ({
       });
 
       // Activate lock screen & foreground service immediately so Headless JS
-      // promotes the process before widgetTaskHandler finishes
+      // starts AudioControlsService before widgetTaskHandler exits
       get().updateLockScreen(currentTrack);
       newPlaylist.skipTo(initialIndex);
       newPlaylist.play();

@@ -340,96 +340,102 @@ export function MusicWidget(props: MusicWidgetProps) {
               </FlexWidget>
             </FlexWidget>
 
-            {/* Content: Initial loading, empty state, or list */}
+            {/* Content: Initial loading, empty state, or list + pinned footer button */}
             {isLoadingInitial ? (
               <FlexWidget
                 style={{
-                  flex: 1,
                   width: "100%",
+                  justifyContent: "center",
                   alignItems: "center",
                 }}
               >
                 <TextWidget
                   text="Loading..."
-                  style={{
-                    fontSize: 10,
-                    color: activeAccent,
-                  }}
+                  style={{ fontSize: 10, color: activeAccent }}
                 />
               </FlexWidget>
             ) : downloadedSongs.length === 0 ? (
               <FlexWidget
                 style={{
                   flex: 1,
-                  width: "100%",
+                  justifyContent: "center",
                   alignItems: "center",
                 }}
               >
                 <TextWidget
                   text="No songs"
-                  style={{
-                    fontSize: 10,
-                    color: artistColor,
-                  }}
+                  style={{ fontSize: 10, color: artistColor }}
                 />
               </FlexWidget>
             ) : (
-              <FlexWidget style={{ flex: 1, width: "match_parent" }}>
-                <ListWidget
-                  style={{ height: "match_parent", width: "match_parent" }}
-                >
-                  {downloadedSongs.map((s) => (
-                    <FlexWidget
-                      key={s.id}
-                      clickAction="PLAY_SONG"
-                      clickActionData={{ songId: s.id }}
-                      style={{
-                        width: "match_parent",
-                        height: 26,
-                        borderRadius: 6,
-                        backgroundColor: s.isPlaying
-                          ? activeAccentBg
-                          : "#00000000",
-                        justifyContent: "center",
-                        paddingHorizontal: 4,
-                        marginBottom: 2,
-                      }}
-                    >
-                      <TextWidget
-                        text={s.title}
-                        maxLines={1}
-                        truncate="END"
+              <FlexWidget
+                style={{
+                  flex: 1,
+                  width: "match_parent",
+                  flexDirection: "column",
+                }}
+              >
+                {/* Scrollable List Container */}
+                <FlexWidget style={{ flex: 1, width: "match_parent" }}>
+                  <ListWidget
+                    style={{ height: "match_parent", width: "match_parent" }}
+                  >
+                    {downloadedSongs.map((s) => (
+                      <FlexWidget
+                        key={s.id}
+                        clickAction="PLAY_SONG"
+                        clickActionData={{ songId: s.id }}
                         style={{
-                          fontSize: 10,
-                          fontWeight: s.isPlaying ? "bold" : "normal",
-                          color: s.isPlaying ? activeAccent : titleColor,
+                          width: "match_parent",
+                          height: 26,
+                          borderRadius: 6,
+                          backgroundColor: s.isPlaying
+                            ? activeAccentBg
+                            : "#00000000",
+                          justifyContent: "center",
+                          paddingHorizontal: 4,
+                          marginBottom: 2,
                         }}
-                      />
-                    </FlexWidget>
-                  ))}
-                  {hasMoreSongs && (
-                    <FlexWidget
-                      clickAction="LOAD_MORE_SONGS"
-                      style={{
-                        width: "match_parent",
-                        height: 24,
-                        borderRadius: 6,
+                      >
+                        <TextWidget
+                          text={s.title}
+                          maxLines={1}
+                          truncate="END"
+                          style={{
+                            fontSize: 10,
+                            fontWeight: s.isPlaying ? "bold" : "normal",
+                            color: s.isPlaying ? activeAccent : titleColor,
+                          }}
+                        />
+                      </FlexWidget>
+                    ))}
+                  </ListWidget>
+                </FlexWidget>
 
-                        alignItems: "center",
-                        marginTop: 2,
+                {/* Fixed Footer Load More Button */}
+                {hasMoreSongs && (
+                  <FlexWidget
+                    clickAction="LOAD_MORE_SONGS"
+                    style={{
+                      width: "match_parent",
+                      height: 22,
+                      borderRadius: 4,
+                      backgroundColor: buttonBg,
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginTop: 2,
+                    }}
+                  >
+                    <TextWidget
+                      text={isLoadingMore ? "Loading..." : "Load More ▾"}
+                      style={{
+                        fontSize: 9,
+                        fontWeight: "bold",
+                        color: titleColor,
                       }}
-                    >
-                      <TextWidget
-                        text={isLoadingMore ? "Loading..." : "Load More"}
-                        style={{
-                          fontSize: 9,
-                          fontWeight: "bold",
-                          color: titleColor,
-                        }}
-                      />
-                    </FlexWidget>
-                  )}
-                </ListWidget>
+                    />
+                  </FlexWidget>
+                )}
               </FlexWidget>
             )}
           </FlexWidget>

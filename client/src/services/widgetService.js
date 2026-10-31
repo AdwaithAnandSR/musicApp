@@ -486,34 +486,94 @@ async function resumeLastPlaybackSession(mode = "play") {
   try {
     const { getLastPlaybackSession } = require("./storage.js");
     const session = getLastPlaybackSession();
-    if (!session || !session.playlistId) {
-      Linking.openURL("music://").catch(() => {});
-      return;
-    }
-
-    const { playlistId, songId, nextSongId, isRandom, isLocal, pageNum } =
-      session;
     const player = usePlayer.getState();
 
-    const pickTargetTrack = (list) => {
-      if (!list || list.length === 0) return null;
-      const idx = list.findIndex(
-        (s) => String(s.id || s._id) === String(songId),
-      );
-      if (idx === -1) return list[0];
+    if (session && session.playlistId) {
+      const { playlistId, songId, nextSongId, isRandom, isLocal, pageNum } =
+        session;
 
-      if (mode === "next") {
-        return idx + 1 < list.length ? list[idx + 1] : list[0];
-      }
-      if (mode === "prev") {
-        return idx - 1 >= 0 ? list[idx - 1] : list[list.length - 1];
-      }
-      return list[idx];
-    };
+      const pickTargetTrack = (list) => {
+        if (!list || list.length === 0) return null;
+        const idx = list.findIndex(
+          (s) => String(s.id || s._id) === String(songId),
+        );
+        if (idx === -1) return list[0];
 
-    // ── CASE 1: Random playlist ────────────────────────────────
-    if (isRandom) {
-      const newSeed = Math.random();
+        if (mode === "next") {
+          return idx + 1 < list.length ? list[idx + 1] : list[0];
+        }
+        if (mode === "prev") {
+          return idx - 1 >= 0 ? list[idx - 1] : list[list.length - 1];
+        }
+        return list[idx];
+      };
+
+      // ── CASE 1: Random playlist ────────────────────────────────
+      if (isRandom) {
+        const newSeed = Math.random();
+        if (isLocal || String(playlistId).startsWith("local-")) {
+          try {
+            const actualId = String(playlistId).replace(/^local-/, "");
+            const {
+              getDownloadedSongs,
+            } = require("./downloads/downloadService.js");
+            const songs = await getDownloadedSongs(actualId);
+            if (songs && songs.length > 0) {
+              const target =
+                mode === "play"
+                  ? songs.find((s) => String(s.id || s._id) === String(songId))
+                  : null;
+              const started = await player.changePlaylistAndPlay({
+                playlistId: `local-${actualId}`,
+                trackId: target ? target.id || target._id : null,
+                tracksOverride: songs,
+                isLocal: true,
+                isLocalPlaylist: true,
+                isRandomPlaylist: true,
+                randomSeed: newSeed,
+              });
+              if (started) return;
+            }
+          } catch (e) {
+            console.warn("Failed to resume local random playlist:", e);
+          }
+        } else {
+          try {
+            const {
+              getPlaylistSongs,
+            } = require("@controllers/playlists/fetch");
+            const res = await getPlaylistSongs({
+              playlistId,
+              limit: 20,
+              random: true,
+              seed: newSeed,
+            });
+            const musics = res?.musics || [];
+            if (musics.length > 0) {
+              const target =
+                mode === "play"
+                  ? musics.find(
+                      (s) => String(s._id || s.id) === String(songId),
+                    ) || musics[0]
+                  : musics[0];
+              const started = await player.changePlaylistAndPlay({
+                playlistId,
+                trackId: target._id || target.id,
+                tracksOverride: musics,
+                isLocal: false,
+                isLocalPlaylist: false,
+                isRandomPlaylist: true,
+                randomSeed: newSeed,
+              });
+              if (started) return;
+            }
+          } catch (e) {
+            console.warn("Failed to resume remote random playlist:", e);
+          }
+        }
+      }
+
+      // ── CASE 2: Sequential (non-random) playlist ───────────────
       if (isLocal || String(playlistId).startsWith("local-")) {
         try {
           const actualId = String(playlistId).replace(/^local-/, "");
@@ -522,142 +582,110 @@ async function resumeLastPlaybackSession(mode = "play") {
           } = require("./downloads/downloadService.js");
           const songs = await getDownloadedSongs(actualId);
           if (songs && songs.length > 0) {
-            const target =
-              mode === "play"
-                ? songs.find((s) => String(s.id || s._id) === String(songId))
-                : null;
-            await player.changePlaylistAndPlay({
+            const targetTrack = pickTargetTrack(songs);
+            const started = await player.changePlaylistAndPlay({
               playlistId: `local-${actualId}`,
-              trackId: target ? target.id || target._id : null,
+              trackId: targetTrack.id || targetTrack._id,
               tracksOverride: songs,
               isLocal: true,
               isLocalPlaylist: true,
-              isRandomPlaylist: true,
-              randomSeed: newSeed,
+              isRandomPlaylist: false,
             });
-            return;
+            if (started) return;
           }
         } catch (e) {
-          console.warn("Failed to resume local random playlist:", e);
+          console.warn("Failed to resume local sequential playlist:", e);
         }
       } else {
         try {
           const { getPlaylistSongs } = require("@controllers/playlists/fetch");
+          const targetPage = pageNum || 1;
           const res = await getPlaylistSongs({
             playlistId,
             limit: 20,
-            random: true,
-            seed: newSeed,
+            pageParam: targetPage > 1 ? (targetPage - 1) * 20 : null,
+            random: false,
           });
           const musics = res?.musics || [];
           if (musics.length > 0) {
-            await player.changePlaylistAndPlay({
+            let targetSong = null;
+            const foundIdx = musics.findIndex(
+              (s) => String(s._id || s.id) === String(songId),
+            );
+
+            if (mode === "play" && foundIdx !== -1) {
+              targetSong = musics[foundIdx];
+            } else if (mode === "prev" && foundIdx !== -1) {
+              targetSong = foundIdx - 1 >= 0 ? musics[foundIdx - 1] : musics[0];
+            } else if (foundIdx !== -1 && foundIdx + 1 < musics.length) {
+              targetSong = musics[foundIdx + 1];
+            } else if (
+              foundIdx !== -1 &&
+              foundIdx + 1 >= musics.length &&
+              res.nextCursor
+            ) {
+              try {
+                const nextRes = await getPlaylistSongs({
+                  playlistId,
+                  limit: 20,
+                  pageParam: res.nextCursor,
+                  random: false,
+                });
+                targetSong = nextRes?.musics?.[0] || musics[0];
+              } catch (_) {
+                targetSong = musics[0];
+              }
+            } else if (mode === "next" && nextSongId) {
+              targetSong =
+                musics.find(
+                  (s) => String(s._id || s.id) === String(nextSongId),
+                ) || musics[0];
+            } else {
+              targetSong = musics[0];
+            }
+
+            const started = await player.changePlaylistAndPlay({
               playlistId,
-              trackId: musics[0]._id || musics[0].id,
+              trackId: targetSong._id || targetSong.id,
               tracksOverride: musics,
               isLocal: false,
               isLocalPlaylist: false,
-              isRandomPlaylist: true,
-              randomSeed: newSeed,
+              isRandomPlaylist: false,
             });
-            return;
+            if (started) return;
           }
         } catch (e) {
-          console.warn("Failed to resume remote random playlist:", e);
+          console.warn("Failed to resume remote sequential playlist:", e);
         }
       }
     }
 
-    // ── CASE 2: Sequential (non-random) playlist ───────────────
-    if (isLocal || String(playlistId).startsWith("local-")) {
+    // ── FALLBACK: If offline or session missing, play persisted lastKnownTrack directly ──
+    if (!lastKnownTrack) {
       try {
-        const actualId = String(playlistId).replace(/^local-/, "");
-        const {
-          getDownloadedSongs,
-        } = require("./downloads/downloadService.js");
-        const songs = await getDownloadedSongs(actualId);
-        if (songs && songs.length > 0) {
-          const targetTrack = pickTargetTrack(songs);
-          await player.changePlaylistAndPlay({
-            playlistId: `local-${actualId}`,
-            trackId: targetTrack.id || targetTrack._id,
-            tracksOverride: songs,
-            isLocal: true,
-            isLocalPlaylist: true,
-            isRandomPlaylist: false,
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn("Failed to resume local sequential playlist:", e);
-      }
-    } else {
-      try {
-        const { getPlaylistSongs } = require("@controllers/playlists/fetch");
-        const targetPage = pageNum || 1;
-        const res = await getPlaylistSongs({
-          playlistId,
-          limit: 20,
-          pageParam: targetPage > 1 ? (targetPage - 1) * 20 : null,
-          random: false,
-        });
-        const musics = res?.musics || [];
-        if (musics.length > 0) {
-          let targetSong = null;
-          const foundIdx = musics.findIndex(
-            (s) => String(s._id || s.id) === String(songId),
-          );
+        const saved = storage.getString("widget_last_track");
+        if (saved) lastKnownTrack = JSON.parse(saved);
+      } catch (_) {}
+    }
 
-          if (mode === "play" && foundIdx !== -1) {
-            targetSong = musics[foundIdx];
-          } else if (mode === "prev" && foundIdx !== -1) {
-            targetSong = foundIdx - 1 >= 0 ? musics[foundIdx - 1] : musics[0];
-          } else if (foundIdx !== -1 && foundIdx + 1 < musics.length) {
-            targetSong = musics[foundIdx + 1];
-          } else if (
-            foundIdx !== -1 &&
-            foundIdx + 1 >= musics.length &&
-            res.nextCursor
-          ) {
-            try {
-              const nextRes = await getPlaylistSongs({
-                playlistId,
-                limit: 20,
-                pageParam: res.nextCursor,
-                random: false,
-              });
-              targetSong = nextRes?.musics?.[0] || musics[0];
-            } catch (_) {
-              targetSong = musics[0];
-            }
-          } else if (mode === "next" && nextSongId) {
-            targetSong =
-              musics.find(
-                (s) => String(s._id || s.id) === String(nextSongId),
-              ) || musics[0];
-          } else {
-            targetSong = musics[0];
-          }
-
-          await player.changePlaylistAndPlay({
-            playlistId,
-            trackId: targetSong._id || targetSong.id,
-            tracksOverride: musics,
-            isLocal: false,
-            isLocalPlaylist: false,
-            isRandomPlaylist: false,
-          });
-          return;
-        }
-      } catch (e) {
-        console.warn("Failed to resume remote sequential playlist:", e);
-      }
+    if (
+      lastKnownTrack &&
+      (lastKnownTrack.url || lastKnownTrack.cloudUrl || lastKnownTrack.localUrl)
+    ) {
+      const trackId = lastKnownTrack._id || lastKnownTrack.id;
+      await player.changePlaylistAndPlay({
+        playlistId: session?.playlistId || "widget-fallback",
+        trackId,
+        tracksOverride: [lastKnownTrack],
+        isLocal: Boolean(lastKnownTrack.isLocal),
+        isLocalPlaylist: Boolean(lastKnownTrack.isLocal),
+        isRandomPlaylist: false,
+      });
+      return;
     }
   } catch (err) {
     console.warn("Failed to resume last playback session:", err);
   }
-
-  Linking.openURL("music://").catch(() => {});
 }
 
 async function selectPlaylistById(playlistId) {
@@ -720,12 +748,7 @@ export async function handleWidgetAction(target, data) {
       if (!player.player && player.queue?.length > 0) {
         await player.playByIndex(0);
       } else if (player.player) {
-        const nextPlayingState = !player.isPlaying;
         player.playPause();
-        await updateMusicWidgetSnapshot(
-          player.currentTrack || lastKnownTrack,
-          nextPlayingState,
-        );
       } else {
         await resumeLastPlaybackSession("play");
       }
@@ -745,9 +768,8 @@ export async function handleWidgetAction(target, data) {
       }
       break;
     case "open_app":
-      Linking.openURL("music://").catch((err) => {
-        console.warn("Failed to open app from widget:", err);
-      });
+      // Note: clickAction="OPEN_APP" in MusicWidget.tsx is handled natively by
+      // react-native-android-widget and never emits WIDGET_CLICK.
       break;
     case "fav":
       try {
