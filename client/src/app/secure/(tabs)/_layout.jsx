@@ -5,40 +5,41 @@ import { getUser } from "@services/storage.js";
 import TrackControllerMinView from "../../../components/TrackControllerMinView.jsx";
 
 const Layout = () => {
-    const user = getUser();
-    const isAdmin = user?.role === "admin";
+  const user = getUser();
+  const isAdmin = user?.role === "admin";
 
-    return (
-        <View style={{ flex: 1, backgroundColor: "black" }}>
-            <NativeTabs minimizeBehavior="onScrollDown" backgroundColor="black">
-                <NativeTabs.Trigger name="Home">
-                    <NativeTabs.Trigger.Icon md="music_note" sf="music.note" />
-                </NativeTabs.Trigger>
+  return (
+    <View style={{ flex: 1, backgroundColor: "black" }}>
+      <NativeTabs
+        minimizeBehavior="onScrollDown"
+        backgroundColor="transparent"
+        disableAutomaticContentInsets
+      >
+        <NativeTabs.Trigger name="Home">
+          <NativeTabs.Trigger.Icon md="music_note" sf="music.note" />
+        </NativeTabs.Trigger>
 
-                <NativeTabs.Trigger name="Search">
-                    <NativeTabs.Trigger.Icon md="search" sf="magnifyingglass" />
-                </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="Search">
+          <NativeTabs.Trigger.Icon md="search" sf="magnifyingglass" />
+        </NativeTabs.Trigger>
 
-                <NativeTabs.Trigger name="playlists">
-                    <NativeTabs.Trigger.Icon
-                        md="queue_music"
-                        sf="music.note.list"
-                    />
-                </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="playlists">
+          <NativeTabs.Trigger.Icon md="queue_music" sf="music.note.list" />
+        </NativeTabs.Trigger>
 
-                {isAdmin && (
-                    <NativeTabs.Trigger name="AdminPanel">
-                        <NativeTabs.Trigger.Icon
-                            md="admin_panel_settings"
-                            sf="shield.lefthalf.filled"
-                        />
-                    </NativeTabs.Trigger>
-                )}
-            </NativeTabs>
+        {isAdmin && (
+          <NativeTabs.Trigger name="AdminPanel">
+            <NativeTabs.Trigger.Icon
+              md="admin_panel_settings"
+              sf="shield.lefthalf.filled"
+            />
+          </NativeTabs.Trigger>
+        )}
+      </NativeTabs>
 
-            <TrackControllerMinView tabBarHeight={100} />
-        </View>
-    );
+      <TrackControllerMinView />
+    </View>
+  );
 };
 
 export default Layout;

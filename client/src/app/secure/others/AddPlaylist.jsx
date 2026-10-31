@@ -4,7 +4,7 @@ import { WidgetPreview } from 'react-native-android-widget';
 
 import { MusicWidgetLayout } from '../../../widgets/MusicWidget';
 
-export function HelloWidgetPreviewScreen() {
+ function HelloWidgetPreviewScreen() {
   return (
     <View style={styles.container}>
       <WidgetPreview
@@ -23,6 +23,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+export default HelloWidgetPreviewScreen
 
 
 // import { useState } from "react";

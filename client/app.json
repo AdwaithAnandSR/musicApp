@@ -70,7 +70,7 @@
                             "label": "Music Player",
                             "description": "Control music playback",
                             "minWidth": "250dp",
-                            "minHeight": "120dp",
+                            "minHeight": "100dp",
                             "targetCellWidth": 4,
                             "targetCellHeight": 2,
                             "resizeMode": "horizontal|vertical",
