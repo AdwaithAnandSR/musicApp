@@ -23,18 +23,20 @@ const DownloadedPlaylists = () => {
             const fetchedPlaylists = await getDownloadedPlaylists();
             const playlistsWithCovers = await Promise.all(
                 fetchedPlaylists.map(async p => {
-                    const songs = await getDownloadedSongs(p.id);
+                    const pId = String(p.id || p._id || "");
+                    const songs = await getDownloadedSongs(pId);
                     return {
                         ...p,
-                        _id: p.id,
+                        id: pId,
+                        _id: pId,
                         isLocalFolder: true,
                         cover: songs && songs.length > 0 ? (songs[0].cover || songs[0].artwork) : p.cover
                     };
                 })
             );
             setPlaylists(prev => {
-                const prevSig = prev.map(p => `${p.id}:${p.songCount || 0}:${p.sizeBytes || 0}`).join('|');
-                const newSig = playlistsWithCovers.map(p => `${p.id}:${p.songCount || 0}:${p.sizeBytes || 0}`).join('|');
+                const prevSig = prev.map(p => `${p.id || p._id}:${p.songCount || 0}:${p.sizeBytes || 0}:${p.cover || ''}`).join('|');
+                const newSig = playlistsWithCovers.map(p => `${p.id || p._id}:${p.songCount || 0}:${p.sizeBytes || 0}:${p.cover || ''}`).join('|');
                 if (prevSig === newSig) return prev;
                 return playlistsWithCovers;
             });
@@ -50,6 +52,7 @@ const DownloadedPlaylists = () => {
         }, [loadPlaylists])
     );
 
+    const downloadVersion = useDownloadStatus(state => state.downloadVersion);
     // Reload when downloads start or finish (count changes), not on every progress tick
     const downloadingCount = useDownloadStatus(state =>
         Object.values(state.downloadingPlaylists).reduce((acc, songs) => acc + songs.length, 0)
@@ -57,7 +60,7 @@ const DownloadedPlaylists = () => {
 
     useEffect(() => {
         loadPlaylists();
-    }, [downloadingCount, loadPlaylists]);
+    }, [downloadVersion, downloadingCount, loadPlaylists]);
 
     const totalBytes = playlists.reduce((acc, p) => acc + (p.sizeBytes || 0), 0);
     let formattedSpace = "";
@@ -81,7 +84,9 @@ const DownloadedPlaylists = () => {
             <AnimatedFlashList
                 data={playlists}
                 keyExtractor={item => item.id || item._id}
-                renderItem={({ item }) => <ListItem item={item} />}
+                renderItem={({ item, index }) => (
+                    <ListItem item={item} index={index} scrollY={scrollY} />
+                )}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                     <Text style={styles.emptyText}>No downloaded playlists.</Text>

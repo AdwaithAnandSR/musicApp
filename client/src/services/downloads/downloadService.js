@@ -10,7 +10,9 @@ let songIdToLocalInfo = new Map();
 
 const buildLookupMap = (meta) => {
     songIdToLocalInfo.clear();
+    if (!meta || !meta.songs) return;
     for (const playlistId in meta.songs) {
+        if (!Array.isArray(meta.songs[playlistId])) continue;
         for (const song of meta.songs[playlistId]) {
             if (song.localUrl) {
                 songIdToLocalInfo.set(song.id || song._id, {
@@ -22,6 +24,80 @@ const buildLookupMap = (meta) => {
     }
 };
 
+const repairMeta = (meta) => {
+    if (!meta) return false;
+    if (!meta.playlists || typeof meta.playlists !== "object") meta.playlists = {};
+    if (!meta.songs || typeof meta.songs !== "object") meta.songs = {};
+
+    let changed = false;
+
+    // Fix any playlists with undefined or mismatched ids
+    for (const key of Object.keys(meta.playlists)) {
+        const p = meta.playlists[key];
+        if (!p) {
+            delete meta.playlists[key];
+            changed = true;
+            continue;
+        }
+
+        let validId = p.id || p._id;
+        if (!validId && key !== "undefined") {
+            validId = key;
+        }
+
+        if (validId) {
+            validId = String(validId);
+            if (p.id !== validId) { p.id = validId; changed = true; }
+            if (p._id !== validId) { p._id = validId; changed = true; }
+            if (key === "undefined" || key !== validId) {
+                meta.playlists[validId] = { ...(meta.playlists[validId] || {}), ...p, id: validId, _id: validId };
+                delete meta.playlists[key];
+                changed = true;
+            }
+        }
+    }
+
+    // Fix any songs saved under key "undefined" or orphaned
+    if (meta.songs["undefined"] && Array.isArray(meta.songs["undefined"])) {
+        const undefinedSongs = meta.songs["undefined"];
+        const playlistKeys = Object.keys(meta.playlists).filter(k => k !== "undefined");
+
+        if (playlistKeys.length > 0) {
+            const targetKey = playlistKeys[0];
+            meta.songs[targetKey] = meta.songs[targetKey] || [];
+            for (const song of undefinedSongs) {
+                const sId = song.id || song._id;
+                if (!meta.songs[targetKey].some(s => (s.id || s._id) === sId)) {
+                    meta.songs[targetKey].push({ ...song, id: sId, _id: sId });
+                }
+            }
+            if (meta.playlists[targetKey]) {
+                meta.playlists[targetKey].songCount = meta.songs[targetKey].length;
+                meta.playlists[targetKey].sizeBytes = meta.songs[targetKey].reduce(
+                    (acc, s) => acc + (s.totalBytes || 0),
+                    0
+                );
+            }
+        }
+        delete meta.songs["undefined"];
+        changed = true;
+    }
+
+    // Ensure all songs in all playlists have id and _id
+    for (const pId of Object.keys(meta.songs)) {
+        if (!Array.isArray(meta.songs[pId])) continue;
+        for (const s of meta.songs[pId]) {
+            const sId = s.id || s._id;
+            if (sId) {
+                if (!s.id) { s.id = sId; changed = true; }
+                if (!s._id) { s._id = sId; changed = true; }
+            }
+        }
+    }
+
+    return changed;
+};
+
 const getMetaFile = () => {
     const downloadsDir = new Directory(Paths.document, "downloads");
     if (!downloadsDir.exists) downloadsDir.create();
@@ -31,6 +107,20 @@ const getMetaFile = () => {
 const getMeta = async () => {
     if (cachedMeta) return cachedMeta;
     try {
+        // Try MMKV cache first
+        const mmkvData = storage.getString("downloads_meta");
+        if (mmkvData) {
+            try {
+                const parsed = JSON.parse(mmkvData);
+                if (parsed && typeof parsed === "object") {
+                    cachedMeta = parsed;
+                    repairMeta(cachedMeta);
+                    buildLookupMap(cachedMeta);
+                    return cachedMeta;
+                }
+            } catch (e) {}
+        }
+
         const file = getMetaFile();
         if (!file.exists) {
             cachedMeta = { playlists: {}, songs: {} };
@@ -38,10 +128,28 @@ const getMeta = async () => {
         }
         const content = await file.text();
         cachedMeta = JSON.parse(content);
+        const repaired = repairMeta(cachedMeta);
         buildLookupMap(cachedMeta);
+        try {
+            storage.set("downloads_meta", JSON.stringify(cachedMeta));
+            if (repaired) {
+                await file.write(JSON.stringify(cachedMeta));
+            }
+        } catch (e) {}
         return cachedMeta;
     } catch (e) {
-        return { playlists: {}, songs: {} };
+        console.log("Error loading meta from file, attempting MMKV fallback:", e);
+        try {
+            const mmkvData = storage.getString("downloads_meta");
+            if (mmkvData) {
+                cachedMeta = JSON.parse(mmkvData);
+                repairMeta(cachedMeta);
+                buildLookupMap(cachedMeta);
+                return cachedMeta;
+            }
+        } catch (err) {}
+        cachedMeta = { playlists: {}, songs: {} };
+        return cachedMeta;
     }
 };
 
@@ -49,21 +157,39 @@ const saveMeta = async meta => {
     cachedMeta = meta;
     buildLookupMap(meta);
     try {
-        const file = getMetaFile();
-        file.write(JSON.stringify(meta));
+        storage.set("downloads_meta", JSON.stringify(meta));
     } catch (e) {
-        console.log("Failed to save meta:", e);
+        console.log("Failed to save meta to MMKV:", e);
+    }
+    try {
+        const file = getMetaFile();
+        await file.write(JSON.stringify(meta));
+    } catch (e) {
+        console.log("Failed to save meta to file:", e);
     }
 };
 
 export const getDownloadedPlaylists = async () => {
     const meta = await getMeta();
-    return Object.values(meta.playlists).map(p => ({ ...p }));
+    return Object.values(meta.playlists)
+        .map(p => {
+            const pId = String(p.id || p._id || "");
+            return {
+                ...p,
+                id: pId,
+                _id: pId
+            };
+        })
+        .filter(p => p.id && p.id !== "undefined");
 };
 
 export const getDownloadedSongs = async playlistId => {
     const meta = await getMeta();
-    return meta.songs[playlistId] ? [...meta.songs[playlistId]] : [];
+    if (!playlistId) return [];
+    const pId = String(playlistId);
+    if (meta.songs[pId]) return [...meta.songs[pId]];
+    if (meta.songs[playlistId]) return [...meta.songs[playlistId]];
+    return [];
 };
 
 export const saveDownloadedPlaylist = async playlist => {
@@ -71,11 +197,17 @@ export const saveDownloadedPlaylist = async playlist => {
         metaMutex = metaMutex.then(async () => {
             try {
                 const meta = await getMeta();
-                meta.playlists[playlist.id] = {
-                    ...(meta.playlists[playlist.id] || {}),
-                    ...playlist
-                };
-                await saveMeta(meta);
+                const pId = String(playlist.id || playlist._id);
+                if (pId && pId !== "undefined") {
+                    meta.playlists[pId] = {
+                        ...(meta.playlists[pId] || {}),
+                        ...playlist,
+                        id: pId,
+                        _id: pId
+                    };
+                    await saveMeta(meta);
+                    useDownloadStatus.getState().bumpDownloadVersion?.();
+                }
             } catch (e) {
                 console.log("Failed to save playlist meta:", e);
             }
@@ -165,6 +297,7 @@ export const deleteDownloadedPlaylist = async playlistId => {
                 delete meta.playlists[playlistId];
                 delete meta.songs[playlistId];
                 await saveMeta(meta);
+                useDownloadStatus.getState().bumpDownloadVersion?.();
                 try {
                     const { usePlayer } = require("../../store/player.js");
                     if (usePlayer.getState().onLocalSongDeleted) {
@@ -259,6 +392,7 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
                 }
 
                 await saveMeta(meta);
+                useDownloadStatus.getState().bumpDownloadVersion?.();
                 try {
                     const { usePlayer } = require("../../store/player.js");
                     if (usePlayer.getState().onLocalSongDeleted) {
@@ -493,7 +627,7 @@ export const downloadSongToLocal = async (song, playlistId, downloadVideo = fals
                     }
 
                     if (lyricsData && (lyricsData.lyrics?.length || lyricsData.lyricsAsText?.length)) {
-                        lyricsFile.write(JSON.stringify(lyricsData));
+                        await lyricsFile.write(JSON.stringify(lyricsData));
                     }
                 }
             } catch (e) {}
@@ -521,13 +655,15 @@ export const downloadPlaylistSongs = async (
         onProgress = undefined;
     }
 
-    let downloadedSongs = await getDownloadedSongs(playlist.id);
+    const playlistId = String(playlist.id || playlist._id || "local_my_downloads");
+
+    let downloadedSongs = await getDownloadedSongs(playlistId);
 
     let localPlaylistCover = playlist.cover;
     if (playlist.cover && !playlist.cover.startsWith("file://")) {
         try {
             const downloadsDir = new Directory(Paths.document, "downloads");
-            const playlistDir = new Directory(downloadsDir, String(playlist.id));
+            const playlistDir = new Directory(downloadsDir, playlistId);
             playlistDir.create({ idempotent: true, intermediates: true });
             
             let coverExt = "jpg";
@@ -552,7 +688,8 @@ export const downloadPlaylistSongs = async (
     }
 
     await saveDownloadedPlaylist({
-        id: playlist.id,
+        id: playlistId,
+        _id: playlistId,
         name: playlist.name,
         cover: localPlaylistCover,
         songCount: downloadedSongs.length,
@@ -567,12 +704,12 @@ export const downloadPlaylistSongs = async (
         song =>
             !downloadedSongs.find(
                 s => (s.id || s._id) === (song.id || song._id)
-            ) && !downloadingTasks[`${playlist.id}:${song.id || song._id}`]
+            ) && !downloadingTasks[`${playlistId}:${song.id || song._id}`]
     );
     if (pendingSongs.length > 0) {
         useDownloadStatus
             .getState()
-            .setDownloadingPlaylist(playlist.id, pendingSongs);
+            .setDownloadingPlaylist(playlistId, pendingSongs);
     }
 
     let currentIndex = 0;
@@ -584,7 +721,7 @@ export const downloadPlaylistSongs = async (
             const song = songsToDownload[index];
             const songId = song.id || song._id;
 
-            const isStillPending = useDownloadStatus.getState().downloadingPlaylists[playlist.id]?.find(s => (s.id || s._id) === songId);
+            const isStillPending = useDownloadStatus.getState().downloadingPlaylists[playlistId]?.find(s => (s.id || s._id) === songId);
             if (!isStillPending) {
                 // The song was cancelled while queued!
                 if (onProgress) {
@@ -594,7 +731,7 @@ export const downloadPlaylistSongs = async (
                 continue;
             }
 
-            const taskKey = `${playlist.id}:${songId}`;
+            const taskKey = `${playlistId}:${songId}`;
             const isDownloading = !!useDownloadStatus.getState().downloadTasks[taskKey];
             if (downloadedSongs.find(s => (s.id || s._id) === songId) || isDownloading) {
                 if (onProgress) {
@@ -606,7 +743,7 @@ export const downloadPlaylistSongs = async (
 
             useDownloadStatus.getState().setDownloadingSong(songId, "downloading");
 
-            const downloadResult = await downloadSongToLocal(song, playlist.id, downloadVideo);
+            const downloadResult = await downloadSongToLocal(song, playlistId, downloadVideo);
 
             useDownloadStatus.getState().removeDownloadingSong(songId);
 
@@ -616,12 +753,14 @@ export const downloadPlaylistSongs = async (
                     useDownloadStatus
                         .getState()
                         .downloadingPlaylists[
-                            playlist.id
+                            playlistId
                         ]?.find(s => (s.id || s._id) === songId) || {};
 
                 const { lyrics, lyricsAsText, ...cleanSong } = song;
                 const songToSave = {
                     ...cleanSong,
+                    id: songId,
+                    _id: songId,
                     cloudUrl: song.cloudUrl || song.url,
                     localUrl,
                     isLocal: true,
@@ -642,16 +781,19 @@ export const downloadPlaylistSongs = async (
                     metaMutex = metaMutex.then(async () => {
                         try {
                             const meta = await getMeta();
-                            meta.songs[playlist.id] = meta.songs[playlist.id] || [];
-                            if (!meta.songs[playlist.id].find(s => (s.id || s._id) === songId)) {
-                                meta.songs[playlist.id].push(songToSave);
-                                meta.playlists[playlist.id] = meta.playlists[playlist.id] || {};
-                                meta.playlists[playlist.id].songCount = meta.songs[playlist.id].length;
-                                meta.playlists[playlist.id].sizeBytes = meta.songs[playlist.id].reduce(
+                            meta.songs[playlistId] = meta.songs[playlistId] || [];
+                            if (!meta.songs[playlistId].find(s => (s.id || s._id) === songId)) {
+                                meta.songs[playlistId].push(songToSave);
+                                meta.playlists[playlistId] = meta.playlists[playlistId] || {};
+                                meta.playlists[playlistId].id = playlistId;
+                                meta.playlists[playlistId]._id = playlistId;
+                                meta.playlists[playlistId].songCount = meta.songs[playlistId].length;
+                                meta.playlists[playlistId].sizeBytes = meta.songs[playlistId].reduce(
                                     (acc, s) => acc + (s.totalBytes || 0),
                                     0
                                 );
                                 await saveMeta(meta);
+                                useDownloadStatus.getState().bumpDownloadVersion?.();
                                 // Notify player to update its queue if it is currently playing this local playlist
                                 const { usePlayer } = require("../../store/player.js");
                                 if (usePlayer.getState().onLocalSongDownloaded) {
@@ -668,7 +810,7 @@ export const downloadPlaylistSongs = async (
 
             useDownloadStatus
                 .getState()
-                .removeDownloadingPlaylistSong(playlist.id, songId);
+                .removeDownloadingPlaylistSong(playlistId, songId);
 
             if (onProgress) {
                 progressCount++;

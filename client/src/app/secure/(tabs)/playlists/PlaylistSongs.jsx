@@ -413,6 +413,7 @@ const PlaylistSongs = () => {
             }
 
             const playlistToSave = {
+                id: computedPlaylistId,
                 _id: computedPlaylistId,
                 name: playlistName,
                 cover: currentSelectedPlaylist?.cover || null,

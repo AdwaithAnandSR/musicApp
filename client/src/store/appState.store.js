@@ -95,6 +95,8 @@ export const useStatus = create(set => ({
 export const useDownloadStatus = create((set, get) => ({
     downloadingPlaylists: {}, // map of playlistId to array of songs with progress
     downloadTasks: {}, // map of songId to File.DownloadTask (transient, not in state really, but we can store it or keep it in service)
+    downloadVersion: 0,
+    bumpDownloadVersion: () => set(state => ({ downloadVersion: state.downloadVersion + 1 })),
     
     // We keep downloadingSongs for O(1) status lookup in ListItem
     downloadingSongs: {}, 

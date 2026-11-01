@@ -16,7 +16,7 @@ import ListItem from "@components/ListItem.jsx";
 import PopUpOptions from "@components/PopUpOptions.jsx";
 import { getDownloadedSongs, deleteDownloadedPlaylist } from "@services/downloads/downloadService.js";
 import { usePlayer } from "@store/player.js";
-import { useDownloadStatus } from "@store/appState.store.js";
+import { useAppStatus, useDownloadStatus } from "@store/appState.store.js";
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 const HEADER_HEIGHT = 250;
@@ -25,7 +25,10 @@ const EMPTY_ARRAY = [];
 const DownloadedPlaylistSongs = () => {
     const [scrollY] = useState(() => new Animated.Value(0));
     const flashListRef = useRef();
-    const { playlistId, playlistName } = useLocalSearchParams();
+    const params = useLocalSearchParams();
+    const currentSelectedPlaylist = useAppStatus(state => state.currentSelectedPlaylist);
+    const playlistId = String(params.playlistId || currentSelectedPlaylist?._id || currentSelectedPlaylist?.id || "");
+    const playlistName = params.playlistName || currentSelectedPlaylist?.name || "Downloaded Playlist";
     const [downloadedSongsState, setDownloadedSongsState] = useState([]);
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -44,7 +47,8 @@ const DownloadedPlaylistSongs = () => {
 
     const [syncedDownloading, setSyncedDownloading] = useState(downloadingPlaylistSongs);
 
-    const loadSongs = async () => {
+    const loadSongs = useCallback(async () => {
+        if (!playlistId) return;
         const fetched = await getDownloadedSongs(playlistId);
         setDownloadedSongsState(prev => {
             const prevIds = prev.map(s => s.id || s._id).join(',');
@@ -52,7 +56,13 @@ const DownloadedPlaylistSongs = () => {
             if (prevIds === fetchedIds) return prev;
             return fetched;
         });
-    };
+    }, [playlistId]);
+
+    const downloadVersion = useDownloadStatus(state => state.downloadVersion);
+
+    useEffect(() => {
+        loadSongs();
+    }, [downloadVersion, loadSongs]);
 
     useEffect(() => {
         if (downloadingPlaylistSongs === syncedDownloading) return;
@@ -77,7 +87,14 @@ const DownloadedPlaylistSongs = () => {
         return () => { isMounted = false; };
     }, [downloadingPlaylistSongs, syncedDownloading, playlistId]);
 
-    const songs = [...downloadedSongsState, ...syncedDownloading];
+    const songs = [...downloadedSongsState];
+    const downloadedIdSet = new Set(downloadedSongsState.map(s => s.id || s._id));
+    for (const s of syncedDownloading) {
+        const sId = s.id || s._id;
+        if (!downloadedIdSet.has(sId)) {
+            songs.push(s);
+        }
+    }
 
     const handleSearchChange = (query) => {
         const text = typeof query === "string" ? query : "";
@@ -104,7 +121,7 @@ const DownloadedPlaylistSongs = () => {
     useFocusEffect(
         useCallback(() => {
             loadSongs();
-        }, [playlistId])
+        }, [loadSongs])
     );
 
     const [refreshing, setRefreshing] = useState(false);

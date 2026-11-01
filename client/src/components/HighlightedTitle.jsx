@@ -4,6 +4,7 @@ const { width: vw } = Dimensions.get("window");
 
 const HighlightedText = ({ title, search = "", isCurrent }) => {
     const cleanSearch = (search || "").trim();
+    const titleStr = typeof title === "string" ? title : String(title || "");
     if (cleanSearch === "")
         return (
             <Text
@@ -13,13 +14,13 @@ const HighlightedText = ({ title, search = "", isCurrent }) => {
                     { color: isCurrent ? "rgb(246,7,135)" : "white" }
                 ]}
             >
-                {title}
+                {titleStr}
             </Text>
         );
 
     const escaped = cleanSearch.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(${escaped})`, "gi");
-    const parts = title.split(regex);
+    const parts = titleStr.split(regex);
 
     return (
         <Text

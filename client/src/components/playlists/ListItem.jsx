@@ -59,7 +59,7 @@ const ListItem = ({ item, index = 0, scrollY }) => {
         if (item.isLocalFolder) {
             router.push({
                 pathname: "secure/playlists/DownloadedPlaylistSongs",
-                params: { playlistId: item._id, playlistName: item.name }
+                params: { playlistId: item._id || item.id, playlistName: item.name }
             });
             return;
         }
