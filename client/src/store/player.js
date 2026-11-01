@@ -140,7 +140,7 @@ export const usePlayer = create((set, get) => ({
     return "none";
   },
 
-  updateLockScreen: (track) => {
+  updateLockScreen: (track, forceReinit = false) => {
     const { player, isActiveForLockScreen } = get();
     if (!player || !track) return;
 
@@ -151,7 +151,7 @@ export const usePlayer = create((set, get) => ({
       albumTitle: track.album || track.albumTitle,
     };
 
-    if (!isActiveForLockScreen) {
+    if (!isActiveForLockScreen || forceReinit) {
       player.setActiveForLockScreen(true, metadata, {
         showSeekForward: true,
         showSeekBackward: true,
@@ -221,7 +221,7 @@ export const usePlayer = create((set, get) => ({
 
         // Only set/update lock screen metadata once native duration is ready
         if (shouldUpdateLockScreen && track) {
-          get().updateLockScreen(track);
+          get().updateLockScreen(track, true);
         }
 
         const currentProg = useProgress.getState();
@@ -283,7 +283,7 @@ export const usePlayer = create((set, get) => ({
           });
           useStatus.getState().resetShowLyrics();
 
-          // Removed premature get().updateLockScreen(nextTrack) from here
+          get().updateLockScreen(nextTrack);
           get().updateWidget(nextTrack, get().isPlaying);
           get().loadTrackLyrics(nextTrack);
 

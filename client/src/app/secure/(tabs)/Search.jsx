@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     Alert
 } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';;
 import { FlashList } from "@shopify/flash-list";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import {
@@ -197,7 +198,7 @@ const Search = () => {
     };
 
     return (
-        <View style={styles.container}>
+        <SafeAreaView top={true} style={styles.container}>
             <View style={styles.searchContainer}>
                 <Host
                     colorScheme="dark"
@@ -275,7 +276,7 @@ const Search = () => {
                     ) : null
                 }
             />
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -284,7 +285,7 @@ const styles = StyleSheet.create({
         flex: 1,
         position: "relative",
         top: 0,
-        paddingTop: 30,
+        
         backgroundColor: "black"
     },
     searchContainer: {
