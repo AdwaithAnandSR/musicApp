@@ -27,7 +27,8 @@ const DownloadedPlaylistSongs = () => {
     const flashListRef = useRef();
     const params = useLocalSearchParams();
     const currentSelectedPlaylist = useAppStatus(state => state.currentSelectedPlaylist);
-    const playlistId = String(params.playlistId || currentSelectedPlaylist?._id || currentSelectedPlaylist?.id || "");
+    const rawPlaylistId = String(params.playlistId || currentSelectedPlaylist?._id || currentSelectedPlaylist?.id || "");
+    const playlistId = rawPlaylistId.replace(/^local-/, "");
     const playlistName = params.playlistName || currentSelectedPlaylist?.name || "Downloaded Playlist";
     const [downloadedSongsState, setDownloadedSongsState] = useState([]);
 
@@ -36,13 +37,16 @@ const DownloadedPlaylistSongs = () => {
     const searchTimeout = useRef(null);
 
     // Select only the set of downloading IDs (a string), not the full array.
-    // This way progress ticks don't cause re-renders — only add/remove does.
+    // Also check downloadingPlaylists with and without local- prefix.
     const downloadingSongIds = useDownloadStatus(
-        state => (state.downloadingPlaylists[playlistId] ?? EMPTY_ARRAY).map(s => s.id || s._id).join(',')
+        state => {
+            const list = state.downloadingPlaylists[playlistId] || state.downloadingPlaylists[`local-${playlistId}`] || EMPTY_ARRAY;
+            return list.map(s => s.id || s._id).join(',');
+        }
     );
     // Derive the full array from getState() — React Compiler handles caching
     const downloadingPlaylistSongs = downloadingSongIds
-        ? useDownloadStatus.getState().downloadingPlaylists[playlistId] ?? EMPTY_ARRAY
+        ? (useDownloadStatus.getState().downloadingPlaylists[playlistId] || useDownloadStatus.getState().downloadingPlaylists[`local-${playlistId}`] || EMPTY_ARRAY)
         : EMPTY_ARRAY;
 
     const [syncedDownloading, setSyncedDownloading] = useState(downloadingPlaylistSongs);
@@ -50,12 +54,7 @@ const DownloadedPlaylistSongs = () => {
     const loadSongs = useCallback(async () => {
         if (!playlistId) return;
         const fetched = await getDownloadedSongs(playlistId);
-        setDownloadedSongsState(prev => {
-            const prevIds = prev.map(s => s.id || s._id).join(',');
-            const fetchedIds = fetched.map(s => s.id || s._id).join(',');
-            if (prevIds === fetchedIds) return prev;
-            return fetched;
-        });
+        setDownloadedSongsState(fetched);
     }, [playlistId]);
 
     const downloadVersion = useDownloadStatus(state => state.downloadVersion);
@@ -75,12 +74,7 @@ const DownloadedPlaylistSongs = () => {
         let isMounted = true;
         getDownloadedSongs(playlistId).then(fetched => {
             if (!isMounted) return;
-            setDownloadedSongsState(prev => {
-                const prevIds = prev.map(s => s.id || s._id).join(',');
-                const fetchedIds = fetched.map(s => s.id || s._id).join(',');
-                if (prevIds === fetchedIds) return prev;
-                return fetched;
-            });
+            setDownloadedSongsState(fetched);
             setSyncedDownloading(downloadingPlaylistSongs);
         });
 
@@ -187,6 +181,7 @@ const DownloadedPlaylistSongs = () => {
             <AnimatedFlashList
                 ref={flashListRef}
                 data={displayedSongs}
+                estimatedItemSize={60}
                 keyExtractor={item => item.id || item._id}
                 renderItem={({ item }) => (
                     <ListItem

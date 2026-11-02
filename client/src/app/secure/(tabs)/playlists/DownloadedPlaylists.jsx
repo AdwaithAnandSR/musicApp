@@ -23,14 +23,17 @@ const DownloadedPlaylists = () => {
             const fetchedPlaylists = await getDownloadedPlaylists();
             const playlistsWithCovers = await Promise.all(
                 fetchedPlaylists.map(async p => {
-                    const pId = String(p.id || p._id || "");
+                    const rawId = String(p.id || p._id || "");
+                    const pId = rawId.replace(/^local-/, "");
                     const songs = await getDownloadedSongs(pId);
                     return {
                         ...p,
                         id: pId,
                         _id: pId,
+                        songCount: songs.length,
+                        sizeBytes: songs.reduce((acc, s) => acc + (s.totalBytes || 0), 0) || p.sizeBytes || 0,
                         isLocalFolder: true,
-                        cover: songs && songs.length > 0 ? (songs[0].cover || songs[0].artwork) : p.cover
+                        cover: (songs && songs.length > 0 ? (songs[0].cover || songs[0].artwork) : null) || p.cover
                     };
                 })
             );

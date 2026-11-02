@@ -157,6 +157,7 @@ export const usePlayer = create((set, get) => ({
         showSeekBackward: true,
         showNextTrack: true,
         showPreviousTrack: true,
+        isLiveStream: false,
       });
       set({ isActiveForLockScreen: true });
     } else {
@@ -222,6 +223,9 @@ export const usePlayer = create((set, get) => ({
         // Only set/update lock screen metadata once native duration is ready
         if (shouldUpdateLockScreen && track) {
           get().updateLockScreen(track, true);
+          if (status.playing && typeof playlist?.seekTo === "function") {
+            playlist.seekTo(position);
+          }
         }
 
         const currentProg = useProgress.getState();
@@ -278,7 +282,7 @@ export const usePlayer = create((set, get) => ({
 
           useProgress.setState({
             position: 0,
-            duration: 0,
+            duration: nextTrack?.duration || 0,
             progress: 0,
           });
           useStatus.getState().resetShowLyrics();

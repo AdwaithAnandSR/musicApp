@@ -31,7 +31,7 @@ const repairMeta = (meta) => {
 
     let changed = false;
 
-    // Fix any playlists with undefined or mismatched ids
+    // 1. Fix any playlists with undefined, mismatched, or local- prefixed ids
     for (const key of Object.keys(meta.playlists)) {
         const p = meta.playlists[key];
         if (!p) {
@@ -40,24 +40,27 @@ const repairMeta = (meta) => {
             continue;
         }
 
-        let validId = p.id || p._id;
-        if (!validId && key !== "undefined") {
-            validId = key;
+        let rawId = p.id || p._id || key;
+        if (!rawId || rawId === "undefined") {
+            delete meta.playlists[key];
+            changed = true;
+            continue;
         }
 
-        if (validId) {
-            validId = String(validId);
-            if (p.id !== validId) { p.id = validId; changed = true; }
-            if (p._id !== validId) { p._id = validId; changed = true; }
-            if (key === "undefined" || key !== validId) {
-                meta.playlists[validId] = { ...(meta.playlists[validId] || {}), ...p, id: validId, _id: validId };
-                delete meta.playlists[key];
-                changed = true;
-            }
+        rawId = String(rawId);
+        const validId = rawId.replace(/^local-/, "");
+
+        if (p.id !== validId) { p.id = validId; changed = true; }
+        if (p._id !== validId) { p._id = validId; changed = true; }
+
+        if (key !== validId) {
+            meta.playlists[validId] = { ...(meta.playlists[validId] || {}), ...p, id: validId, _id: validId };
+            delete meta.playlists[key];
+            changed = true;
         }
     }
 
-    // Fix any songs saved under key "undefined" or orphaned
+    // 2. Fix any songs saved under key "undefined" or orphaned
     if (meta.songs["undefined"] && Array.isArray(meta.songs["undefined"])) {
         const undefinedSongs = meta.songs["undefined"];
         const playlistKeys = Object.keys(meta.playlists).filter(k => k !== "undefined");
@@ -83,7 +86,31 @@ const repairMeta = (meta) => {
         changed = true;
     }
 
-    // Ensure all songs in all playlists have id and _id
+    // 3. Migrate any songs stored under "local-xxx" keys into the canonical "xxx"
+    for (const key of Object.keys(meta.songs)) {
+        if (!Array.isArray(meta.songs[key])) continue;
+        if (key.startsWith("local-")) {
+            const targetKey = key.replace(/^local-/, "");
+            meta.songs[targetKey] = meta.songs[targetKey] || [];
+            for (const song of meta.songs[key]) {
+                const sId = song.id || song._id;
+                if (!meta.songs[targetKey].some(s => (s.id || s._id) === sId)) {
+                    meta.songs[targetKey].push({ ...song, id: sId, _id: sId });
+                }
+            }
+            delete meta.songs[key];
+            changed = true;
+            if (meta.playlists[targetKey]) {
+                meta.playlists[targetKey].songCount = meta.songs[targetKey].length;
+                meta.playlists[targetKey].sizeBytes = meta.songs[targetKey].reduce(
+                    (acc, s) => acc + (s.totalBytes || 0),
+                    0
+                );
+            }
+        }
+    }
+
+    // 4. Ensure all songs in all playlists have id and _id, and sync playlist counts
     for (const pId of Object.keys(meta.songs)) {
         if (!Array.isArray(meta.songs[pId])) continue;
         for (const s of meta.songs[pId]) {
@@ -92,6 +119,13 @@ const repairMeta = (meta) => {
                 if (!s.id) { s.id = sId; changed = true; }
                 if (!s._id) { s._id = sId; changed = true; }
             }
+        }
+        if (meta.playlists[pId]) {
+            meta.playlists[pId].songCount = meta.songs[pId].length;
+            meta.playlists[pId].sizeBytes = meta.songs[pId].reduce(
+                (acc, s) => acc + (s.totalBytes || 0),
+                0
+            );
         }
     }
 
@@ -173,11 +207,16 @@ export const getDownloadedPlaylists = async () => {
     const meta = await getMeta();
     return Object.values(meta.playlists)
         .map(p => {
-            const pId = String(p.id || p._id || "");
+            const rawId = String(p.id || p._id || "");
+            const pId = rawId.replace(/^local-/, "");
+            const songs = meta.songs[pId] || meta.songs[rawId] || [];
             return {
                 ...p,
                 id: pId,
-                _id: pId
+                _id: pId,
+                songCount: songs.length || p.songCount || 0,
+                sizeBytes: songs.reduce((acc, s) => acc + (s.totalBytes || 0), 0) || p.sizeBytes || 0,
+                cover: p.cover || (songs[0]?.cover || songs[0]?.artwork || null)
             };
         })
         .filter(p => p.id && p.id !== "undefined");
@@ -186,10 +225,28 @@ export const getDownloadedPlaylists = async () => {
 export const getDownloadedSongs = async playlistId => {
     const meta = await getMeta();
     if (!playlistId) return [];
-    const pId = String(playlistId);
-    if (meta.songs[pId]) return [...meta.songs[pId]];
-    if (meta.songs[playlistId]) return [...meta.songs[playlistId]];
-    return [];
+    const rawId = String(playlistId);
+    const cleanId = rawId.replace(/^local-/, "");
+    const withHyphen = `local-${cleanId}`;
+    const cleanUnderscore = cleanId.replace(/^local_/, "");
+    const withUnderscore = `local_${cleanUnderscore}`;
+
+    const candidateKeys = [cleanId, rawId, withHyphen, cleanUnderscore, withUnderscore];
+    const uniqueKeys = [...new Set(candidateKeys)];
+
+    const songMap = new Map();
+    for (const key of uniqueKeys) {
+        const list = meta.songs[key];
+        if (Array.isArray(list)) {
+            for (const s of list) {
+                const sId = s.id || s._id;
+                if (sId && !songMap.has(sId)) {
+                    songMap.set(sId, { ...s, id: sId, _id: sId });
+                }
+            }
+        }
+    }
+    return Array.from(songMap.values());
 };
 
 export const saveDownloadedPlaylist = async playlist => {
@@ -197,7 +254,8 @@ export const saveDownloadedPlaylist = async playlist => {
         metaMutex = metaMutex.then(async () => {
             try {
                 const meta = await getMeta();
-                const pId = String(playlist.id || playlist._id);
+                const rawId = String(playlist.id || playlist._id || "");
+                const pId = rawId.replace(/^local-/, "");
                 if (pId && pId !== "undefined") {
                     meta.playlists[pId] = {
                         ...(meta.playlists[pId] || {}),
@@ -217,28 +275,35 @@ export const saveDownloadedPlaylist = async playlist => {
 };
 
 export const deleteDownloadedPlaylist = async playlistId => {
+    if (!playlistId) return;
+    const rawId = String(playlistId);
+    const cleanId = rawId.replace(/^local-/, "");
+
     // 1. Cancel active download tasks
-    const pendingSongs =
-        useDownloadStatus.getState().downloadingPlaylists[playlistId] || [];
+    const pendingSongs = [
+        ...(useDownloadStatus.getState().downloadingPlaylists[cleanId] || []),
+        ...(useDownloadStatus.getState().downloadingPlaylists[rawId] || []),
+        ...(useDownloadStatus.getState().downloadingPlaylists[`local-${cleanId}`] || [])
+    ];
     const allTasks = useDownloadStatus.getState().downloadTasks;
 
     for (const song of pendingSongs) {
         const songId = song.id || song._id;
-        const taskKey = `${playlistId}:${songId}`;
-        const task = allTasks[taskKey];
-        if (task) {
-            try {
-                await task.cancelAsync();
-            } catch (e) {
-                console.log("Failed to cancel task:", e);
+        for (const pid of [cleanId, rawId, `local-${cleanId}`]) {
+            const taskKey = `${pid}:${songId}`;
+            const task = allTasks[taskKey];
+            if (task) {
+                try {
+                    await task.cancelAsync();
+                } catch (e) {}
             }
+            storage.delete(`download_task_${pid}:${songId}`);
         }
         useDownloadStatus.getState().removeDownloadingSong(songId);
-        storage.delete(`download_task_${playlistId}:${songId}`);
     }
 
     useDownloadStatus.setState(state => {
-        const { [playlistId]: _, ...rest } = state.downloadingPlaylists;
+        const { [cleanId]: _1, [rawId]: _2, [`local-${cleanId}`]: _3, ...rest } = state.downloadingPlaylists;
         return { downloadingPlaylists: rest };
     });
 
@@ -247,24 +312,25 @@ export const deleteDownloadedPlaylist = async playlistId => {
         metaMutex = metaMutex.then(async () => {
             try {
                 const meta = await getMeta();
-                const songs = meta.songs[playlistId] || [];
+                const songs = await getDownloadedSongs(cleanId);
 
                 const downloadsDir = new Directory(Paths.document, "downloads");
-                const playlistDir = new Directory(downloadsDir, String(playlistId));
+                const playlistDir = new Directory(downloadsDir, cleanId);
                 let playlistDirSafeToDelete = true;
 
                 for (const song of songs) {
                     const songId = song.id || song._id;
                     let isShared = false;
                     for (const pId in meta.songs) {
-                        if (pId !== String(playlistId) && meta.songs[pId].find(s => (s.id || s._id) === songId)) {
+                        if (pId !== cleanId && pId !== rawId && pId !== `local-${cleanId}` &&
+                            meta.songs[pId].find(s => (s.id || s._id) === songId)) {
                             isShared = true;
                             break;
                         }
                     }
 
                     if (isShared) {
-                        if (song.localUrl && song.localUrl.includes(`/${playlistId}/`)) {
+                        if (song.localUrl && (song.localUrl.includes(`/${cleanId}/`) || song.localUrl.includes(`/${rawId}/`))) {
                             playlistDirSafeToDelete = false;
                         }
                     } else if (song.localUrl) {
@@ -294,8 +360,12 @@ export const deleteDownloadedPlaylist = async playlistId => {
                     try { new File(playlistDir, 'playlist_cover.png').delete(); } catch(e){}
                 }
 
-                delete meta.playlists[playlistId];
-                delete meta.songs[playlistId];
+                delete meta.playlists[cleanId];
+                delete meta.playlists[rawId];
+                delete meta.playlists[`local-${cleanId}`];
+                delete meta.songs[cleanId];
+                delete meta.songs[rawId];
+                delete meta.songs[`local-${cleanId}`];
                 await saveMeta(meta);
                 useDownloadStatus.getState().bumpDownloadVersion?.();
                 try {
@@ -313,22 +383,27 @@ export const deleteDownloadedPlaylist = async playlistId => {
 };
 
 export const deleteDownloadedSong = async (playlistId, songId) => {
+    if (!playlistId || !songId) return;
+    const rawId = String(playlistId);
+    const cleanId = rawId.replace(/^local-/, "");
+
     // Delete the file only if not shared
     try {
         const meta = await getMeta();
         let isShared = false;
         for (const pId in meta.songs) {
-            if (pId !== String(playlistId) && meta.songs[pId].find(s => (s.id || s._id) === songId)) {
+            if (pId !== cleanId && pId !== rawId && pId !== `local-${cleanId}` &&
+                meta.songs[pId].find(s => (s.id || s._id) === songId)) {
                 isShared = true;
                 break;
             }
         }
         
         if (!isShared) {
-            // Find where it's stored and delete it
-            const song = (meta.songs[playlistId] || []).find(s => (s.id || s._id) === songId);
+            const songs = await getDownloadedSongs(cleanId);
+            const song = songs.find(s => (s.id || s._id) === songId);
             const downloadsDir = new Directory(Paths.document, "downloads");
-            let targetDir = new Directory(downloadsDir, String(playlistId));
+            let targetDir = new Directory(downloadsDir, cleanId);
             
             if (song && song.localUrl) {
                 const parts = song.localUrl.split('/');
@@ -359,48 +434,34 @@ export const deleteDownloadedSong = async (playlistId, songId) => {
         metaMutex = metaMutex.then(async () => {
             try {
                 const meta = await getMeta();
-                let songs = meta.songs[playlistId] || [];
-                const songIndex = songs.findIndex(s => (s.id || s._id) === songId);
-
-                if (songIndex === -1) {
-                    resolve();
-                    return;
-                }
-
-                songs.splice(songIndex, 1);
-
-                if (songs.length === 0) {
-                    delete meta.playlists[playlistId];
-                    delete meta.songs[playlistId];
-                    try {
-                        const downloadsDir = new Directory(Paths.document, "downloads");
-                        const playlistDir = new Directory(downloadsDir, String(playlistId));
-                        if (playlistDir.exists) {
-                            playlistDir.delete();
+                for (const pid of [cleanId, rawId, `local-${cleanId}`]) {
+                    if (meta.songs[pid]) {
+                        const idx = meta.songs[pid].findIndex(s => (s.id || s._id) === songId);
+                        if (idx !== -1) {
+                            meta.songs[pid].splice(idx, 1);
                         }
-                    } catch (e) {
-                        console.log("Failed to delete empty playlist directory:", e);
+                        if (meta.songs[pid].length === 0) {
+                            delete meta.songs[pid];
+                            delete meta.playlists[pid];
+                        } else if (meta.playlists[pid]) {
+                            meta.playlists[pid].songCount = meta.songs[pid].length;
+                            meta.playlists[pid].sizeBytes = meta.songs[pid].reduce(
+                                (acc, s) => acc + (s.totalBytes || 0),
+                                0
+                            );
+                        }
                     }
-                } else {
-                    meta.songs[playlistId] = songs;
-                    meta.playlists[playlistId].songCount = songs.length;
-                    // Recalculate size
-                    meta.playlists[playlistId].sizeBytes = songs.reduce(
-                        (acc, s) => acc + (s.totalBytes || 0),
-                        0
-                    );
                 }
-
                 await saveMeta(meta);
                 useDownloadStatus.getState().bumpDownloadVersion?.();
                 try {
                     const { usePlayer } = require("../../store/player.js");
                     if (usePlayer.getState().onLocalSongDeleted) {
-                        usePlayer.getState().onLocalSongDeleted(songId);
+                        usePlayer.getState().onLocalSongDeleted();
                     }
                 } catch (e) {}
             } catch (e) {
-                console.log("Delete song error:", e);
+                console.log("Failed to delete song meta:", e);
             }
             resolve();
         });
@@ -655,7 +716,8 @@ export const downloadPlaylistSongs = async (
         onProgress = undefined;
     }
 
-    const playlistId = String(playlist.id || playlist._id || "local_my_downloads");
+    const rawPlaylistId = String(playlist.id || playlist._id || "local_my_downloads");
+    const playlistId = rawPlaylistId.replace(/^local-/, "");
 
     let downloadedSongs = await getDownloadedSongs(playlistId);
 
