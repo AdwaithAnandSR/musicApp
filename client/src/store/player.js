@@ -71,6 +71,14 @@ export const useProgress = create(() => ({
 }));
 
 let playerTimerTimeout = null;
+let lockScreenFallbackTimeout = null;
+
+const clearLockScreenFallback = () => {
+  if (lockScreenFallbackTimeout) {
+    clearTimeout(lockScreenFallbackTimeout);
+    lockScreenFallbackTimeout = null;
+  }
+};
 
 export const usePlayer = create((set, get) => ({
   player: null,
@@ -140,7 +148,22 @@ export const usePlayer = create((set, get) => ({
     return "none";
   },
 
-  updateLockScreen: (track, forceReinit = false) => {
+  armLockScreenFallback: (track) => {
+    clearLockScreenFallback();
+    lockScreenFallbackTimeout = setTimeout(() => {
+      lockScreenFallbackTimeout = null;
+      const { player, isActiveForLockScreen, currentTrack } = get();
+      if (player && !isActiveForLockScreen) {
+        get().updateLockScreen(track || currentTrack);
+      }
+    }, 1500);
+  },
+
+  clearLockScreenFallback: () => {
+    clearLockScreenFallback();
+  },
+
+  updateLockScreen: (track) => {
     const { player, isActiveForLockScreen } = get();
     if (!player || !track) return;
 
@@ -151,7 +174,7 @@ export const usePlayer = create((set, get) => ({
       albumTitle: track.album || track.albumTitle,
     };
 
-    if (!isActiveForLockScreen || forceReinit) {
+    if (!isActiveForLockScreen) {
       player.setActiveForLockScreen(true, metadata, {
         showSeekForward: true,
         showSeekBackward: true,
@@ -222,10 +245,8 @@ export const usePlayer = create((set, get) => ({
 
         // Only set/update lock screen metadata once native duration is ready
         if (shouldUpdateLockScreen && track) {
-          get().updateLockScreen(track, true);
-          if (status.playing && typeof playlist?.seekTo === "function") {
-            playlist.seekTo(position);
-          }
+          clearLockScreenFallback();
+          get().updateLockScreen(track);
         }
 
         const currentProg = useProgress.getState();
@@ -277,7 +298,8 @@ export const usePlayer = create((set, get) => ({
             currentTrackId: nextTrack._id || nextTrack.id,
             currentTrack: nextTrack,
             hasEnded: false,
-            isDurationFetched: false, // <-- Reset so playlistStatusUpdate triggers lock screen once loaded
+            isDurationFetched: false, // <-- Reset so status update activates lock screen when duration arrives
+            isActiveForLockScreen: false,
           });
 
           useProgress.setState({
@@ -287,7 +309,18 @@ export const usePlayer = create((set, get) => ({
           });
           useStatus.getState().resetShowLyrics();
 
-          get().updateLockScreen(nextTrack);
+          if (playlist) {
+            try {
+              playlist.updateLockScreenMetadata({
+                title: nextTrack.title,
+                artist: nextTrack?.artist?.split(",")?.[0] || nextTrack?.artist,
+                artworkUrl: nextTrack.cover || nextTrack.artwork,
+                albumTitle: nextTrack.album || nextTrack.albumTitle,
+              });
+            } catch (_) {}
+          }
+
+          get().armLockScreenFallback(nextTrack);
           get().updateWidget(nextTrack, get().isPlaying);
           get().loadTrackLyrics(nextTrack);
 
@@ -371,10 +404,19 @@ export const usePlayer = create((set, get) => ({
         isPlaying: true,
         isStopped: false,
         isDurationFetched: false,
+        isActiveForLockScreen: false,
       });
       player.skipTo(index);
       player.play();
-      get().updateLockScreen(track);
+      try {
+        player.updateLockScreenMetadata({
+          title: track.title,
+          artist: track?.artist?.split(",")?.[0] || track?.artist,
+          artworkUrl: track.cover || track.artwork,
+          albumTitle: track.album || track.albumTitle,
+        });
+      } catch (_) {}
+      get().armLockScreenFallback(track);
       get().updateWidget(track, true);
       get().loadTrackLyrics(track);
     } else {
@@ -399,12 +441,13 @@ export const usePlayer = create((set, get) => ({
         currentTrack: track,
         isPlaying: true,
         isStopped: false,
+        isActiveForLockScreen: false,
         isDurationFetched: false,
       });
 
-      get().updateLockScreen(track);
       newPlaylist.skipTo(index);
       newPlaylist.play();
+      get().armLockScreenFallback(track);
       get().updateWidget(track, true);
       get().loadTrackLyrics(track);
     }
@@ -705,6 +748,7 @@ export const usePlayer = create((set, get) => ({
     /*
      * 4. Teardown existing player instance before creating new AudioPlaylist
      */
+    clearLockScreenFallback();
     get().playbackListener?.remove();
     get().trackChangedListener?.remove();
     if (player) {
@@ -771,11 +815,10 @@ export const usePlayer = create((set, get) => ({
         trackChangedListener: trackListener,
       });
 
-      // Activate lock screen & foreground service immediately so Headless JS
-      // starts AudioControlsService before widgetTaskHandler exits
-      get().updateLockScreen(currentTrack);
+      // Delay lock screen activation until duration is resolved in setupListeners
       newPlaylist.skipTo(initialIndex);
       newPlaylist.play();
+      get().armLockScreenFallback(currentTrack);
 
       get().updateWidget(currentTrack, true);
       get().loadTrackLyrics(currentTrack);
@@ -925,6 +968,8 @@ export const usePlayer = create((set, get) => ({
 
   clearPlayer: () => {
     const { player, playbackListener, trackChangedListener } = get();
+
+    clearLockScreenFallback();
 
     if (playerTimerTimeout) {
       clearTimeout(playerTimerTimeout);
